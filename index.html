@@ -149,18 +149,16 @@
     const { useState, useEffect, useMemo } = React;
 
     // ==========================================
-    // [다중 사용자 연동용 FIREBASE 설정 안내]
-    // 다른 선생님 자리에서도 실시간으로 내용이 동기화되게 하려면 
-    // 아래 firebaseConfig에 본인의 학교 혹은 개인 Firebase 정보를 입력해주시면 됩니다.
-    // 비워둘 경우, 기존대로 브라우저 LocalStorage 단독 연동 모드로 자동 전환됩니다.
+    // [다중 사용자 연동용 FIREBASE 설정]
+    // 제공받은 관산중학교 Firebase App Key 세트 연동 완료
     // ==========================================
     const firebaseConfig = {
-      apiKey: "",
-      authDomain: "",
-      projectId: "",
-      storageBucket: "",
-      messagingSenderId: "",
-      appId: ""
+      apiKey: "AIzaSyC0M-QpErLS_haeexoymRiZ8l0tdC_SRgg",
+      authDomain: "gwvs-77114.firebaseapp.com",
+      projectId: "gwvs-77114",
+      storageBucket: "gwvs-77114.firebasestorage.app",
+      messagingSenderId: "1044148704527",
+      appId: "1:1044148704527:web:e16e00ebb440a4b70e9a7a"
     };
 
     const isFirebaseActive = !!firebaseConfig.projectId;
