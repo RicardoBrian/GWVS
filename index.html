@@ -29,7 +29,7 @@
   <!-- Tailwind 커스텀 토큰 설정 -->
   <script>
     tailwind.config = {
-      darkMode: 'media',
+      darkMode: 'class',
       theme: {
         extend: {
           fontFamily: {
@@ -130,12 +130,74 @@
       box-shadow: var(--glass-highlight), var(--glass-shadow);
     }
 
+    /* .dark 클래스 기반 다크모드 (토글 지원) */
+    html.dark {
+      --bg-gradient:
+        radial-gradient(at 18% 18%, #1b2444 0%, transparent 55%),
+        radial-gradient(at 82% 12%, #2c1a44 0%, transparent 48%),
+        radial-gradient(at 65% 90%, #0e2438 0%, transparent 52%),
+        radial-gradient(at 8%  92%, #1a1530 0%, transparent 46%),
+        #07080d;
+      --glass-bg: rgba(44, 46, 58, 0.58);
+      --glass-border: rgba(255, 255, 255, 0.14);
+      --glass-edge: rgba(255, 255, 255, 0.15);
+      --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+      --text-primary: #f2f4f8;
+      --text-secondary: #aab0bd;
+      --accent: #0a84ff;
+      --accent-hover: #409cff;
+      --accent-light: rgba(10, 132, 255, 0.18);
+      --accent-grad: linear-gradient(180deg, #2b95ff 0%, #0a84ff 100%);
+      --danger: #ff453a;
+      --danger-light: rgba(255, 69, 58, 0.18);
+      --success: #30d158;
+      --success-light: rgba(48, 209, 88, 0.2);
+    }
+
     .inp:focus {
       outline: none;
-      box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.25);
+      box-shadow: 0 0 0 3px var(--accent-light);
       border-color: var(--accent);
     }
-    
+
+    /* Glass select */
+    .glass-select {
+      background: var(--glass-bg);
+      backdrop-filter: saturate(180%) blur(var(--blur));
+      -webkit-backdrop-filter: saturate(180%) blur(var(--blur));
+      border: 1px solid var(--glass-border);
+      color: var(--text-primary);
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238a8f99' d='M6 8L1.5 3.5l1-1L6 6l3.5-3.5 1 1z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+      cursor: pointer;
+    }
+    .glass-select:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px var(--accent-light);
+      border-color: var(--accent);
+    }
+
+    /* Dark toggle pill */
+    .dark-toggle {
+      width: 44px; height: 26px; border-radius: 999px;
+      background: var(--glass-bg); border: 1px solid var(--glass-border);
+      cursor: pointer; position: relative;
+      transition: background .26s; box-shadow: var(--glass-highlight);
+      flex-shrink: 0;
+    }
+    html.dark .dark-toggle { background: var(--accent); border-color: transparent; }
+    .dark-toggle::after {
+      content: ''; position: absolute; top: 2px; left: 2px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3);
+      transition: transform .26s;
+    }
+    html.dark .dark-toggle::after { transform: translateX(18px); }
+
     ::-webkit-scrollbar {
       width: 10px;
       height: 10px;
@@ -256,7 +318,14 @@
 
       const [alertToast, setAlertToast] = useState(null);
       const [liveTime, setLiveTime] = useState("");
-      const [firebaseError, setFirebaseError] = useState(""); // 파이어베이스 설정 에러 정보 상태
+      const [firebaseError, setFirebaseError] = useState("");
+      const [isDark, setIsDark] = useState(() =>
+        window.matchMedia('(prefers-color-scheme: dark)').matches
+      );
+
+      useEffect(() => {
+        document.documentElement.classList.toggle('dark', isDark);
+      }, [isDark]);
 
       // 실시간 클라우드 연동 리스너 (경로 보정 및 초기화 레이스 컨디션 차단)
       useEffect(() => {
@@ -857,10 +926,7 @@
                       autoFocus
                     />
                     {passwordError && (
-                      <p className="mt-2.5 text-xs text-red-600 font-normal flex items-center gap-1.5">
-                        <span>⚠</span>
-                        <span>{passwordError}</span>
-                      </p>
+                      <p className="mt-2 text-xs text-red-600">{passwordError}</p>
                     )}
                   </div>
 
@@ -885,76 +951,64 @@
             // ----------------- [2. 대시보드 메인 인터페이스] -----------------
             <div className="space-y-6">
               
-              {/* 상단 통합 네비게이션 헤더 */}
-              <header className="glass-card p-6 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-3">
-                    <img 
-                      src="logo.png" 
-                      alt="관산중 로고" 
-                      onError={(e) => { 
-                        e.target.onerror = null;
-                        e.target.src = "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=150"; 
-                      }} 
-                      className="w-11 h-11 object-cover rounded-lg"
-                    />
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className={`inline-block w-2.5 h-2.5 rounded-full ${firebaseError ? 'bg-amber-500' : 'bg-emerald-500'} animate-pulse`}></span>
-                        <span className="text-xs font-normal text-text-secondary uppercase tracking-widest">
-                          {isAdmin ? "관리자 모드" : firebaseError ? "동기화 일시 중단" : "실시간 연결됨"}
-                        </span>
-                      </div>
-                      <h1 className="text-lg sm:text-xl font-light tracking-tight">관산중학교 봉사활동 도우미 포털</h1>
+              {/* 상단 헤더 */}
+              <header className="glass-card p-5 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <img
+                    src="logo.png"
+                    alt="관산중 로고"
+                    onError={(e) => { e.target.onerror = null; e.target.src = "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=150"; }}
+                    className="w-10 h-10 object-cover rounded-xl"
+                  />
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`inline-block w-2 h-2 rounded-full ${firebaseError ? 'bg-amber-500' : 'bg-emerald-500'} animate-pulse`}></span>
+                      <span className="text-[11px] font-medium text-text-secondary uppercase tracking-widest">
+                        {isAdmin ? "관리자 모드" : firebaseError ? "오프라인" : "실시간 연결됨"}
+                      </span>
                     </div>
+                    <h1 className="text-base sm:text-lg font-semibold tracking-tight">관산중학교 봉사활동 도우미 포털</h1>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-center gap-3">
-                  {/* 라이브 클럭 */}
-                  <div className="px-3.5 py-2 bg-white/20 dark:bg-black/20 border border-white/30 dark:border-white/10 rounded-xl text-xs font-mono font-normal text-text-secondary flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <div className="px-3 py-1.5 bg-white/20 dark:bg-black/20 border border-white/30 dark:border-white/10 rounded-full text-xs font-mono text-text-secondary flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-accent"></span>
                     <span>{liveTime || "00:00:00"}</span>
                   </div>
 
-                  {/* 관리자 전환 버튼 (⚙) */}
                   {!isAdmin ? (
-                    <button 
+                    <button
                       onClick={() => setIsAdminGateOpen(true)}
-                      className="p-2.5 bg-white/20 hover:bg-white/35 border border-white/30 dark:border-white/10 text-text-primary rounded-xl text-xs font-normal flex items-center gap-1.5 transition-all shadow-sm"
-                      title="관리자 전용 설정 진입"
+                      className="px-3.5 py-2 bg-white/20 hover:bg-white/35 border border-white/30 dark:border-white/10 text-text-primary rounded-full text-xs font-medium flex items-center gap-1.5 transition-all"
                     >
-                      <span className="text-base">⚙️</span>
-                      <span>관리자 포탈</span>
+                      관리자
                     </button>
                   ) : (
-                    <button 
+                    <button
                       onClick={handleExitAdminMode}
-                      className="px-3.5 py-2.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/35 text-amber-800 dark:text-amber-400 rounded-xl text-xs font-normal flex items-center gap-1.5 transition-all"
+                      className="px-3.5 py-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/35 text-amber-700 dark:text-amber-400 rounded-full text-xs font-medium transition-all"
                     >
-                      <span>🔄 교사 모드로 복귀</span>
+                      일반 모드로 전환
                     </button>
                   )}
 
-                  <button 
+                  <button
                     onClick={handleLogout}
-                    className="px-4 py-2.5 rounded-xl bg-red-600/10 hover:bg-red-600 text-red-600 hover:text-white border border-red-600/20 text-xs font-normal flex items-center gap-1.5 transition-all"
+                    className="px-3.5 py-2 rounded-full bg-red-600/10 hover:bg-red-600 text-red-600 hover:text-white border border-red-600/20 text-xs font-medium transition-all"
                   >
-                    <span>접속 종료</span>
+                    로그아웃
                   </button>
+
+                  <div className="dark-toggle" onClick={() => setIsDark(d => !d)} title="다크모드 전환"></div>
                 </div>
               </header>
 
               {/* 파이어베이스 설정 누락 경고 배너 */}
               {firebaseError && (
-                <div className="bg-amber-500/10 border border-amber-500/30 rounded-3xl p-5 text-sm text-amber-900 dark:text-amber-300 flex items-start gap-3.5 font-normal shadow-sm">
-                  <span className="text-xl shrink-0">⚠️</span>
-                  <div>
-                    <h4 className="font-semibold text-base mb-1">실시간 클라우드 연동 일시 중단 안내</h4>
-                    <p className="leading-relaxed text-xs sm:text-sm font-light">
-                      {firebaseError}
-                    </p>
-                  </div>
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5 text-sm text-amber-900 dark:text-amber-300 font-normal">
+                  <h4 className="font-semibold text-sm mb-1">클라우드 연동 중단</h4>
+                  <p className="leading-relaxed text-xs font-light">{firebaseError}</p>
                 </div>
               )}
 
@@ -965,20 +1019,20 @@
                     <span className="text-xs font-semibold text-text-secondary block mb-1">등록 도우미 인원</span>
                     <span className="text-2xl sm:text-3xl font-black text-text-primary">{stats.total}명</span>
                   </div>
-                  <div className="w-12 h-12 rounded-xl bg-accent-light text-accent flex items-center justify-center text-lg">
-                    👥
+                  <div className="w-12 h-12 rounded-xl bg-accent-light flex items-center justify-center">
+                    <svg width="22" height="22" fill="none" stroke="var(--accent)" strokeWidth="1.8" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg>
                   </div>
                 </div>
 
                 <div className="glass-card p-6 rounded-2xl flex items-center justify-between">
                   <div>
-                    <span className="text-xs font-semibold text-text-secondary block mb-1">관리 등급 권한</span>
+                    <span className="text-xs font-semibold text-text-secondary block mb-1">권한 등급</span>
                     <span className="text-base sm:text-lg font-bold text-text-primary">
-                      {isAdmin ? "관리자" : "담임 교사 및 지도 교사"}
+                      {isAdmin ? "관리자" : "교사"}
                     </span>
                   </div>
-                  <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-lg">
-                    🛡️
+                  <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                    <svg width="20" height="20" fill="none" stroke="#34c759" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                   </div>
                 </div>
               </div>
@@ -988,21 +1042,18 @@
                 <div className="glass-card p-6 rounded-3xl space-y-6 border-t-4 border-t-accent shadow-lg animate-in fade-in slide-in-from-top-4 duration-200">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                      <h2 className="text-base sm:text-lg font-normal text-text-primary flex items-center gap-2">
-                        <span>🛡️</span>
-                        <span>관리자 콘솔</span>
-                      </h2>
+                      <h2 className="text-base sm:text-lg font-semibold text-text-primary">관리자 콘솔</h2>
                       <p className="text-xs text-text-secondary font-normal mt-1">
-                        전체 도우미 명단 데이터의 영구 추가/삭제와 CSV 파일 입출력 마스터 제어를 관리합니다.
+                        도우미 명단 추가·삭제, CSV 가져오기·내보내기를 관리합니다.
                       </p>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <button 
+                      <button
                         onClick={handleResetData}
-                        className="px-4 py-2 bg-red-600/10 hover:bg-red-600 text-red-600 hover:text-white rounded-xl text-xs font-bold transition-all border border-red-600/20"
+                        className="px-4 py-2 bg-red-600/10 hover:bg-red-600 text-red-600 hover:text-white rounded-full text-xs font-semibold transition-all border border-red-600/20"
                       >
-                        전체 데이터 리셋
+                        초기화
                       </button>
                     </div>
                   </div>
@@ -1011,7 +1062,7 @@
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     {/* 도우미 추가 폼 */}
                     <form onSubmit={handleAddStudent} className="lg:col-span-7 bg-white/10 dark:bg-black/15 p-5 rounded-2xl border border-white/20 dark:border-white/5 space-y-4">
-                      <h3 className="text-xs sm:text-sm font-normal text-text-primary uppercase tracking-wider">🛠️ 도우미 개별 배정 추가</h3>
+                      <h3 className="text-xs sm:text-sm font-semibold text-text-primary uppercase tracking-wider">도우미 추가</h3>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         <div>
                           <label className="block text-[11px] font-normal text-text-secondary mb-1">학년</label>
@@ -1097,7 +1148,7 @@
                         </div>
                         <button 
                           type="submit"
-                          className="self-end px-5 py-2 bg-accent hover:bg-accent-hover text-white text-xs sm:text-sm font-bold rounded-lg transition-all h-[38px]"
+                          className="self-end px-5 py-2 text-white text-xs sm:text-sm font-semibold rounded-full transition-all hover:brightness-110 h-[38px]" style={{background:'var(--accent-grad)'}}
                         >
                           명단 반영 추가
                         </button>
@@ -1128,7 +1179,7 @@
                         {/* 백업출력 */}
                         <button 
                           onClick={handleCsvExport}
-                          className="w-full py-2.5 bg-accent/25 hover:bg-accent/35 text-accent text-xs sm:text-sm font-bold rounded-xl transition-all border border-accent/35 flex items-center justify-center gap-1.5"
+                          className="w-full py-2.5 bg-accent/15 hover:bg-accent/25 text-accent text-xs sm:text-sm font-semibold rounded-full transition-all border border-accent/30 flex items-center justify-center"
                         >
                           CSV로 내보내기
                         </button>
@@ -1140,16 +1191,16 @@
                   <div className="bg-white/10 dark:bg-black/15 p-5 rounded-2xl border border-white/20 dark:border-white/5">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
                       <div className="flex items-center gap-2">
-                        <h3 className="text-xs sm:text-sm font-normal text-text-primary uppercase tracking-wider">최근 변경 이력 및 단축 사유 확인</h3>
-                        <span className="px-1.5 py-0.5 text-[10px] font-normal bg-amber-500/20 text-amber-600 rounded">실시간 집계: {editLogs.length}건</span>
+                        <h3 className="text-xs sm:text-sm font-semibold text-text-primary uppercase tracking-wider">변경 이력</h3>
+                        <span className="px-2 py-0.5 text-[10px] font-semibold bg-amber-500/20 text-amber-600 rounded-full">{editLogs.length}건</span>
                       </div>
                       
                       {editLogs.length > 0 && (
                         <button 
                           onClick={handleClearSelectedLogs}
-                          className="px-2.5 py-1.5 bg-red-600/15 hover:bg-red-600 hover:text-white text-red-600 text-xs sm:text-sm font-normal rounded-lg transition-all border border-red-600/20"
+                          className="px-3 py-1.5 bg-red-600/10 hover:bg-red-600 hover:text-white text-red-600 text-xs font-semibold rounded-full transition-all border border-red-600/20"
                         >
-                          ✓ 선택 항목 확인 및 정리 완료
+                          선택 삭제
                         </button>
                       )}
                     </div>
@@ -1177,7 +1228,7 @@
                             <div className="flex-1 flex flex-col sm:flex-row justify-between gap-1.5">
                               <div>
                                 <span className="text-text-secondary font-mono mr-2">[{log.timestamp}]</span>
-                                <strong className="text-text-primary font-normal">{log.studentName}</strong> 학생 : {log.originalHours}h ➡️ <span className="text-accent font-normal">{log.newHours}h</span>
+                                <strong className="text-text-primary font-normal">{log.studentName}</strong> {log.originalHours}h → <span className="text-accent font-normal">{log.newHours}h</span>
                                 <p className="text-xs text-text-secondary mt-1 font-normal leading-relaxed">
                                   사유: {log.reason}
                                 </p>
@@ -1201,9 +1252,7 @@
                 <div className="lg:col-span-4 space-y-5 lg:sticky lg:top-6">
                   <div className="glass-card p-6 rounded-3xl space-y-5">
                     <div className="border-b border-gray-200 dark:border-gray-800 pb-3">
-                      <h3 className="text-sm sm:text-base font-medium text-text-primary flex items-center gap-2">
-                        <span>🔍</span> 도우미 조건 필터링
-                      </h3>
+                      <h3 className="text-sm sm:text-base font-semibold text-text-primary">필터</h3>
                       <p className="text-xs text-text-secondary font-light mt-0.5">명단을 빠르고 직관적으로 분류하여 탐색합니다.</p>
                     </div>
 
@@ -1213,22 +1262,19 @@
                         이름 또는 역할 검색
                       </label>
                       <div className="relative">
-                        <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-text-secondary text-base">
-                          🔍
-                        </div>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          placeholder="한글 성명, 영문명, 역할 검색..."
-                          className="inp w-full pl-11 pr-10 py-3 bg-white/40 dark:bg-black/45 border border-white/40 dark:border-white/15 rounded-2xl text-text-primary text-sm font-normal placeholder:text-text-secondary/50 shadow-sm"
+                          placeholder="이름, 영문명, 역할 검색..."
+                          className="inp w-full px-4 pr-10 py-3 bg-white/40 dark:bg-black/45 border border-white/40 dark:border-white/15 rounded-2xl text-text-primary text-sm font-normal placeholder:text-text-secondary/50"
                         />
                         {searchQuery && (
-                          <button 
+                          <button
                             onClick={() => setSearchQuery("")}
-                            className="absolute inset-y-0 right-4 flex items-center text-text-secondary hover:text-text-primary text-sm"
+                            className="absolute inset-y-0 right-4 flex items-center text-text-secondary hover:text-text-primary text-xs font-bold"
                           >
-                            ❌
+                            ×
                           </button>
                         )}
                       </div>
@@ -1236,16 +1282,14 @@
 
                     {/* 학급별 드롭다운 필터 */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs sm:text-sm font-normal text-text-secondary uppercase tracking-widest">
-                        🏫 학급별 선택 (교과/학급 담임 전용)
-                      </label>
+                      <label className="block text-xs font-semibold text-text-secondary uppercase tracking-widest">학급</label>
                       <select
                         value={selectedGradeClass}
                         onChange={(e) => {
                           setSelectedGradeClass(e.target.value);
                           setSelectedHelper("all");
                         }}
-                        className="inp w-full px-3.5 py-3.5 bg-[#f0f2f7] dark:bg-[#1a1a22] border border-gray-300 dark:border-gray-700 rounded-2xl text-text-primary text-sm sm:text-base font-normal cursor-pointer shadow-inner"
+                        className="glass-select inp w-full px-3.5 py-3 rounded-2xl text-sm font-normal"
                       >
                         <option value="all">전체 학급 조회</option>
                         {uniqueClasses.filter(c => c !== "all").map(c => {
@@ -1261,16 +1305,14 @@
 
                     {/* 도우미 역할명별 드롭다운 필터 */}
                     <div className="space-y-1.5 border-t border-gray-200 dark:border-gray-800 pt-4">
-                      <label className="block text-xs sm:text-sm font-normal text-text-secondary uppercase tracking-widest">
-                        📋 도우미 역할별 선택 (담당교사 전용)
-                      </label>
+                      <label className="block text-xs font-semibold text-text-secondary uppercase tracking-widest">역할</label>
                       <select
                         value={selectedHelper}
                         onChange={(e) => {
                           setSelectedHelper(e.target.value);
                           setSelectedGradeClass("all");
                         }}
-                        className="inp w-full px-3.5 py-3.5 bg-[#f0f2f7] dark:bg-[#1a1a22] border border-gray-300 dark:border-gray-700 rounded-2xl text-text-primary text-sm sm:text-base font-normal cursor-pointer shadow-inner"
+                        className="glass-select inp w-full px-3.5 py-3 rounded-2xl text-sm font-normal"
                       >
                         <option value="all">전체 도우미 역할 조회</option>
                         {uniqueHelpers.filter(h => h !== "all").map(h => {
@@ -1284,10 +1326,9 @@
                       </select>
                     </div>
 
-                    <div className="text-xs text-text-secondary font-normal flex items-start gap-1.5 mt-2 bg-white/20 dark:bg-black/20 p-3 rounded-2xl">
-                      <span className="text-accent shrink-0">💡</span>
-                      <span className="leading-relaxed">학급 필터와 역할 필터는 동시에 선택할 수 없습니다. 검색어는 두 필터와 함께 사용할 수 있습니다.</span>
-                    </div>
+                    <p className="text-xs text-text-secondary font-normal leading-relaxed bg-white/20 dark:bg-black/20 p-3 rounded-2xl">
+                      학급 필터와 역할 필터는 동시에 선택할 수 없습니다. 검색어는 두 필터와 함께 사용 가능합니다.
+                    </p>
                   </div>
                 </div>
 
@@ -1398,7 +1439,7 @@
                                   <td className="py-4 px-6 max-w-xs">
                                     {isEdited ? (
                                       <span className={`text-xs sm:text-sm block truncate font-normal ${hasReason ? 'text-text-primary' : 'text-red-600 animate-pulse'}`}>
-                                        {student.reason || "⚠️ 사유 정보를 기재하세요."}
+                                        {student.reason || "사유 미입력"}
                                       </span>
                                     ) : (
                                       <span className="text-xs text-text-secondary/50 italic font-normal">변동 없음</span>
@@ -1408,19 +1449,19 @@
                                   {/* 사유 편집 액션 */}
                                   <td className="py-4 px-6 text-center whitespace-nowrap">
                                     <div className="flex items-center justify-center gap-2">
-                                      <button 
+                                      <button
                                         onClick={() => openEditModal(student)}
-                                        className="px-3.5 py-2 rounded-lg bg-accent text-white text-xs sm:text-sm font-normal hover:bg-accent-hover shadow-sm transition-all"
+                                        className="px-3.5 py-1.5 rounded-full text-white text-xs font-semibold hover:brightness-110 shadow-sm transition-all"
+                                        style={{background:'var(--accent-grad)'}}
                                       >
-                                        사유 편집
+                                        편집
                                       </button>
                                       {isAdmin && (
-                                        <button 
+                                        <button
                                           onClick={() => handleDeleteStudent(student.id, student.name)}
-                                          className="p-2 text-red-600 hover:bg-red-600/15 rounded-lg transition-all text-xs"
-                                          title="배정 배제"
+                                          className="px-2.5 py-1.5 text-red-600 hover:bg-red-600/15 rounded-full transition-all text-xs font-semibold border border-red-600/20"
                                         >
-                                          ❌
+                                          제외
                                         </button>
                                       )}
                                     </div>
@@ -1436,8 +1477,8 @@
                     
                     <div className="bg-white/10 dark:bg-black/15 px-6 py-4.5 border-t border-white/20 dark:border-white/5 text-xs sm:text-sm text-text-secondary flex flex-col sm:flex-row sm:items-center justify-between gap-2 font-normal">
                       <span className="flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-accent animate-ping"></span>
-                        입력 및 수정 완료 시 실시간으로 데이터 저장소에 안전하게 동기화가 유지됩니다.
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent"></span>
+                        수정 사항은 실시간으로 저장됩니다.
                       </span>
                     </div>
                   </div>
@@ -1455,38 +1496,38 @@
                 <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/40 to-transparent"></div>
                 
                 <div className="text-center mb-6">
-                  <span className="text-3xl block mb-2">🛡️</span>
                   <h3 className="text-lg font-bold text-text-primary">관리자 인증</h3>
-                  <p className="text-xs sm:text-sm text-text-secondary font-normal mt-1">관리자 암호를 입력하세요.</p>
+                  <p className="text-xs text-text-secondary font-normal mt-1">관리자 암호를 입력하세요.</p>
                 </div>
 
                 <form onSubmit={handleAdminVerify} className="space-y-4">
-                  <input 
+                  <input
                     type="password"
                     value={adminPasswordInput}
                     onChange={(e) => setAdminPasswordInput(e.target.value)}
-                    placeholder="인증코드 입력"
-                    className="inp w-full px-4 py-3 bg-white/20 dark:bg-black/35 text-center text-lg font-mono tracking-widest text-text-primary rounded-xl border border-white/20 font-normal"
+                    placeholder="암호 입력"
+                    className="inp w-full px-4 py-3 bg-white/20 dark:bg-black/35 text-center text-lg font-mono tracking-widest text-text-primary rounded-2xl border border-white/20"
                     required
                     autoFocus
                   />
                   {adminPasswordError && (
-                    <p className="text-xs sm:text-sm text-red-600 text-center font-normal">⚠ {adminPasswordError}</p>
+                    <p className="text-xs text-red-600 text-center">{adminPasswordError}</p>
                   )}
 
                   <div className="flex gap-2.5 pt-2">
-                    <button 
+                    <button
                       type="button"
                       onClick={() => { setIsAdminGateOpen(false); setAdminPasswordInput(""); setAdminPasswordError(""); }}
-                      className="flex-1 py-2.5 bg-white/20 hover:bg-white/30 text-text-primary text-xs sm:text-sm font-bold rounded-xl transition-all border border-white/10"
+                      className="flex-1 py-2.5 bg-white/20 hover:bg-white/30 text-text-primary text-xs sm:text-sm font-semibold rounded-full transition-all border border-white/10"
                     >
                       취소
                     </button>
-                    <button 
+                    <button
                       type="submit"
-                      className="flex-1 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs sm:text-sm font-bold rounded-xl transition-all"
+                      className="flex-1 py-2.5 text-white text-xs sm:text-sm font-semibold rounded-full transition-all hover:brightness-110"
+                      style={{background:'var(--accent-grad)'}}
                     >
-                      승인 요청
+                      확인
                     </button>
                   </div>
                 </form>
@@ -1502,12 +1543,12 @@
                 <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
 
                 <div className="flex justify-between items-start mb-5">
-                  <h3 className="text-base sm:text-lg font-normal text-text-primary">✏️ 봉사시간 수정 및 사유 기재</h3>
-                  <button 
+                  <h3 className="text-base sm:text-lg font-semibold text-text-primary">봉사시간 수정</h3>
+                  <button
                     onClick={() => { setIsModalOpen(false); setEditingStudent(null); setFeedbackMsg(""); }}
-                    className="p-1.5 rounded-lg hover:bg-white/20 text-text-secondary hover:text-text-primary text-sm"
+                    className="w-7 h-7 rounded-full hover:bg-white/20 text-text-secondary hover:text-text-primary text-base flex items-center justify-center transition-all"
                   >
-                    ❌
+                    ×
                   </button>
                 </div>
 
@@ -1574,26 +1615,24 @@
                     ></textarea>
                     
                     {feedbackMsg && (
-                      <p className="text-xs sm:text-sm text-red-600 font-normal mt-2.5 flex items-center gap-1.5">
-                        <span>⚠️</span>
-                        <span>{feedbackMsg}</span>
-                      </p>
+                      <p className="text-xs text-red-600 mt-2">{feedbackMsg}</p>
                     )}
                   </div>
                 </div>
 
                 <div className="mt-6 flex items-center justify-end gap-2.5">
-                  <button 
+                  <button
                     onClick={() => { setIsModalOpen(false); setEditingStudent(null); setFeedbackMsg(""); }}
-                    className="px-4 py-2.5 bg-white/20 hover:bg-white/30 text-text-primary text-xs sm:text-sm font-bold rounded-xl transition-all border border-white/10"
+                    className="px-4 py-2.5 bg-white/20 hover:bg-white/30 text-text-primary text-xs sm:text-sm font-semibold rounded-full transition-all border border-white/10"
                   >
-                    조정 취소
+                    취소
                   </button>
-                  <button 
+                  <button
                     onClick={handleSaveEdit}
-                    className="px-5 py-2.5 bg-accent hover:bg-accent-hover text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md shadow-accent/20"
+                    className="px-5 py-2.5 text-white text-xs sm:text-sm font-semibold rounded-full transition-all hover:brightness-110 shadow-md shadow-accent/20"
+                    style={{background:'var(--accent-grad)'}}
                   >
-                    조정 변경사항 저장
+                    저장
                   </button>
                 </div>
 
