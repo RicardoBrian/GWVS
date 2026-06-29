@@ -1327,21 +1327,21 @@
                       </div>
                     ) : (
                       <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
+                        <table className="w-full text-left border-collapse table-fixed">
                           <colgroup>
-                            <col style={{width:'30%'}} />
-                            <col style={{width:'25%'}} />
-                            <col style={{width:'14%'}} />
-                            <col style={{width:'20%'}} />
+                            <col style={{width:'26%'}} />
+                            <col style={{width:'22%'}} />
+                            <col style={{width:'13%'}} />
+                            <col style={{width:'28%'}} />
                             <col style={{width:'11%'}} />
                           </colgroup>
                           <thead>
                             <tr className="bg-white/10 text-xs text-text-secondary border-b border-white/25">
-                              <th className="py-2 px-2 sm:px-4 font-medium">학생</th>
-                              <th className="py-2 px-2 sm:px-4 font-medium">역할</th>
-                              <th className="py-2 px-2 sm:px-4 text-center font-medium">인정 시간</th>
-                              <th className="py-2 px-2 sm:px-4 font-medium">조정 사유</th>
-                              <th className="py-2 px-2 sm:px-4 text-center font-medium"></th>
+                              <th className="py-2 px-3 font-medium">학생</th>
+                              <th className="py-2 px-3 font-medium">역할</th>
+                              <th className="py-2 px-3 text-center font-medium">인정 시간</th>
+                              <th className="py-2 px-3 font-medium">조정 사유</th>
+                              <th className="py-2 px-3 text-center font-medium"></th>
                             </tr>
                           </thead>
                           <tbody className="text-sm">
@@ -1357,7 +1357,7 @@
                                     ${isEdited ? 'bg-amber-500/[0.07]' : isOdd ? 'bg-black/[0.03] dark:bg-white/[0.03]' : ''}`}
                                 >
                                   {/* 학생 정보 */}
-                                  <td className="py-3 px-2 sm:px-4 whitespace-nowrap">
+                                  <td className="py-3 px-3 whitespace-nowrap">
                                     <div className="flex flex-col gap-px">
                                       <span className="text-[11px] text-text-secondary tabular-nums leading-tight">
                                         {student.grade}학년 {student.class}반 {student.number}번
@@ -1370,14 +1370,14 @@
                                   </td>
 
                                   {/* 역할 뱃지 */}
-                                  <td className="py-3 px-2 sm:px-4">
+                                  <td className="py-3 px-3">
                                     <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-accent-light text-accent text-xs border border-accent/20 whitespace-nowrap">
                                       {student.helperName}
                                     </span>
                                   </td>
 
                                   {/* 인정 시간 (표시만) */}
-                                  <td className="py-3 px-2 sm:px-4 whitespace-nowrap text-center">
+                                  <td className="py-3 px-3 whitespace-nowrap text-center">
                                     {isEdited ? (
                                       <div className="flex flex-col items-center leading-tight">
                                         <span className="text-[10px] text-text-secondary line-through">{student.originalHours}시간</span>
@@ -1389,7 +1389,7 @@
                                   </td>
 
                                   {/* 사유 */}
-                                  <td className="py-3 px-2 sm:px-4">
+                                  <td className="py-3 px-3">
                                     {isEdited ? (
                                       <span className={`text-sm block truncate ${hasReason ? 'text-text-primary' : 'text-red-500'}`}>
                                         {student.reason || "사유 미입력"}
@@ -1400,7 +1400,7 @@
                                   </td>
 
                                   {/* 버튼 */}
-                                  <td className="py-3 px-2 sm:px-4 text-center whitespace-nowrap">
+                                  <td className="py-3 px-3 text-center whitespace-nowrap">
                                     <div className="flex items-center justify-center gap-1.5">
                                       <button
                                         onClick={() => openEditModal(student)}
