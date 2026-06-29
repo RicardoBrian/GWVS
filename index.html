@@ -244,6 +244,7 @@
 
       const [alertToast, setAlertToast] = useState(null);
       const [liveTime, setLiveTime] = useState("");
+      const [firebaseError, setFirebaseError] = useState(""); // 파이어베이스 설정 에러 정보 상태
 
       // 실시간 클라우드 연동 리스너 (경로 보정 및 초기화 레이스 컨디션 차단)
       useEffect(() => {
@@ -260,7 +261,8 @@
         if (isFirebaseActive && db) {
           // RULE 3 - 선인증 후 쿼리 작동
           auth.signInAnonymously().then(() => {
-            
+            setFirebaseError(""); // 로그인 성공 시 에러 상태 클리어
+
             // [원격 데이터가 완전히 비어있는 최초 1회만 기본 명단 자동 세팅]
             db.collection(studentsColPath).get().then((snapshot) => {
               if (snapshot.empty) {
@@ -322,6 +324,11 @@
             };
           }).catch(err => {
             console.error("Firebase 익명 로그인 불가, 로컬 저장소 모드로 전환.", err);
+            if (err.code === "auth/configuration-not-found") {
+              setFirebaseError("Firebase Console에서 '익명(Anonymous) 로그인' 제공업체가 활성화되지 않았습니다. [Authentication -> Sign-in method]에서 '익명'을 사용 설정해 주세요. 현재 로컬 저장소 임시 모드로 복구 작동 중입니다.");
+            } else {
+              setFirebaseError(`실시간 클라우드 연결 오류: ${err.message} (로컬 저장소 모드 전환됨)`);
+            }
             loadFromLocalStorage();
           });
         } else {
@@ -394,7 +401,7 @@
       // 원격 파이어베이스 데이터를 원자적(Atomic)으로 완전히 덮어쓰는 구조로 리팩토링 완료
       const updateStudentsState = async (newStudents) => {
         setStudents(newStudents);
-        if (isFirebaseActive && db) {
+        if (isFirebaseActive && db && !firebaseError) {
           try {
             // 1. 기존 파이어베이스 상의 명단을 완전히 삭제하기 위해 먼저 전체 문서를 스냅샷으로 조회
             const snapshot = await db.collection(studentsColPath).get();
@@ -435,7 +442,7 @@
         const updatedLogs = [newLog, ...editLogs];
         setEditLogs(updatedLogs);
 
-        if (isFirebaseActive && db) {
+        if (isFirebaseActive && db && !firebaseError) {
           await db.collection(logsColPath).doc(newLog.id).set(newLog);
         } else {
           localStorage.setItem("helper_students_logs_v4", JSON.stringify(updatedLogs));
@@ -454,7 +461,7 @@
           setEditLogs(remainingLogs);
           setSelectedLogs({});
 
-          if (isFirebaseActive && db) {
+          if (isFirebaseActive && db && !firebaseError) {
             const batch = db.batch();
             checkedIds.forEach(id => {
               const docRef = db.collection(logsColPath).doc(id);
@@ -504,7 +511,7 @@
       const handleResetData = async () => {
         if (window.confirm("주의! 수정된 모든 내용을 지우고 원래 배정 명단으로 전체 초기화하시겠습니까?")) {
           setSelectedLogs({});
-          if (isFirebaseActive && db) {
+          if (isFirebaseActive && db && !firebaseError) {
             const studentSnaps = await db.collection(studentsColPath).get();
             const logSnaps = await db.collection(logsColPath).get();
             
@@ -641,7 +648,7 @@
 
       const handleDeleteStudent = (id, name) => {
         if (window.confirm(`${name} 도우미를 관리 대상에서 영구적으로 제외 처리하겠습니까?`)) {
-          if (isFirebaseActive && db) {
+          if (isFirebaseActive && db && !firebaseError) {
             db.collection(studentsColPath).doc(id).delete().then(() => {
               triggerToast(`${name} 학생이 명단에서 영구 제외되었습니다.`, "danger");
             }).catch(err => {
@@ -710,7 +717,7 @@
           return;
         }
 
-        if (isFirebaseActive && db) {
+        if (isFirebaseActive && db && !firebaseError) {
           db.collection(studentsColPath).doc(editingStudent.id).update({
             hours: Number(editHours),
             reason: editReason
@@ -768,7 +775,7 @@
           autoReason = "";
         }
 
-        if (isFirebaseActive && db) {
+        if (isFirebaseActive && db && !firebaseError) {
           db.collection(studentsColPath).doc(id).update({
             hours: nextHours,
             reason: autoReason
@@ -892,9 +899,9 @@
                     />
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span className="text-xs font-normal text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">
-                          {isAdmin ? "보안 마스터 모드 활성" : "실시간 관리 모드"}
+                        <span className={`inline-block w-2.5 h-2.5 rounded-full ${firebaseError ? 'bg-amber-500' : 'bg-emerald-500'} animate-pulse`}></span>
+                        <span className="text-xs font-bold text-text-secondary uppercase tracking-widest">
+                          {isAdmin ? "보안 마스터 모드 활성" : firebaseError ? "동기화 일시 중단" : "실시간 관리 모드"}
                         </span>
                       </div>
                       <h1 className="text-lg sm:text-xl font-light tracking-tight">관산중학교 봉사활동 도우미 포탈</h1>
@@ -937,12 +944,25 @@
                 </div>
               </header>
 
+              {/* 파이어베이스 설정 누락 경고 배너 */}
+              {firebaseError && (
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-3xl p-5 text-sm text-amber-900 dark:text-amber-300 flex items-start gap-3.5 font-normal shadow-sm">
+                  <span className="text-xl shrink-0">⚠️</span>
+                  <div>
+                    <h4 className="font-semibold text-base mb-1">실시간 클라우드 연동 일시 중단 안내</h4>
+                    <p className="leading-relaxed text-xs sm:text-sm font-light">
+                      {firebaseError}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* 통계 요약 카드 세션 */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="glass-card p-6 rounded-2xl flex items-center justify-between">
                   <div>
-                    <span className="text-xs font-normal text-text-secondary block mb-1">등록 도우미 인원</span>
-                    <span className="text-2xl sm:text-3xl font-light text-text-primary">{stats.total}명</span>
+                    <span className="text-xs font-semibold text-text-secondary block mb-1">등록 도우미 인원</span>
+                    <span className="text-2xl sm:text-3xl font-black text-text-primary">{stats.total}명</span>
                   </div>
                   <div className="w-12 h-12 rounded-xl bg-accent-light text-accent flex items-center justify-center text-lg">
                     👥
@@ -951,8 +971,8 @@
 
                 <div className="glass-card p-6 rounded-2xl flex items-center justify-between">
                   <div>
-                    <span className="text-xs font-normal text-text-secondary block mb-1">관리 등급 권한</span>
-                    <span className="text-base sm:text-lg font-light text-text-primary">
+                    <span className="text-xs font-semibold text-text-secondary block mb-1">관리 등급 권한</span>
+                    <span className="text-base sm:text-lg font-bold text-text-primary">
                       {isAdmin ? "시스템 총괄 최고관리자" : "일반 교직원 및 담임교사"}
                     </span>
                   </div>
@@ -971,7 +991,7 @@
                         <span>🛡️</span>
                         <span>시스템 총괄 마스터 관리 콘솔</span>
                       </h2>
-                      <p className="text-xs text-text-secondary font-normal mt-1">
+                      <p className="text-xs text-text-secondary font-medium mt-1">
                         전체 도우미 명단 데이터의 영구 추가/삭제와 CSV 파일 입출력 마스터 제어를 관리합니다.
                       </p>
                     </div>
@@ -979,7 +999,7 @@
                     <div className="flex items-center gap-2">
                       <button 
                         onClick={handleResetData}
-                        className="px-4 py-2 bg-red-600/10 hover:bg-red-600 text-red-600 hover:text-white rounded-xl text-xs font-normal transition-all border border-red-600/20"
+                        className="px-4 py-2 bg-red-600/10 hover:bg-red-600 text-red-600 hover:text-white rounded-xl text-xs font-bold transition-all border border-red-600/20"
                       >
                         전체 데이터 리셋
                       </button>
@@ -1252,7 +1272,7 @@
 
                 </div>
 
-                <div className="text-xs sm:text-sm text-text-secondary font-normal flex items-center gap-1.5 mt-2 bg-white/10 dark:bg-black/10 p-2.5 rounded-xl">
+                <div className="text-xs sm:text-sm text-text-secondary font-bold flex items-center gap-1.5 mt-2 bg-white/10 dark:bg-black/10 p-2.5 rounded-xl">
                   <span className="text-accent">💡 안내:</span>
                   <span>학급 필터와 도우미 필터는 연동 오류를 방지하기 위해 각각 독립적으로 렌더링을 진행합니다.</span>
                 </div>
@@ -1263,13 +1283,13 @@
               <div className="glass-card rounded-3xl overflow-hidden shadow-sm">
                 <div className="px-6 py-5 border-b border-white/25 flex items-center justify-between bg-white/10">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-sm sm:text-base font-normal text-text-primary">도우미 명단 및 시간 제어</h2>
-                    <span className="px-2.5 py-0.5 rounded-full bg-accent-light text-accent text-xs font-normal border border-accent/20">
+                    <h2 className="text-sm sm:text-base font-bold text-text-primary">도우미 명단 및 시간 제어</h2>
+                    <span className="px-2.5 py-0.5 rounded-full bg-accent-light text-accent text-xs font-bold border border-accent/20">
                       {filteredStudents.length}명 배정됨
                     </span>
                   </div>
                   
-                  <span className="text-xs sm:text-sm text-text-secondary font-normal">
+                  <span className="text-xs sm:text-sm text-text-secondary font-bold">
                     인정시간 조정 시 우측 <span className="text-accent font-normal">사유 작성 필수</span>
                   </span>
                 </div>
