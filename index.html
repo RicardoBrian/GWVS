@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>봉사활동 도우미 관리 시스템 — Liquid Glass</title>
+  
+  <!-- IBM Plex Sans KR 구글 폰트 적용 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- CDNs: React, Tailwind, PapaParse -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+  <!-- Tailwind 커스텀 토큰 설정 -->
+  <script>
+    tailwind.config = {
+      darkMode: 'media',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"IBM Plex Sans KR"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+          },
+          colors: {
+            accent: {
+              DEFAULT: 'var(--accent)',
+              hover: 'var(--accent-hover)',
+              light: 'var(--accent-light)',
+            },
+            glass: {
+              bg: 'var(--glass-bg)',
+              border: 'var(--glass-border)',
+              edge: 'var(--glass-edge)',
+            },
+            text: {
+              primary: 'var(--text-primary)',
+              secondary: 'var(--text-secondary)',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Liquid Glass 프리미엄 테마 스타일링 정의 -->
+  <style>
+    :root {
+      --font-sans: 'IBM Plex Sans KR', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --space-unit: 8px;
+      
+      /* Light Mode */
+      --bg-gradient: radial-gradient(circle at 0% 0%, rgba(240, 244, 255, 1) 0%, rgba(228, 235, 255, 1) 50%, rgba(245, 235, 250, 1) 100%);
+      --glass-bg: rgba(255, 255, 255, 0.45);
+      --glass-border: rgba(255, 255, 255, 0.5);
+      --glass-edge: rgba(255, 255, 255, 0.7);
+      --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.06), 0 1px 2px 0 rgba(255, 255, 255, 0.5) inset;
+      --text-primary: #1d1d1f;
+      --text-secondary: #86868b;
+      --accent: #0071e3;
+      --accent-hover: #0077ed;
+      --accent-light: rgba(0, 113, 227, 0.08);
+      --danger: #ff453a;
+      --danger-light: rgba(255, 69, 58, 0.08);
+      --success: #34c759;
+      --success-light: rgba(52, 199, 89, 0.08);
+      --blur: 24px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-gradient: radial-gradient(circle at 0% 0%, #121214 0%, #17171c 50%, #1b1622 100%);
+        --glass-bg: rgba(28, 28, 30, 0.45);
+        --glass-border: rgba(255, 255, 255, 0.08);
+        --glass-edge: rgba(255, 255, 255, 0.12);
+        --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3), 0 1px 0px 0 rgba(255, 255, 255, 0.1) inset;
+        --text-primary: #f5f5f7;
+        --text-secondary: #86868b;
+        --accent: #0a84ff;
+        --accent-hover: #2191ff;
+        --accent-light: rgba(10, 132, 255, 0.15);
+        --danger: #ff453a;
+        --danger-light: rgba(255, 69, 58, 0.2);
+        --success: #32d74b;
+        --success-light: rgba(50, 215, 75, 0.2);
+      }
+    }
+
+    body {
+      background: var(--bg-gradient);
+      min-height: 100vh;
+      font-family: var(--font-sans);
+      color: var(--text-primary);
+      overflow-x: hidden;
+      transition: background 0.3s ease;
+    }
+
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(var(--blur)) saturate(180%);
+      -webkit-backdrop-filter: blur(var(--blur)) saturate(180%);
+      border: 1px solid var(--glass-border);
+      border-top: 1px solid var(--glass-edge);
+      border-left: 1px solid var(--glass-edge);
+      box-shadow: var(--glass-shadow);
+    }
+
+    /* 포커스 링 스타일 */
+    .inp:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.3);
+      border-color: var(--accent);
+    }
+    
+    /* 스크롤바 커스텀 */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(134, 134, 139, 0.3);
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(134, 134, 139, 0.5);
+    }
+  </style>
+</head>
+<body class="antialiased">
+
+  <!-- 뒷면 컬러 메쉬 데코 블롭 -->
+  <div class="fixed -top-40 -left-40 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-25 dark:opacity-10 animate-pulse pointer-events-none"></div>
+  <div class="fixed -bottom-40 -right-40 w-96 h-96 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-25 dark:opacity-10 pointer-events-none" style="animation-delay: 2s;"></div>
+
+  <div id="root"></div>
+
+  <!-- 비즈니스 로직 및 뷰 컴포넌트 -->
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+
+    // 1. 초기 로드 기본 데이터 세트 (사용자 시트 내용 결합 및 정합성 보장)
+    const DEFAULT_STUDENTS = [
+      { id: '1', grade: 1, class: 1, number: 1, neisName: "BAROI ANGEL NAMROTA", name: "엔젤", helperName: "기자재 관리도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '2', grade: 1, class: 1, number: 5, neisName: "JIN ZHIMEI", name: "김지미", helperName: "특별실 분리수거 도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '3', grade: 1, class: 1, number: 8, neisName: "KIM MARGARITA", name: "김리타", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '4', grade: 1, class: 1, number: 11, neisName: "NANXIYANG", name: "남희양", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '5', grade: 1, class: 1, number: 14, neisName: "WEN JIAYUE", name: "문가월", helperName: "학급 분리수거도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '6', grade: 1, class: 1, number: 15, neisName: "ZAVODNYI DMITRII", name: "디마", helperName: "분리수거장 도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '7', grade: 1, class: 1, number: 16, neisName: "김민서", name: "김민서", helperName: "특별실 분리수거 도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '8', grade: 1, class: 1, number: 17, neisName: "김수정", name: "김수정", helperName: "학급 분리수거도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '9', grade: 1, class: 1, number: 18, neisName: "신민준", name: "신민준", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '10', grade: 1, class: 1, number: 19, neisName: "이동욱", name: "이동욱", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '11', grade: 1, class: 1, number: 20, neisName: "정대영", name: "정대영", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '12', grade: 1, class: 2, number: 1, neisName: "HAN SHENGGUI", name: "한승규", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '13', grade: 1, class: 2, number: 4, neisName: "KIM ARSENII", name: "김아르세니", helperName: "학급 분리수거도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '14', grade: 3, class: 2, number: 10, neisName: "QUAN ENZHI", name: "권은지", helperName: "학급 분리수거도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '15', grade: 3, class: 2, number: 12, neisName: "ZHU CHUNYU", name: "오정희", helperName: "학급 분리수거도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '16', grade: 3, class: 2, number: 13, neisName: "나세인", name: "나세인", helperName: "특별실 분리수거 도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '17', grade: 3, class: 2, number: 14, neisName: "유수연", name: "유수연", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '18', grade: 3, class: 2, number: 15, neisName: "이소원", name: "이소원", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '19', grade: 3, class: 3, number: 1, neisName: "EM DMITRIY", name: "엠디마", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '20', grade: 3, class: 3, number: 2, neisName: "IUSHKEVICH POLINA", name: "폴리나", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '21', grade: 3, class: 3, number: 3, neisName: "JIN PINWAN", name: "근품만", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '22', grade: 3, class: 3, number: 4, neisName: "KHON SAFIRA", name: "홍사피라", helperName: "분리수거장 도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '23', grade: 3, class: 3, number: 5, neisName: "KIM MAXIMILYAN MARATOVICH", name: "김막심", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '24', grade: 3, class: 3, number: 6, neisName: "KVON ARTYOM", name: "권아르쫌", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '25', grade: 3, class: 3, number: 7, neisName: "LI DONGRAN", name: "이동염", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '26', grade: 3, class: 3, number: 8, neisName: "SONG GUANXU", name: "송관욱", helperName: "특별실 분리수거 도우미", hours: 5, originalHours: 5, reason: "" },
+      { id: '27', grade: 3, class: 3, number: 9, neisName: "XU NUOWEN", name: "허라문", helperName: "특별실 분리수거 도우미", hours: 5, originalHours: 5, reason: "" }
+    ];
+
+    // 빠른 사유 선택지 리스트
+    const PRESET_REASONS = [
+      "봉사태도 불성실로 인한 차감",
+      "일부 일자 활동 미참여",
+      "중도 퇴실로 인한 단축 인정",
+      "담당 교사 지시 미불이행",
+      "단축 수업 및 일정 변경",
+      "기타 사유 직접 입력"
+    ];
+
+    function App() {
+      // 상태 관리 정의
+      const [isAuthenticated, setIsAuthenticated] = useState(false);
+      const [password, setPassword] = useState("");
+      const [passwordError, setPasswordError] = useState("");
+      
+      const [students, setStudents] = useState([]);
+      const [searchQuery, setSearchQuery] = useState("");
+      const [selectedGradeClass, setSelectedGradeClass] = useState("all");
+      const [selectedHelper, setSelectedHelper] = useState("all");
+      
+      // 모달 편집 상태
+      const [isModalOpen, setIsModalOpen] = useState(false);
+      const [editingStudent, setEditingStudent] = useState(null);
+      const [editHours, setEditHours] = useState(0);
+      const [editReason, setEditReason] = useState("");
+      const [feedbackMsg, setFeedbackMsg] = useState("");
+
+      // 로컬 알림 상태
+      const [alertToast, setAlertToast] = useState(null);
+
+      // 시간 관련 라이브 이펙트
+      const [liveTime, setLiveTime] = useState("");
+
+      // 1. 초기 마운트 시 인증 세션 및 데이터 복원
+      useEffect(() => {
+        // 암호 유지 확인
+        const isAuth = sessionStorage.getItem("portal_auth");
+        if (isAuth === "true") {
+          setIsAuthenticated(true);
+        }
+
+        // 로컬 스토리지에 저장된 사용자 커스텀 데이터 체크
+        const savedData = localStorage.getItem("helper_students_data_v2");
+        if (savedData) {
+          try {
+            setStudents(JSON.parse(savedData));
+          } catch(e) {
+            setStudents(DEFAULT_STUDENTS);
+          }
+        } else {
+          setStudents(DEFAULT_STUDENTS);
+        }
+
+        // 시계 작동
+        const updateClock = () => {
+          const now = new Date();
+          setLiveTime(now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+        };
+        updateClock();
+        const interval = setInterval(updateClock, 1000);
+        return () => clearInterval(interval);
+      }, []);
+
+      // 알림 표출용 함수
+      const triggerToast = (msg, type = "success") => {
+        setAlertToast({ msg, type });
+        setTimeout(() => setAlertToast(null), 3000);
+      };
+
+      // 2. 패스워드 검증
+      const handleLoginSubmit = (e) => {
+        e.preventDefault();
+        if (password === "1985") {
+          setIsAuthenticated(true);
+          sessionStorage.setItem("portal_auth", "true");
+          triggerToast("인증 성공! 환영합니다.", "success");
+        } else {
+          setPasswordError("올바르지 않은 마스터 비밀번호입니다.");
+          triggerToast("인증 실패", "danger");
+        }
+      };
+
+      // 3. 데이터 로컬 저장 유틸
+      const updateStudentsState = (newStudents) => {
+        setStudents(newStudents);
+        localStorage.setItem("helper_students_data_v2", JSON.stringify(newStudents));
+      };
+
+      // 4. 로그아웃
+      const handleLogout = () => {
+        setIsAuthenticated(false);
+        sessionStorage.removeItem("portal_auth");
+        setPassword("");
+        setPasswordError("");
+        triggerToast("로그아웃되었습니다.");
+      };
+
+      // 5. 원본 리셋
+      const handleResetData = () => {
+        if (window.confirm("수정된 모든 봉사시간 데이터를 초기화하고 원본 데이터를 다시 불러오겠습니까?")) {
+          updateStudentsState(DEFAULT_STUDENTS);
+          triggerToast("데이터가 기본 원본으로 복원되었습니다.");
+        }
+      };
+
+      // 6. CSV 드래그앤드롭 / 파일 인풋 핸들러
+      const handleCsvImport = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        Papa.parse(file, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (results) => {
+            const data = results.data;
+            if (data.length === 0) {
+              triggerToast("비어있거나 형식에 맞지 않는 파일입니다.", "danger");
+              return;
+            }
+
+            try {
+              // 한글 헤더 매핑 유연성 강화
+              const formatted = data.map((row, idx) => {
+                const getVal = (candidates) => {
+                  const match = Object.keys(row).find(k => candidates.some(c => k.trim().replace(/\s/g, '').includes(c)));
+                  return match ? row[match].trim() : "";
+                };
+
+                const parsedGrade = parseInt(getVal(["학년", "grade"])) || 1;
+                const parsedClass = parseInt(getVal(["반", "class"])) || 1;
+                const parsedNum = parseInt(getVal(["번호", "number", "no"])) || 1;
+                const parsedHours = parseInt(getVal(["봉사시간", "시간", "hours"])) || 5;
+
+                return {
+                  id: `csv_${idx}_${Date.now()}`,
+                  grade: parsedGrade,
+                  class: parsedClass,
+                  number: parsedNum,
+                  neisName: getVal(["나이스성명", "영문성명", "neis"]),
+                  name: getVal(["한글이름", "이름", "name"]),
+                  helperName: getVal(["도우미명", "도우미역할", "도우미", "role"]) || "일반 도우미",
+                  hours: parsedHours,
+                  originalHours: parsedHours,
+                  reason: getVal(["봉사시간변경사유", "변경사유", "사유", "reason"]) || ""
+                };
+              });
+
+              updateStudentsState(formatted);
+              triggerToast(`성공적으로 ${formatted.length}명의 도우미 명단을 업로드했습니다.`, "success");
+            } catch (err) {
+              console.error(err);
+              triggerToast("CSV 데이터 파싱 중 오류가 발생했습니다.", "danger");
+            }
+          },
+          error: (err) => {
+            triggerToast("파일 읽기 오류", "danger");
+          }
+        });
+      };
+
+      // 7. 내보내기 (Export CSV)
+      const handleCsvExport = () => {
+        if (students.length === 0) {
+          triggerToast("내보낼 데이터가 없습니다.", "danger");
+          return;
+        }
+
+        // 한글 엑셀 깨짐 현상을 방지하기 위해 UTF-8 BOM 헤더를 추가합니다.
+        const csvHeaders = ["학년", "반", "번호", "나이스 성명", "한글 이름", "도우미명", "봉사시간", "봉사시간 변경 사유"];
+        const rows = students.map(s => [
+          s.grade,
+          s.class,
+          s.number,
+          s.neisName,
+          s.name,
+          s.helperName,
+          s.hours,
+          s.reason || ""
+        ]);
+
+        const csvContent = [csvHeaders, ...rows].map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(",")).join("\n");
+        const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `봉사활동_도우미_수정결과_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        triggerToast("CSV 파일 다운로드가 시작되었습니다.");
+      };
+
+      // 8. 학급 및 도우미명 목록 실시간 가공 (고유값 필터)
+      const uniqueClasses = useMemo(() => {
+        const classes = students.map(s => `${s.grade}학년 ${s.class}반`);
+        return ["all", ...new Set(classes)].sort();
+      }, [students]);
+
+      const uniqueHelpers = useMemo(() => {
+        const helpers = students.map(s => s.helperName).filter(Boolean);
+        return ["all", ...new Set(helpers)];
+      }, [students]);
+
+      // 9. 실시간 검색 및 다중 필터 적용
+      const filteredStudents = useMemo(() => {
+        return students.filter(s => {
+          // 학급별 필터링
+          if (selectedGradeClass !== "all") {
+            const classStr = `${s.grade}학년 ${s.class}반`;
+            if (classStr !== selectedGradeClass) return false;
+          }
+          // 도우미별 필터링
+          if (selectedHelper !== "all" && s.helperName !== selectedHelper) {
+            return false;
+          }
+          // 이름 검색
+          if (searchQuery.trim() !== "") {
+            const query = searchQuery.toLowerCase();
+            const matchName = s.name.toLowerCase().includes(query);
+            const matchNeis = s.neisName.toLowerCase().includes(query);
+            const matchHelper = s.helperName.toLowerCase().includes(query);
+            if (!matchName && !matchNeis && !matchHelper) return false;
+          }
+          return true;
+        });
+      }, [students, selectedGradeClass, selectedHelper, searchQuery]);
+
+      // 통계 수치 연산
+      const stats = useMemo(() => {
+        const total = students.length;
+        const edited = students.filter(s => s.hours !== s.originalHours || s.reason).length;
+        const totalHours = students.reduce((acc, curr) => acc + curr.hours, 0);
+        return { total, edited, totalHours };
+      }, [students]);
+
+      // 10. 모달 편집 시작
+      const openEditModal = (student) => {
+        setEditingStudent(student);
+        setEditHours(student.hours);
+        setEditReason(student.reason || "");
+        setIsModalOpen(true);
+      };
+
+      // 11. 편집 저장
+      const handleSaveEdit = () => {
+        if (!editingStudent) return;
+        
+        // 봉사시간이 원본과 달라졌는데 사유가 비어있는지 체크
+        if (editHours !== editingStudent.originalHours && !editReason.trim()) {
+          setFeedbackMsg("봉사시간이 감소/변경되었습니다. 변경 사유를 반드시 작성해주세요.");
+          return;
+        }
+
+        const updated = students.map(s => {
+          if (s.id === editingStudent.id) {
+            return {
+              ...s,
+              hours: Number(editHours),
+              reason: editReason
+            };
+          }
+          return s;
+        });
+
+        updateStudentsState(updated);
+        setIsModalOpen(false);
+        setEditingStudent(null);
+        setFeedbackMsg("");
+        triggerToast(`${editingStudent.name} 학생의 정보가 수정되었습니다.`);
+      };
+
+      // 12. 봉사시간 증감 퀵 토글
+      const adjustHoursQuickly = (id, delta) => {
+        const updated = students.map(s => {
+          if (s.id === id) {
+            const nextHours = Math.max(0, s.hours + delta);
+            // 만약 시간 변동이 생기면 사유가 자동 세팅되거나 가이드 알림을 주기 위해 처리
+            let autoReason = s.reason;
+            if (nextHours !== s.originalHours && !s.reason) {
+              autoReason = "봉사활동 불성실로 인한 담당자 사유 입력 필요";
+            } else if (nextHours === s.originalHours) {
+              autoReason = ""; // 원상복구 시 사유 비움
+            }
+            return { ...s, hours: nextHours, reason: autoReason };
+          }
+          return s;
+        });
+        updateStudentsState(updated);
+        triggerToast("봉사시간을 빠르게 조정했습니다.");
+      };
+
+      return (
+        <div className="min-height-screen pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pt-6">
+          
+          {/* Toast 알림 */}
+          {alertToast && (
+            <div className={`fixed top-6 right-6 z-50 flex items-center gap-2 px-5 py-4 rounded-xl shadow-2xl backdrop-blur-md transition-all duration-300 transform translate-y-0 text-white font-medium ${
+              alertToast.type === 'danger' ? 'bg-red-500/95 shadow-red-500/20' : 'bg-emerald-500/95 shadow-emerald-500/20'
+            }`}>
+              {alertToast.type === 'danger' ? (
+                <svg className="w-5 h-5 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              )}
+              <span>{alertToast.msg}</span>
+            </div>
+          )}
+
+          {/* ----------------- [1. 암호 검증 게이트] ----------------- */}
+          {!isAuthenticated ? (
+            <div className="flex flex-col items-center justify-center min-h-[85vh] py-12">
+              <div className="glass-card w-full max-w-md p-8 sm:p-10 rounded-3xl relative overflow-hidden">
+                {/* 상단 장식 빛 */}
+                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/40 to-transparent"></div>
+                
+                <div className="text-center mb-8">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent-light text-accent mb-4 border border-white/20">
+                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
+                  <h1 className="text-2xl font-bold tracking-tight text-text-primary mb-2">봉사활동 도우미 포탈</h1>
+                  <p className="text-sm text-text-secondary">교직원 및 담임교사 인증이 필요합니다.</p>
+                </div>
+
+                <form onSubmit={handleLoginSubmit} className="space-y-6">
+                  <div>
+                    <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">마스터 패스워드</label>
+                    <input 
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="비밀번호 4자리를 입력하세요"
+                      className="inp w-full px-4 py-3.5 bg-white/20 dark:bg-black/20 border border-white/30 dark:border-white/10 rounded-xl text-text-primary placeholder:text-text-secondary/60 text-center text-lg font-mono tracking-widest"
+                      required
+                      autoFocus
+                    />
+                    {passwordError && (
+                      <p className="mt-2.5 text-xs text-red-500 font-medium flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        {passwordError}
+                      </p>
+                    )}
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    className="w-full py-4 px-6 rounded-xl bg-accent hover:bg-accent-hover text-white font-semibold transition-all shadow-lg shadow-accent/25 hover:shadow-accent/45 flex items-center justify-center gap-2 hover:-translate-y-0.5 active:translate-y-0"
+                  >
+                    <span>보안 관리 시스템 입장</span>
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </form>
+
+                <div className="mt-8 text-center">
+                  <span className="text-xs text-text-secondary/70">
+                    * 입장 패스워드는 지정된 <span className="font-semibold text-accent">1985</span> 입니다.
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            
+            // ----------------- [2. 메인 대시보드 인터페이스] -----------------
+            <div className="space-y-6">
+              
+              {/* 상단 통합 네비게이션 헤더 */}
+              <header className="glass-card p-6 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-accent text-white flex items-center justify-center shadow-md shadow-accent/20">
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                  </div>
+                  <div className="text-center md:text-left">
+                    <div className="flex items-center justify-center md:justify-start gap-2">
+                      <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">실시간 승인 대기중</span>
+                    </div>
+                    <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-text-primary">봉사활동 도우미 관리 포탈</h1>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  {/* 로컬 라이브 타임 표시 */}
+                  <div className="px-3.5 py-2 bg-white/10 dark:bg-black/10 border border-white/20 rounded-xl text-xs font-mono font-medium text-text-secondary flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>{liveTime || "00:00:00"}</span>
+                  </div>
+
+                  <button 
+                    onClick={handleResetData}
+                    className="p-2.5 sm:px-4 sm:py-2.5 rounded-xl border border-white/30 dark:border-white/10 bg-white/10 hover:bg-white/20 dark:hover:bg-black/30 text-text-primary text-xs font-medium flex items-center gap-1.5 transition-all"
+                    title="기본 원본으로 리셋"
+                  >
+                    <svg className="w-4 h-4 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 15.172" />
+                    </svg>
+                    <span className="hidden sm:inline">명단 초기화</span>
+                  </button>
+
+                  <button 
+                    onClick={handleLogout}
+                    className="px-4 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 text-xs font-medium flex items-center gap-1.5 transition-all"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span>접속 종료</span>
+                  </button>
+                </div>
+              </header>
+
+              {/* 통계 스택 카드 섹션 */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="glass-card p-5 sm:p-6 rounded-2xl flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-medium text-text-secondary block mb-1">전체 등록 도우미</span>
+                    <span className="text-2xl sm:text-3xl font-extrabold text-text-primary">{stats.total}명</span>
+                  </div>
+                  <div className="w-12 h-12 rounded-xl bg-accent/10 text-accent flex items-center justify-center">
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                  </div>
+                </div>
+
+                <div className="glass-card p-5 sm:p-6 rounded-2xl flex items-center justify-between border-l-4 border-l-amber-500">
+                  <div>
+                    <span className="text-xs font-medium text-text-secondary block mb-1">봉사시간 조정 건수</span>
+                    <span className="text-2xl sm:text-3xl font-extrabold text-amber-500">{stats.edited}건</span>
+                  </div>
+                  <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                </div>
+
+                <div className="glass-card p-5 sm:p-6 rounded-2xl flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-medium text-text-secondary block mb-1">총 부여 봉사시간</span>
+                    <span className="text-2xl sm:text-3xl font-extrabold text-text-primary">{stats.totalHours}시간</span>
+                  </div>
+                  <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* ----------------- [데이터 임포트 / 익스포트 제어반] ----------------- */}
+              <div className="glass-card p-6 rounded-3xl">
+                <h3 className="text-sm font-semibold text-text-primary mb-4 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                  </svg>
+                  데이터 가져오기 및 내보내기 (CSV 관리)
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* 파일 드롭 및 임포트 */}
+                  <div className="border-2 border-dashed border-white/40 dark:border-white/10 hover:border-accent dark:hover:border-accent bg-white/5 hover:bg-white/10 rounded-2xl p-5 transition-all text-center relative">
+                    <input 
+                      type="file" 
+                      accept=".csv"
+                      onChange={handleCsvImport}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <div className="flex flex-col items-center gap-2 pointer-events-none">
+                      <div className="w-10 h-10 rounded-full bg-accent/10 text-accent flex items-center justify-center">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                      </div>
+                      <p className="text-sm font-semibold text-text-primary">도우미 명단 CSV 파일 업로드</p>
+                      <p className="text-xs text-text-secondary">봉사활동 도우미 - 시트1.csv / 시트2.csv 드래그 또는 클릭</p>
+                    </div>
+                  </div>
+
+                  {/* 내보내기 컨트롤 */}
+                  <div className="bg-accent/5 rounded-2xl p-5 border border-accent/20 flex flex-col justify-between">
+                    <div>
+                      <h4 className="text-sm font-bold text-text-primary mb-1">최종 데이터 내보내기</h4>
+                      <p className="text-xs text-text-secondary leading-relaxed mb-4">
+                        담임교사 또는 도우미 담당자가 수정한 봉사시간과 그에 대한 변경 사유가 포함된 최신 상태의 CSV 파일을 생성합니다. 다운로드 후 NEIS 입력 등에 바로 활용하세요.
+                      </p>
+                    </div>
+                    <button 
+                      onClick={handleCsvExport}
+                      className="w-full py-3 px-4 rounded-xl bg-accent hover:bg-accent-hover text-white text-sm font-semibold transition-all shadow-md shadow-accent/15 flex items-center justify-center gap-2 hover:-translate-y-0.5 active:translate-y-0"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                      <span>수정된 결과 CSV 저장하기 (.csv)</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* ----------------- [3. 통합 필터링 패널] ----------------- */}
+              <div className="glass-card p-6 rounded-3xl space-y-6">
+                
+                {/* 검색 필드 */}
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-text-secondary">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <input 
+                    type="text" 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="도우미 한글 이름, 나이스 영문 성명 또는 담당 활동명 검색..."
+                    className="inp w-full pl-12 pr-10 py-3.5 bg-white/20 dark:bg-black/20 border border-white/30 dark:border-white/10 rounded-2xl text-text-primary text-sm placeholder:text-text-secondary/70"
+                  />
+                  {searchQuery && (
+                    <button 
+                      onClick={() => setSearchQuery("")}
+                      className="absolute inset-y-0 right-4 flex items-center text-text-secondary hover:text-text-primary"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                  {/* 학급별 필터링 */}
+                  <div className="lg:col-span-6 space-y-3">
+                    <label className="block text-xs font-bold text-text-secondary uppercase tracking-widest flex items-center gap-1.5">
+                      <svg className="w-4 h-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                      </svg>
+                      학급 선택 (담임 교사용)
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      <button 
+                        onClick={() => setSelectedGradeClass("all")}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                          selectedGradeClass === "all" 
+                            ? "bg-accent text-white shadow-md shadow-accent/20" 
+                            : "bg-white/10 dark:bg-black/15 hover:bg-white/20 text-text-primary border border-white/20"
+                        }`}
+                      >
+                        전체 학급
+                      </button>
+                      {uniqueClasses.filter(c => c !== "all").map(c => {
+                        const count = students.filter(s => `${s.grade}학년 ${s.class}반` === c).length;
+                        return (
+                          <button 
+                            key={c}
+                            onClick={() => setSelectedGradeClass(c)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                              selectedGradeClass === c 
+                                ? "bg-accent text-white shadow-md shadow-accent/20" 
+                                : "bg-white/10 dark:bg-black/15 hover:bg-white/20 text-text-primary border border-white/20"
+                            }`}
+                          >
+                            <span>{c}</span>
+                            <span className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] ${
+                              selectedGradeClass === c ? 'bg-white text-accent font-extrabold' : 'bg-white/25 text-text-secondary'
+                            }`}>
+                              {count}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 도우미 활동명별 필터링 */}
+                  <div className="lg:col-span-6 space-y-3">
+                    <label className="block text-xs font-bold text-text-secondary uppercase tracking-widest flex items-center gap-1.5">
+                      <svg className="w-4 h-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      도우미 활동 선택 (담당 교사 / 부장용)
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      <button 
+                        onClick={() => setSelectedHelper("all")}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                          selectedHelper === "all" 
+                            ? "bg-accent text-white shadow-md shadow-accent/20" 
+                            : "bg-white/10 dark:bg-black/15 hover:bg-white/20 text-text-primary border border-white/20"
+                        }`}
+                      >
+                        전체 도우미
+                      </button>
+                      {uniqueHelpers.filter(h => h !== "all").map(h => {
+                        const count = students.filter(s => s.helperName === h).length;
+                        return (
+                          <button 
+                            key={h}
+                            onClick={() => setSelectedHelper(h)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                              selectedHelper === h 
+                                ? "bg-accent text-white shadow-md shadow-accent/20" 
+                                : "bg-white/10 dark:bg-black/15 hover:bg-white/20 text-text-primary border border-white/20"
+                            }`}
+                          >
+                            <span>{h}</span>
+                            <span className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] ${
+                              selectedHelper === h ? 'bg-white text-accent font-extrabold' : 'bg-white/25 text-text-secondary'
+                            }`}>
+                              {count}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* ----------------- [4. 학생 명단 실시간 데이터 격자] ----------------- */}
+              <div className="glass-card rounded-3xl overflow-hidden">
+                <div className="px-6 py-5 border-b border-white/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/5">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-bold text-text-primary">도우미 배정 및 시간 단축 조정 목록</h2>
+                    <span className="px-2 py-0.5 rounded-full bg-accent-light text-accent text-xs font-bold">
+                      {filteredStudents.length}명 조회됨
+                    </span>
+                  </div>
+                  
+                  <div className="text-xs text-text-secondary flex items-center gap-1.5">
+                    <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                    <span>시간 단축 시 <span className="font-semibold text-text-primary">사유 입력 필수</span></span>
+                  </div>
+                </div>
+
+                {filteredStudents.length === 0 ? (
+                  <div className="py-16 text-center">
+                    <svg className="w-12 h-12 text-text-secondary/50 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <p className="text-sm font-semibold text-text-primary">일치하는 도우미 학생이 없습니다.</p>
+                    <p className="text-xs text-text-secondary mt-1">필터를 변경하거나 검색어를 재입력 해보세요.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-white/5 text-[11px] font-bold text-text-secondary uppercase tracking-wider border-b border-white/10">
+                          <th className="py-4 px-6">학급정보</th>
+                          <th className="py-4 px-6">한글 성명</th>
+                          <th className="py-4 px-6">나이스 성명 (영문)</th>
+                          <th className="py-4 px-6">배정 도우미</th>
+                          <th className="py-4 px-6 text-center">봉사시간 (원래 → 변경)</th>
+                          <th className="py-4 px-6">변경 사유 및 메모</th>
+                          <th className="py-4 px-6 text-center">동작</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/10 text-sm">
+                        {filteredStudents.map((student) => {
+                          const isEdited = student.hours !== student.originalHours;
+                          const hasReason = student.reason && student.reason.trim();
+                          
+                          return (
+                            <tr 
+                              key={student.id} 
+                              className={`transition-colors hover:bg-white/10 ${
+                                isEdited ? 'bg-amber-500/[0.04]' : ''
+                              }`}
+                            >
+                              {/* 학급정보 */}
+                              <td className="py-4 px-6 whitespace-nowrap">
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-white/10 text-text-primary font-bold text-xs border border-white/20">
+                                  {student.grade}학년 {student.class}반 {student.number}번
+                                </span>
+                              </td>
+                              
+                              {/* 한글 성명 */}
+                              <td className="py-4 px-6 font-bold text-text-primary whitespace-nowrap">
+                                {student.name}
+                              </td>
+
+                              {/* 나이스 성명 */}
+                              <td className="py-4 px-6 text-text-secondary text-xs font-mono whitespace-nowrap">
+                                {student.neisName || "-"}
+                              </td>
+
+                              {/* 배정 도우미 역할 */}
+                              <td className="py-4 px-6 whitespace-nowrap">
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-accent-light text-accent text-xs font-semibold border border-accent/10">
+                                  {student.helperName}
+                                </span>
+                              </td>
+
+                              {/* 봉사시간 변동 조절 컨트롤 */}
+                              <td className="py-4 px-6 whitespace-nowrap">
+                                <div className="flex items-center justify-center gap-3">
+                                  {/* 시간 감수 단축 버튼 */}
+                                  <button 
+                                    onClick={() => adjustHoursQuickly(student.id, -1)}
+                                    className="w-7 h-7 rounded-lg bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white transition-colors flex items-center justify-center font-bold text-base"
+                                    title="1시간 차감"
+                                  >
+                                    -
+                                  </button>
+
+                                  <div className="text-center min-w-[70px]">
+                                    {isEdited ? (
+                                      <div className="flex flex-col items-center">
+                                        <span className="text-[10px] text-text-secondary line-through">{student.originalHours}h</span>
+                                        <span className="text-sm font-bold text-amber-500">{student.hours}시간</span>
+                                      </div>
+                                    ) : (
+                                      <span className="font-bold text-text-primary">{student.hours}시간</span>
+                                    )}
+                                  </div>
+
+                                  {/* 시간 증가 버튼 */}
+                                  <button 
+                                    onClick={() => adjustHoursQuickly(student.id, 1)}
+                                    className="w-7 h-7 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 text-emerald-500 hover:text-white transition-colors flex items-center justify-center font-bold text-base"
+                                    title="1시간 추가"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </td>
+
+                              {/* 변경 사유 */}
+                              <td className="py-4 px-6">
+                                {isEdited ? (
+                                  <span className={`text-xs block max-w-xs truncate ${hasReason ? 'text-text-primary font-medium' : 'text-red-500 font-semibold'}`}>
+                                    {student.reason || "⚠ 변경 사유를 입력해야합니다!"}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-text-secondary/50 italic">변경 없음</span>
+                                )}
+                              </td>
+
+                              {/* 관리 액션 */}
+                              <td className="py-4 px-6 text-center whitespace-nowrap">
+                                <button 
+                                  onClick={() => openEditModal(student)}
+                                  className="px-3 py-1.5 rounded-lg bg-accent text-white text-xs font-semibold hover:bg-accent-hover shadow-sm transition-all"
+                                >
+                                  사유 입력 / 편집
+                                </button>
+                              </td>
+
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                
+                {/* 하단 영구 임시 저장 확인 바 */}
+                <div className="bg-white/5 px-6 py-4 border-t border-white/10 text-xs text-text-secondary flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent animate-ping"></span>
+                    수정된 데이터는 브라우저 스토리지(LocalStorage)에 실시간 자동 세이브됩니다.
+                  </span>
+                  <span>최종 수정본 반영 시 상단의 'CSV 저장'을 눌러 백업하세요.</span>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* ----------------- [5. 굴절 유리 편집 모달] ----------------- */}
+          {isModalOpen && editingStudent && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+              <div className="glass-card w-full max-w-lg p-6 sm:p-8 rounded-3xl shadow-2xl relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                
+                {/* 탑 라인 */}
+                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
+
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <h3 className="text-lg font-bold text-text-primary">봉사 상세 조정 및 사유 입력</h3>
+                    <p className="text-xs text-text-secondary">교무 기록 일치화를 위한 실시간 수정 세션</p>
+                  </div>
+                  <button 
+                    onClick={() => { setIsModalOpen(false); setEditingStudent(null); setFeedbackMsg(""); }}
+                    className="p-1 rounded-lg hover:bg-white/10 text-text-secondary hover:text-text-primary"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* 학생 정보 박스 */}
+                <div className="bg-accent/5 rounded-2xl p-4 border border-accent/15 mb-6">
+                  <div className="grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <span className="text-text-secondary block mb-0.5">학급 인적 사항</span>
+                      <strong className="text-sm text-text-primary">
+                        {editingStudent.grade}학년 {editingStudent.class}반 {editingStudent.number}번 {editingStudent.name}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-text-secondary block mb-0.5">나이스 영문명</span>
+                      <strong className="text-sm text-text-primary font-mono">{editingStudent.neisName || "-"}</strong>
+                    </div>
+                    <div>
+                      <span className="text-text-secondary block mb-0.5">지정 도우미 활동</span>
+                      <strong className="text-sm text-accent">{editingStudent.helperName}</strong>
+                    </div>
+                    <div>
+                      <span className="text-text-secondary block mb-0.5">원래 봉사시간</span>
+                      <strong className="text-sm text-text-primary">{editingStudent.originalHours}시간</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-5">
+                  {/* 시간 입력 필드 */}
+                  <div>
+                    <label className="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">변경 봉사시간</label>
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="range"
+                        min="0"
+                        max="20"
+                        value={editHours}
+                        onChange={(e) => setEditHours(Number(e.target.value))}
+                        className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer accent-accent"
+                      />
+                      <div className="flex items-center border border-white/30 dark:border-white/10 rounded-xl overflow-hidden bg-white/10 px-3 py-1 shrink-0">
+                        <input 
+                          type="number"
+                          value={editHours}
+                          onChange={(e) => setEditHours(Math.max(0, Number(e.target.value)))}
+                          className="w-12 bg-transparent text-center font-bold text-sm text-text-primary outline-none focus:ring-0"
+                        />
+                        <span className="text-xs text-text-secondary font-medium">시간</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 사유 프리셋 */}
+                  <div>
+                    <label className="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">자주 쓰는 단축 사유 사전 선택</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {PRESET_REASONS.map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => {
+                            if (preset === "기타 사유 직접 입력") {
+                              setEditReason("");
+                            } else {
+                              setEditReason(preset);
+                            }
+                          }}
+                          className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                            editReason === preset
+                              ? "bg-accent/20 text-accent border border-accent/40"
+                              : "bg-white/10 hover:bg-white/20 text-text-primary border border-white/20"
+                          }`}
+                        >
+                          {preset}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 사유 텍스트 에어리어 */}
+                  <div>
+                    <label className="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">변경 사유 및 세부 사항</label>
+                    <textarea 
+                      rows="3"
+                      value={editReason}
+                      onChange={(e) => setEditReason(e.target.value)}
+                      placeholder="예) 급식실 지원 도우미 활동 시간 중 2회 무단 이탈하여 1시간 단축 부여함."
+                      className="inp w-full px-4 py-3 bg-white/15 dark:bg-black/20 border border-white/30 dark:border-white/10 rounded-xl text-text-primary text-xs placeholder:text-text-secondary/60 leading-relaxed"
+                    ></textarea>
+                    {feedbackMsg && (
+                      <p className="text-xs text-red-500 font-bold mt-2 flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5 shrink-0 animate-bounce" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        {feedbackMsg}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* 하단 저장 / 취소 버튼 */}
+                <div className="mt-8 flex items-center justify-end gap-3">
+                  <button 
+                    onClick={() => { setIsModalOpen(false); setEditingStudent(null); setFeedbackMsg(""); }}
+                    className="px-4 py-2.5 rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 text-text-primary text-xs font-semibold transition-all"
+                  >
+                    닫기
+                  </button>
+                  <button 
+                    onClick={handleSaveEdit}
+                    className="px-5 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-bold transition-all shadow-md shadow-accent/20"
+                  >
+                    수정 적용하기
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          )}
+
+        </div>
+      );
+    }
+
+    // React 18 마운트
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
