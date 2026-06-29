@@ -282,6 +282,10 @@
       const [editingStudent, setEditingStudent] = useState(null);
       const [editHours, setEditHours] = useState(0);
       const [editReason, setEditReason] = useState("");
+      const [editGrade, setEditGrade] = useState("");
+      const [editClass, setEditClass] = useState("");
+      const [editNumber, setEditNumber] = useState("");
+      const [editName, setEditName] = useState("");
       const [feedbackMsg, setFeedbackMsg] = useState("");
 
       const [alertToast, setAlertToast] = useState(null);
@@ -742,6 +746,10 @@
 
       const openEditModal = (student) => {
         setEditingStudent(student);
+        setEditGrade(String(student.grade));
+        setEditClass(String(student.class));
+        setEditNumber(String(student.number));
+        setEditName(student.name);
         setEditHours(student.hours);
         setEditReason(student.reason || "");
         setIsModalOpen(true);
@@ -749,56 +757,38 @@
 
       const handleSaveEdit = () => {
         if (!editingStudent) return;
-        
+        if (!editName.trim()) { setFeedbackMsg("이름을 입력해야 합니다."); return; }
         if (editHours !== editingStudent.hours && !editReason.trim()) {
           setFeedbackMsg("시간을 변경할 경우 사유를 입력해야 합니다.");
           return;
         }
 
         const operatorRole = isAdmin ? "관리자" : "담임 교사 및 지도 교사";
+        const patch = {
+          grade: Number(editGrade) || editingStudent.grade,
+          class: Number(editClass) || editingStudent.class,
+          number: Number(editNumber) || editingStudent.number,
+          name: editName.trim(),
+          hours: Number(editHours),
+          reason: editReason
+        };
 
-        if (isFirebaseActive && db && !firebaseError) {
-          db.collection(studentsColPath).doc(editingStudent.id).update({
-            hours: Number(editHours),
-            reason: editReason
-          }).then(() => {
-            saveLog(
-              editingStudent.name, 
-              editingStudent.hours, 
-              Number(editHours), 
-              editReason, 
-              operatorRole
-            );
-            setIsModalOpen(false);
-            setEditingStudent(null);
-            setFeedbackMsg("");
-            triggerToast(`${editingStudent.name} 학생의 도우미 정보가 성공적으로 반영되었습니다.`);
-          }).catch(err => {
-            console.error("수정 실패:", err);
-          });
-        } else {
-          const updated = students.map(s => {
-            if (s.id === editingStudent.id) {
-              return {
-                ...s,
-                hours: Number(editHours),
-                reason: editReason
-              };
-            }
-            return s;
-          });
-          updateStudentsState(updated);
-          saveLog(
-            editingStudent.name, 
-            editingStudent.hours, 
-            Number(editHours), 
-            editReason, 
-            operatorRole
-          );
+        const closeModal = () => {
           setIsModalOpen(false);
           setEditingStudent(null);
           setFeedbackMsg("");
-          triggerToast(`${editingStudent.name} 학생의 도우미 정보가 성공적으로 반영되었습니다.`);
+          triggerToast(`${patch.name} 학생의 정보가 저장되었습니다.`);
+        };
+
+        if (isFirebaseActive && db && !firebaseError) {
+          db.collection(studentsColPath).doc(editingStudent.id).update(patch).then(() => {
+            saveLog(editingStudent.name, editingStudent.hours, patch.hours, editReason, operatorRole);
+            closeModal();
+          }).catch(err => { console.error("수정 실패:", err); });
+        } else {
+          updateStudentsState(students.map(s => s.id === editingStudent.id ? { ...s, ...patch } : s));
+          saveLog(editingStudent.name, editingStudent.hours, patch.hours, editReason, operatorRole);
+          closeModal();
         }
       };
 
@@ -1482,77 +1472,90 @@
                 <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
 
                 <div className="flex justify-between items-start mb-5">
-                  <h3 className="text-base sm:text-lg font-semibold text-text-primary">봉사시간 수정</h3>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-semibold text-text-primary">학생 정보 편집</h3>
+                    <p className="text-xs text-text-secondary mt-0.5">{editingStudent.helperName} · 기존 {editingStudent.originalHours}시간</p>
+                  </div>
                   <button
                     onClick={() => { setIsModalOpen(false); setEditingStudent(null); setFeedbackMsg(""); }}
                     className="w-7 h-7 rounded-full hover:bg-white/20 text-text-secondary hover:text-text-primary text-base flex items-center justify-center transition-all"
-                  >
-                    ×
-                  </button>
+                  >×</button>
                 </div>
 
-                {/* 대상 도우미 프로필 정보 카드 */}
-                <div className="bg-accent/5 dark:bg-black/30 rounded-2xl p-4 border border-accent/20 dark:border-white/10 mb-5 text-sm">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-text-secondary text-xs sm:text-sm font-normal block mb-0.5">대상 도우미</span>
-                      <strong className="text-sm sm:text-base font-normal text-text-primary">
-                        {editingStudent.grade}학년 {editingStudent.class}반 {editingStudent.number}번 {editingStudent.name}
-                      </strong>
-                    </div>
-                    <div>
-                      <span className="text-text-secondary text-xs sm:text-sm font-normal block mb-0.5">나이스 성명</span>
-                      <strong className="text-sm sm:text-base font-normal text-text-primary font-mono">{editingStudent.neisName || "-"}</strong>
-                    </div>
-                    <div>
-                      <span className="text-text-secondary text-xs sm:text-sm font-normal block mb-0.5">도우미 명칭</span>
-                      <strong className="text-sm sm:text-base font-normal text-accent">{editingStudent.helperName}</strong>
-                    </div>
-                    <div>
-                      <span className="text-text-secondary text-xs sm:text-sm font-normal block mb-0.5">기존 인정시간</span>
-                      <strong className="text-sm sm:text-base font-normal text-text-primary">{editingStudent.originalHours}시간</strong>
+                <div className="space-y-4">
+                  {/* 학년·반·번호·이름 */}
+                  <div>
+                    <label className="block text-xs text-text-secondary mb-2">학생 정보</label>
+                    <div className="grid grid-cols-4 gap-2">
+                      <div className="relative">
+                        <input
+                          type="number" min="1" max="3"
+                          value={editGrade}
+                          onChange={(e) => setEditGrade(e.target.value)}
+                          className="inp w-full px-3 py-2.5 bg-white/40 dark:bg-black/35 border border-white/40 dark:border-white/10 rounded-xl text-text-primary text-sm text-center outline-none"
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-text-secondary pointer-events-none">학년</span>
+                      </div>
+                      <div className="relative">
+                        <input
+                          type="number" min="1"
+                          value={editClass}
+                          onChange={(e) => setEditClass(e.target.value)}
+                          className="inp w-full px-3 py-2.5 bg-white/40 dark:bg-black/35 border border-white/40 dark:border-white/10 rounded-xl text-text-primary text-sm text-center outline-none"
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-text-secondary pointer-events-none">반</span>
+                      </div>
+                      <div className="relative">
+                        <input
+                          type="number" min="1"
+                          value={editNumber}
+                          onChange={(e) => setEditNumber(e.target.value)}
+                          className="inp w-full px-3 py-2.5 bg-white/40 dark:bg-black/35 border border-white/40 dark:border-white/10 rounded-xl text-text-primary text-sm text-center outline-none"
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-text-secondary pointer-events-none">번</span>
+                      </div>
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        placeholder="이름"
+                        className="inp col-span-1 w-full px-3 py-2.5 bg-white/40 dark:bg-black/35 border border-white/40 dark:border-white/10 rounded-xl text-text-primary text-sm outline-none"
+                      />
                     </div>
                   </div>
-                </div>
 
-                <div className="space-y-5">
-                  {/* 슬라이더 제어 */}
+                  {/* 인정시간 */}
                   <div>
-                    <label className="block text-xs sm:text-sm font-normal text-text-secondary uppercase tracking-widest mb-2">변경 반영 봉사 시간</label>
+                    <label className="block text-xs text-text-secondary mb-2">인정 시간</label>
                     <div className="flex items-center gap-3">
-                      <input 
-                        type="range"
-                        min="0"
-                        max="20"
+                      <input
+                        type="range" min="0" max="20"
                         value={editHours}
                         onChange={(e) => setEditHours(Number(e.target.value))}
                         className="w-full h-2 bg-white/30 dark:bg-black/40 rounded-lg appearance-none cursor-pointer accent-accent"
                       />
-                      <div className="flex items-center border border-white/40 dark:border-white/10 rounded-xl overflow-hidden bg-white/20 dark:bg-black/20 px-3 py-1.5 shrink-0">
-                        <input 
+                      <div className="flex items-center border border-white/40 dark:border-white/10 rounded-xl bg-white/20 dark:bg-black/20 px-3 py-1.5 shrink-0">
+                        <input
                           type="number"
                           value={editHours}
                           onChange={(e) => setEditHours(Math.max(0, Number(e.target.value)))}
-                          className="w-12 bg-transparent text-center font-normal text-sm text-text-primary outline-none focus:ring-0"
+                          className="w-12 bg-transparent text-center text-sm text-text-primary outline-none focus:ring-0"
                         />
-                        <span className="text-xs sm:text-sm font-normal text-text-secondary">시간</span>
+                        <span className="text-xs text-text-secondary">시간</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* 사유 작성 기재부 */}
+                  {/* 사유 */}
                   <div>
-                    <label className="block text-xs sm:text-sm font-normal text-text-secondary uppercase tracking-widest mb-2">
-                      시간 조정 사유 작성
-                    </label>
-                    <textarea 
-                      rows="4"
+                    <label className="block text-xs text-text-secondary mb-2">조정 사유 <span className="text-text-secondary/60">(시간 변경 시 필수)</span></label>
+                    <textarea
+                      rows="3"
                       value={editReason}
                       onChange={(e) => setEditReason(e.target.value)}
                       placeholder="예시) 활동 불성실로 인한 시간 단축 등"
-                      className="inp w-full px-4 py-3 bg-white/40 dark:bg-black/35 border border-white/40 dark:border-white/10 rounded-xl text-text-primary text-xs sm:text-sm font-normal placeholder:text-text-secondary/50 leading-relaxed"
+                      className="inp w-full px-4 py-3 bg-white/40 dark:bg-black/35 border border-white/40 dark:border-white/10 rounded-xl text-text-primary text-sm placeholder:text-text-secondary/50 leading-relaxed outline-none"
                     ></textarea>
-                    
                     {feedbackMsg && (
                       <p className="text-xs text-red-600 mt-2">{feedbackMsg}</p>
                     )}
