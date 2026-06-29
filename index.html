@@ -777,7 +777,7 @@
         if (!editingStudent) return;
         if (!editName.trim()) { setFeedbackMsg("이름을 입력해야 합니다."); return; }
         if (editHours !== editingStudent.hours && !editReason.trim()) {
-          setFeedbackMsg("시간을 변경할 경우 사유를 입력해야 합니다.");
+          setFeedbackMsg("시간을 변경할 경우 특이사항을 입력해야 합니다.");
           return;
         }
 
@@ -1340,7 +1340,7 @@
                               <th className="py-2 px-3 font-medium">학생</th>
                               <th className="py-2 px-3 font-medium">역할</th>
                               <th className="py-2 px-3 text-center font-medium">인정 시간</th>
-                              <th className="py-2 px-3 font-medium">조정 사유</th>
+                              <th className="py-2 px-3 font-medium">특이사항</th>
                               <th className="py-2 px-3 text-center font-medium"></th>
                             </tr>
                           </thead>
@@ -1388,12 +1388,12 @@
                                     )}
                                   </td>
 
-                                  {/* 사유 */}
+                                  {/* 특이사항 */}
                                   <td className="py-3 px-3">
-                                    {isEdited ? (
-                                      <span className={`text-sm block truncate ${hasReason ? 'text-text-primary' : 'text-red-500'}`}>
-                                        {student.reason || "사유 미입력"}
-                                      </span>
+                                    {hasReason ? (
+                                      <span className="text-sm block truncate text-text-primary">{student.reason}</span>
+                                    ) : isEdited ? (
+                                      <span className="text-sm text-red-500">특이사항 없음</span>
                                     ) : (
                                       <span className="text-sm text-text-secondary/40 italic">—</span>
                                     )}
@@ -1587,7 +1587,7 @@
 
                   {/* 사유 */}
                   <div>
-                    <label className="block text-xs text-text-secondary mb-2">조정 사유 <span className="text-text-secondary/60">(시간 변경 시 필수)</span></label>
+                    <label className="block text-xs text-text-secondary mb-2">특이사항 <span className="text-text-secondary/60">(시간 변경 시 필수)</span></label>
                     <textarea
                       rows="3"
                       value={editReason}
