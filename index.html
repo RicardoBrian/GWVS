@@ -253,39 +253,7 @@
     const studentsColPath = `artifacts/${appId}/public/data/students`;
     const logsColPath = `artifacts/${appId}/public/data/logs`;
 
-    const DEFAULT_STUDENTS = [
-      { id: 's1', grade: 1, class: 1, number: 1, neisName: "BAROI ANGEL NAMROTA", name: "엔젤", helperName: "기자재 관리도우미", hours: 5, originalHours: 5, reason: "" },
-      { id: 's2', grade: 1, class: 1, number: 5, neisName: "JIN ZHIMEI", name: "김지미", helperName: "특별실 분리수거 도우미", hours: 5, originalHours: 5, reason: "" },
-      { id: 's3', grade: 1, class: 1, number: 8, neisName: "KIM MARGARITA", name: "김리타", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
-      { id: 's4', grade: 1, class: 1, number: 11, neisName: "NANXIYANG", name: "남희양", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
-      { id: 's5', grade: 1, class: 1, number: 14, neisName: "WEN JIAYUE", name: "문가월", helperName: "학급 분리수거도우미", hours: 5, originalHours: 5, reason: "" },
-      { id: 's6', grade: 1, class: 1, number: 15, neisName: "ZAVODNYI DMITRII", name: "디마", helperName: "분리수거장 도우미", hours: 5, originalHours: 5, reason: "" },
-      { id: 's7', grade: 1, class: 1, number: 16, neisName: "김민서", name: "김민서", helperName: "특별실 분리수거 도우미", hours: 5, originalHours: 5, reason: "" },
-      { id: 's8', grade: 1, class: 1, number: 17, neisName: "김수정", name: "김수정", helperName: "학급 분리수거도우미", hours: 5, originalHours: 5, reason: "" },
-      { id: 's9', grade: 1, class: 1, number: 18, neisName: "신민준", name: "신민준", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
-      { id: 's10', grade: 1, class: 1, number: 19, neisName: "이동욱", name: "이동욱", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
-      { id: 's11', grade: 1, class: 1, number: 20, neisName: "정대영", name: "정대영", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
-      { id: 's12', grade: 1, class: 2, number: 1, neisName: "HAN SHENGGUI", name: "한승규", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
-      { id: 's13', grade: 1, class: 2, number: 4, neisName: "KIM ARSENII", name: "김아르세니", helperName: "학급 분리수거도우미", hours: 5, originalHours: 5, reason: "" },
-      
-      // 3학년 2반
-      { id: 's14', grade: 3, class: 2, number: 10, neisName: "QUAN ENZHI", name: "권은지", helperName: "학급 분리수거도우미", hours: 5, originalHours: 5, reason: "" },
-      { id: 's15', grade: 3, class: 2, number: 12, neisName: "ZHU CHUNYU", name: "오정희", helperName: "학급 분리수거도우미", hours: 5, originalHours: 5, reason: "" },
-      { id: 's16', grade: 3, class: 2, number: 13, neisName: "나세인", name: "나세인", helperName: "특별실 분리수거 도우미", hours: 5, originalHours: 5, reason: "" },
-      { id: 's17', grade: 3, class: 2, number: 14, neisName: "유수연", name: "유수연", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
-      { id: 's18', grade: 3, class: 2, number: 15, neisName: "이소원", name: "이소원", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
-      
-      // 3학년 3반
-      { id: 's19', grade: 3, class: 3, number: 1, neisName: "EM DMITRIY", name: "엠디마", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
-      { id: 's20', grade: 3, class: 3, number: 2, neisName: "IUSHKEVICH POLINA", name: "폴리나", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
-      { id: 's21', grade: 3, class: 3, number: 3, neisName: "JIN PINWAN", name: "근품만", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
-      { id: 's22', grade: 3, class: 3, number: 4, neisName: "KHON SAFIRA", name: "홍사피라", helperName: "분리수거장 도우미", hours: 5, originalHours: 5, reason: "" },
-      { id: 's23', grade: 3, class: 3, number: 5, neisName: "KIM MAXIMILYAN MARATOVICH", name: "김막심", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
-      { id: 's24', grade: 3, class: 3, number: 6, neisName: "KVON ARTYOM", name: "권아르쫌", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
-      { id: 's25', grade: 3, class: 3, number: 7, neisName: "LI DONGRAN", name: "이동염", helperName: "급식 도우미", hours: 5, originalHours: 5, reason: "" },
-      { id: 's26', grade: 3, class: 3, number: 8, neisName: "SONG GUANXU", name: "송관욱", helperName: "특별실 분리수거 도우미", hours: 5, originalHours: 5, reason: "" },
-      { id: 's27', grade: 3, class: 3, number: 9, neisName: "XU NUOWEN", name: "허라문", helperName: "특별실 분리수거 도우미", hours: 5, originalHours: 5, reason: "" }
-    ];
+    const DEFAULT_STUDENTS = [];
 
     function App() {
       const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -1357,116 +1325,97 @@
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                           <thead>
-                            <tr className="bg-white/10 text-xs font-normal text-text-secondary uppercase tracking-wider border-b border-white/20">
-                              <th className="py-4 px-6 font-normal">학급정보</th>
-                              <th className="py-4 px-6 font-normal">한글 이름</th>
-                              <th className="py-4 px-6 font-normal">나이스 영문명</th>
-                              <th className="py-4 px-6 font-normal">배정된 역할</th>
-                              <th className="py-4 px-6 text-center font-normal">인정 시간</th>
-                              <th className="py-4 px-6 font-normal">시간 조정 사유</th>
-                              <th className="py-4 px-6 text-center font-normal">동작</th>
+                            <tr className="bg-white/10 text-[11px] font-semibold text-text-secondary uppercase tracking-wider border-b border-white/20">
+                              <th className="py-3 px-4 font-semibold">학생</th>
+                              <th className="py-3 px-4 font-semibold">역할</th>
+                              <th className="py-3 px-4 text-center font-semibold">인정 시간</th>
+                              <th className="py-3 px-4 font-semibold">조정 사유</th>
+                              <th className="py-3 px-4 text-center font-semibold">동작</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-white/15 text-sm font-light">
+                          <tbody className="divide-y divide-white/10 text-sm">
                             {filteredStudents.map((student) => {
                               const isEdited = student.hours !== student.originalHours;
                               const hasReason = student.reason && student.reason.trim();
-                              
+
                               return (
-                                <tr 
-                                  key={student.id} 
-                                  className={`transition-colors hover:bg-white/10 ${
-                                    isEdited ? 'bg-amber-500/[0.04] dark:bg-amber-500/[0.08]' : ''
-                                  }`}
+                                <tr
+                                  key={student.id}
+                                  className={`transition-colors hover:bg-white/8 ${isEdited ? 'bg-amber-500/[0.05]' : ''}`}
                                 >
-                                  {/* 학급 인적사항 - 1학년 1반 1번 형태로 문구 변경 완료 */}
-                                  <td className="py-4 px-6 whitespace-nowrap">
-                                    <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-white/25 dark:bg-black/25 text-text-primary font-normal text-sm border border-white/30 dark:border-white/10">
-                                      {student.grade}학년 {student.class}반 {student.number}번
-                                    </span>
-                                  </td>
-                                  
-                                  {/* 학생 성명 */}
-                                  <td className="py-4 px-6 font-normal text-text-primary whitespace-nowrap text-sm sm:text-base">
-                                    {student.name}
-                                  </td>
-
-                                  {/* 나이스 영문 */}
-                                  <td className="py-4 px-6 text-text-secondary text-xs sm:text-sm font-mono font-normal whitespace-nowrap">
-                                    {student.neisName || "-"}
-                                  </td>
-
-                                  {/* 지정 도우미 활동명 */}
-                                  <td className="py-4 px-6 whitespace-nowrap">
-                                    <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-accent-light text-accent text-sm font-normal border border-accent/20">
-                                      {student.helperName}
-                                    </span>
-                                  </td>
-
-                                  {/* 봉사시간 조절 */}
-                                  <td className="py-4 px-6 whitespace-nowrap">
-                                    <div className="flex items-center justify-center gap-2.5">
-                                      <button 
-                                        onClick={() => adjustHoursQuickly(student.id, -1)}
-                                        className="w-8 h-8 rounded-lg bg-red-600/10 hover:bg-red-600 text-red-600 hover:text-white transition-colors flex items-center justify-center font-normal text-lg"
-                                        title="1시간 단축"
-                                      >
-                                        -
-                                      </button>
-
-                                      <div className="text-center min-w-[75px]">
-                                        {isEdited ? (
-                                          <div className="flex flex-col items-center">
-                                            <span className="text-[11px] text-text-secondary font-normal line-through">{student.originalHours}시간</span>
-                                            <span className="text-sm sm:text-base font-normal text-amber-600 dark:text-amber-400">{student.hours}시간</span>
-                                          </div>
-                                        ) : (
-                                          <span className="font-normal text-text-primary text-sm sm:text-base">{student.hours}시간</span>
-                                        )}
-                                      </div>
-
-                                      <button 
-                                        onClick={() => adjustHoursQuickly(student.id, 1)}
-                                        className="w-8 h-8 rounded-lg bg-emerald-600/10 hover:bg-emerald-600 text-emerald-600 hover:text-white transition-colors flex items-center justify-center font-normal text-lg"
-                                        title="1시간 추가"
-                                      >
-                                        +
-                                      </button>
-                                    </div>
-                                  </td>
-
-                                  {/* 변경 사유 기재사항 */}
-                                  <td className="py-4 px-6 max-w-xs">
-                                    {isEdited ? (
-                                      <span className={`text-xs sm:text-sm block truncate font-normal ${hasReason ? 'text-text-primary' : 'text-red-600 animate-pulse'}`}>
-                                        {student.reason || "사유 미입력"}
+                                  {/* 학생 정보 (학급 + 이름 + 나이스 통합) */}
+                                  <td className="py-3 px-4 whitespace-nowrap">
+                                    <div className="flex flex-col gap-0.5">
+                                      <span className="text-[11px] text-text-secondary font-medium tabular-nums">
+                                        {student.grade}학년 {student.class}반 {student.number}번
                                       </span>
-                                    ) : (
-                                      <span className="text-xs text-text-secondary/50 italic font-normal">변동 없음</span>
-                                    )}
-                                  </td>
-
-                                  {/* 사유 편집 액션 */}
-                                  <td className="py-4 px-6 text-center whitespace-nowrap">
-                                    <div className="flex items-center justify-center gap-2">
-                                      <button
-                                        onClick={() => openEditModal(student)}
-                                        className="px-3.5 py-1.5 rounded-full text-white text-xs font-semibold hover:brightness-110 shadow-sm transition-all"
-                                        style={{background:'var(--accent-grad)'}}
-                                      >
-                                        편집
-                                      </button>
-                                      {isAdmin && (
-                                        <button
-                                          onClick={() => handleDeleteStudent(student.id, student.name)}
-                                          className="px-2.5 py-1.5 text-red-600 hover:bg-red-600/15 rounded-full transition-all text-xs font-semibold border border-red-600/20"
-                                        >
-                                          제외
-                                        </button>
+                                      <span className="font-semibold text-text-primary text-sm leading-tight">{student.name}</span>
+                                      {student.neisName && (
+                                        <span className="text-[10px] text-text-secondary font-mono leading-tight">{student.neisName}</span>
                                       )}
                                     </div>
                                   </td>
 
+                                  {/* 역할 뱃지 */}
+                                  <td className="py-3 px-4 whitespace-nowrap">
+                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-accent-light text-accent text-xs font-semibold border border-accent/20">
+                                      {student.helperName}
+                                    </span>
+                                  </td>
+
+                                  {/* 시간 조절 */}
+                                  <td className="py-3 px-4 whitespace-nowrap">
+                                    <div className="flex items-center justify-center gap-2">
+                                      <button
+                                        onClick={() => adjustHoursQuickly(student.id, -1)}
+                                        className="w-7 h-7 rounded-full bg-red-600/10 hover:bg-red-600 text-red-600 hover:text-white transition-colors flex items-center justify-center text-base font-medium leading-none"
+                                        title="1시간 단축"
+                                      >−</button>
+                                      <div className="text-center min-w-[52px]">
+                                        {isEdited ? (
+                                          <div className="flex flex-col items-center leading-tight">
+                                            <span className="text-[10px] text-text-secondary line-through">{student.originalHours}h</span>
+                                            <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{student.hours}h</span>
+                                          </div>
+                                        ) : (
+                                          <span className="text-sm font-semibold text-text-primary">{student.hours}h</span>
+                                        )}
+                                      </div>
+                                      <button
+                                        onClick={() => adjustHoursQuickly(student.id, 1)}
+                                        className="w-7 h-7 rounded-full bg-emerald-600/10 hover:bg-emerald-600 text-emerald-600 hover:text-white transition-colors flex items-center justify-center text-base font-medium leading-none"
+                                        title="1시간 추가"
+                                      >+</button>
+                                    </div>
+                                  </td>
+
+                                  {/* 사유 */}
+                                  <td className="py-3 px-4 max-w-[160px]">
+                                    {isEdited ? (
+                                      <span className={`text-xs block truncate ${hasReason ? 'text-text-primary' : 'text-red-500 font-medium'}`}>
+                                        {student.reason || "사유 미입력"}
+                                      </span>
+                                    ) : (
+                                      <span className="text-xs text-text-secondary/40 italic">—</span>
+                                    )}
+                                  </td>
+
+                                  {/* 동작 */}
+                                  <td className="py-3 px-4 text-center whitespace-nowrap">
+                                    <div className="flex items-center justify-center gap-1.5">
+                                      <button
+                                        onClick={() => openEditModal(student)}
+                                        className="px-3 py-1.5 rounded-full text-white text-xs font-semibold hover:brightness-110 transition-all"
+                                        style={{background:'var(--accent-grad)'}}
+                                      >편집</button>
+                                      {isAdmin && (
+                                        <button
+                                          onClick={() => handleDeleteStudent(student.id, student.name)}
+                                          className="px-2.5 py-1.5 text-red-600 hover:bg-red-600/15 rounded-full transition-all text-xs font-semibold border border-red-600/20"
+                                        >제외</button>
+                                      )}
+                                    </div>
+                                  </td>
                                 </tr>
                               );
                             })}
