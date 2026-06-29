@@ -286,6 +286,7 @@
       const [editClass, setEditClass] = useState("");
       const [editNumber, setEditNumber] = useState("");
       const [editName, setEditName] = useState("");
+      const [editNeisName, setEditNeisName] = useState("");
       const [feedbackMsg, setFeedbackMsg] = useState("");
 
       const [alertToast, setAlertToast] = useState(null);
@@ -750,6 +751,7 @@
         setEditClass(String(student.class));
         setEditNumber(String(student.number));
         setEditName(student.name);
+        setEditNeisName(student.neisName || "");
         setEditHours(student.hours);
         setEditReason(student.reason || "");
         setIsModalOpen(true);
@@ -769,6 +771,7 @@
           class: Number(editClass) || editingStudent.class,
           number: Number(editNumber) || editingStudent.number,
           name: editName.trim(),
+          neisName: editNeisName.trim(),
           hours: Number(editHours),
           reason: editReason
         };
@@ -1483,10 +1486,10 @@
                 </div>
 
                 <div className="space-y-4">
-                  {/* 학년·반·번호·이름 */}
+                  {/* 학년·반·번호 */}
                   <div>
-                    <label className="block text-xs text-text-secondary mb-2">학생 정보</label>
-                    <div className="grid grid-cols-4 gap-2">
+                    <label className="block text-xs text-text-secondary mb-2">학급 정보</label>
+                    <div className="grid grid-cols-3 gap-2">
                       <div className="relative">
                         <input
                           type="number" min="1" max="3"
@@ -1514,13 +1517,33 @@
                         />
                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-text-secondary pointer-events-none">번</span>
                       </div>
-                      <input
-                        type="text"
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        placeholder="이름"
-                        className="inp col-span-1 w-full px-3 py-2.5 bg-white/40 dark:bg-black/35 border border-white/40 dark:border-white/10 rounded-xl text-text-primary text-sm outline-none"
-                      />
+                    </div>
+                  </div>
+
+                  {/* 한글이름·나이스이름 */}
+                  <div>
+                    <label className="block text-xs text-text-secondary mb-2">이름</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          placeholder="한글 이름"
+                          className="inp w-full px-3 py-2.5 bg-white/40 dark:bg-black/35 border border-white/40 dark:border-white/10 rounded-xl text-text-primary text-sm outline-none"
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-text-secondary pointer-events-none">한글</span>
+                      </div>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={editNeisName}
+                          onChange={(e) => setEditNeisName(e.target.value)}
+                          placeholder="나이스 성명"
+                          className="inp w-full px-3 py-2.5 bg-white/40 dark:bg-black/35 border border-white/40 dark:border-white/10 rounded-xl text-text-primary text-sm font-mono outline-none"
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-text-secondary pointer-events-none">나이스</span>
+                      </div>
                     </div>
                   </div>
 
