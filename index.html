@@ -60,41 +60,55 @@
   <style>
     :root {
       --font-sans: 'IBM Plex Sans KR', sans-serif;
-      
-      /* Light Mode - 부드럽고 눈이 안 피로한 실버화이트톤과 가독성 가중 */
-      --bg-gradient: radial-gradient(circle at 0% 0%, #f4f6fa 0%, #eaedf5 50%, #f1e9f7 100%);
-      --glass-bg: rgba(255, 255, 255, 0.85);
-      --glass-border: rgba(0, 80, 180, 0.15);
+
+      /* Light Mode — Liquid Glass vibrancy */
+      --bg-gradient:
+        radial-gradient(at 18% 18%, #e7ecff 0%, transparent 52%),
+        radial-gradient(at 82% 12%, #ffe7f2 0%, transparent 46%),
+        radial-gradient(at 65% 88%, #e0f5ff 0%, transparent 52%),
+        radial-gradient(at 8%  92%, #eee6ff 0%, transparent 44%),
+        #f4f5fa;
+      --glass-bg: rgba(255, 255, 255, 0.62);
+      --glass-border: rgba(255, 255, 255, 0.55);
       --glass-edge: rgba(255, 255, 255, 0.95);
-      --glass-shadow: 0 10px 30px 0 rgba(0, 30, 80, 0.05), 0 1px 2px 0 rgba(255, 255, 255, 0.8) inset;
-      --text-primary: #121215; 
-      --text-secondary: #3e3e48; 
-      --accent: #0056b3; 
-      --accent-hover: #004494;
-      --accent-light: rgba(0, 86, 179, 0.06);
-      --danger: #d70015;
-      --danger-light: rgba(215, 0, 21, 0.06);
-      --success: #1a722f;
-      --success-light: rgba(26, 114, 47, 0.06);
-      --blur: 20px;
+      --glass-shadow: 0 10px 30px rgba(40, 60, 130, 0.12);
+      --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 0 0 0.5px rgba(255, 255, 255, 0.4);
+      --text-primary: #1a1c22;
+      --text-secondary: #5b606b;
+      --accent: #0071e3;
+      --accent-hover: #0a84ff;
+      --accent-light: rgba(0, 113, 227, 0.12);
+      --accent-grad: linear-gradient(180deg, #3a9bff 0%, #0071e3 100%);
+      --danger: #ff3b30;
+      --danger-light: rgba(255, 59, 48, 0.12);
+      --success: #34c759;
+      --success-light: rgba(52, 199, 89, 0.16);
+      --blur: 22px;
     }
 
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg-gradient: radial-gradient(circle at 0% 0%, #0a0a0c 0%, #111115 50%, #150f1d 100%);
-        --glass-bg: rgba(20, 20, 25, 0.88);
-        --glass-border: rgba(255, 255, 255, 0.1);
+        --bg-gradient:
+          radial-gradient(at 18% 18%, #1b2444 0%, transparent 55%),
+          radial-gradient(at 82% 12%, #2c1a44 0%, transparent 48%),
+          radial-gradient(at 65% 90%, #0e2438 0%, transparent 52%),
+          radial-gradient(at 8%  92%, #1a1530 0%, transparent 46%),
+          #07080d;
+        --glass-bg: rgba(44, 46, 58, 0.58);
+        --glass-border: rgba(255, 255, 255, 0.14);
         --glass-edge: rgba(255, 255, 255, 0.15);
-        --glass-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.4), 0 1px 0px 0 rgba(255, 255, 255, 0.1) inset;
-        --text-primary: #f5f5f7;
-        --text-secondary: #d1d1d6;
-        --accent: #3ea0ff;
-        --accent-hover: #66b5ff;
-        --accent-light: rgba(62, 160, 255, 0.12);
+        --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+        --text-primary: #f2f4f8;
+        --text-secondary: #aab0bd;
+        --accent: #0a84ff;
+        --accent-hover: #409cff;
+        --accent-light: rgba(10, 132, 255, 0.18);
+        --accent-grad: linear-gradient(180deg, #2b95ff 0%, #0a84ff 100%);
         --danger: #ff453a;
-        --danger-light: rgba(255, 69, 58, 0.15);
-        --success: #32d74b;
-        --success-light: rgba(50, 215, 75, 0.15);
+        --danger-light: rgba(255, 69, 58, 0.18);
+        --success: #30d158;
+        --success-light: rgba(48, 209, 88, 0.2);
       }
     }
 
@@ -110,12 +124,10 @@
 
     .glass-card {
       background: var(--glass-bg);
-      backdrop-filter: blur(var(--blur)) saturate(180%);
-      -webkit-backdrop-filter: blur(var(--blur)) saturate(180%);
+      backdrop-filter: saturate(180%) blur(var(--blur));
+      -webkit-backdrop-filter: saturate(180%) blur(var(--blur));
       border: 1px solid var(--glass-border);
-      border-top: 1px solid var(--glass-edge);
-      border-left: 1px solid var(--glass-edge);
-      box-shadow: var(--glass-shadow);
+      box-shadow: var(--glass-highlight), var(--glass-shadow);
     }
 
     .inp:focus {
@@ -258,33 +270,27 @@
           setIsAdmin(true);
         }
 
-        if (isFirebaseActive && db) {
-          // RULE 3 - 선인증 후 쿼리 작동
-          auth.signInAnonymously().then(() => {
-            setFirebaseError(""); // 로그인 성공 시 에러 상태 클리어
+        let unsubscribeStudents = null;
+        let unsubscribeLogs = null;
 
-            // [원격 데이터가 완전히 비어있는 최초 1회만 기본 명단 자동 세팅]
+        if (isFirebaseActive && db) {
+          auth.signInAnonymously().then(() => {
+            setFirebaseError("");
+
             db.collection(studentsColPath).get().then((snapshot) => {
               if (snapshot.empty) {
                 const batch = db.batch();
                 DEFAULT_STUDENTS.forEach((s) => {
-                  const docRef = db.collection(studentsColPath).doc(s.id);
-                  batch.set(docRef, s);
+                  batch.set(db.collection(studentsColPath).doc(s.id), s);
                 });
-                batch.commit().then(() => {
-                  console.log("초기 기본 명단 파이어베이스 업로드 세팅 성공");
-                });
+                batch.commit();
               }
-            }).catch(err => {
-              console.error("Firestore 초기 명단 검사 에러:", err);
-            });
+            }).catch(err => console.error("Firestore 초기 명단 검사 에러:", err));
 
-            // 학생 명단 실시간 수신 리스너 (onSnapshot 내부의 초기화 코드를 지워 레이스 컨디션 방지)
-            const unsubscribeStudents = db.collection(studentsColPath).onSnapshot(
+            unsubscribeStudents = db.collection(studentsColPath).onSnapshot(
               (snapshot) => {
                 if (!snapshot.empty) {
                   const items = snapshot.docs.map(doc => doc.data());
-                  // 학급 정보 정렬
                   items.sort((a, b) => {
                     if (a.grade !== b.grade) return a.grade - b.grade;
                     if (a.class !== b.class) return a.class - b.class;
@@ -292,42 +298,33 @@
                   });
                   setStudents(items);
                 } else {
-                  // 동기화 도중 데이터가 일시적으로 비거나 완전히 리셋되었을 때 무한 루프에 돌지 않고 정직하게 빈 명단 출력
                   setStudents([]);
                 }
               },
               (err) => {
-                console.error("학생 명단 실시간 수신 실패 (권한 점검 필요):", err);
+                console.error("학생 명단 실시간 수신 실패:", err);
                 loadFromLocalStorage();
               }
             );
 
-            // 로그 실시간 컬렉션 바인딩
-            const unsubscribeLogs = db.collection(logsColPath).onSnapshot(
+            unsubscribeLogs = db.collection(logsColPath).onSnapshot(
               (snapshot) => {
                 const logsList = snapshot.docs.map(doc => doc.data());
                 logsList.sort((a, b) => {
-                  const idA = a.id ? a.id.split('_')[1] : 0;
-                  const idB = b.id ? b.id.split('_')[1] : 0;
+                  const idA = a.id ? parseInt(a.id.split('_')[1]) : 0;
+                  const idB = b.id ? parseInt(b.id.split('_')[1]) : 0;
                   return idB - idA;
                 });
                 setEditLogs(logsList);
               },
-              (err) => {
-                console.error("로그 내역 실시간 수신 실패 (권한 점검 필요):", err);
-              }
+              (err) => console.error("로그 수신 실패:", err)
             );
-
-            return () => {
-              unsubscribeStudents();
-              unsubscribeLogs();
-            };
           }).catch(err => {
-            console.error("Firebase 익명 로그인 불가, 로컬 저장소 모드로 전환.", err);
+            console.error("Firebase 로그인 실패, 로컬 모드 전환:", err);
             if (err.code === "auth/configuration-not-found") {
-              setFirebaseError("Firebase Console에서 '익명(Anonymous) 로그인' 제공업체가 활성화되지 않았습니다. [Authentication -> Sign-in method]에서 '익명'을 사용 설정해 주세요. 현재 로컬 저장소 임시 모드로 복구 작동 중입니다.");
+              setFirebaseError("Firebase 익명 로그인이 비활성화되어 있습니다. [Authentication → Sign-in method]에서 '익명'을 활성화해 주세요. 현재 로컬 저장소 모드로 작동 중입니다.");
             } else {
-              setFirebaseError(`실시간 클라우드 연결 오류: ${err.message} (로컬 저장소 모드 전환됨)`);
+              setFirebaseError(`실시간 연결 오류: ${err.message}`);
             }
             loadFromLocalStorage();
           });
@@ -363,7 +360,11 @@
         };
         updateClock();
         const interval = setInterval(updateClock, 1000);
-        return () => clearInterval(interval);
+        return () => {
+          clearInterval(interval);
+          if (unsubscribeStudents) unsubscribeStudents();
+          if (unsubscribeLogs) unsubscribeLogs();
+        };
       }, []);
 
       const triggerToast = (msg, type = "success") => {
@@ -376,7 +377,7 @@
         if (password === "1985") {
           setIsAuthenticated(true);
           sessionStorage.setItem("portal_auth", "true");
-          triggerToast("관산중학교 봉사도우미 시스템 접속에 성공하였습니다.", "success");
+          triggerToast("접속되었습니다.", "success");
         } else {
           setPasswordError("비밀번호가 올바르지 않습니다. 다시 입력하세요.");
           triggerToast("접속 실패", "danger");
@@ -391,7 +392,7 @@
           setAdminPasswordInput("");
           setAdminPasswordError("");
           sessionStorage.setItem("portal_admin_auth", "true");
-          triggerToast("시스템 관리자 모드가 활성화되었습니다.", "success");
+          triggerToast("관리자 모드가 활성화되었습니다.", "success");
         } else {
           setAdminPasswordError("관리자 승인 비밀번호가 일치하지 않습니다.");
           triggerToast("관리자 인증 실패", "danger");
@@ -531,7 +532,7 @@
             setEditLogs([]);
             localStorage.removeItem("helper_students_logs_v4");
           }
-          triggerToast("모든 데이터가 완벽하게 복원 및 초기화되었습니다.", "success");
+          triggerToast("초기 명단으로 복원되었습니다.", "success");
         }
       };
 
@@ -545,7 +546,7 @@
           complete: (results) => {
             const data = results.data;
             if (data.length === 0) {
-              triggerToast("파싱 가능한 데이터 행이 존재하지 않는 CSV 파일입니다.", "danger");
+              triggerToast("데이터가 없는 CSV 파일입니다.", "danger");
               return;
             }
 
@@ -579,7 +580,7 @@
               triggerToast(`성공적으로 ${formatted.length}명의 도우미 정보를 업로드 연동했습니다.`, "success");
             } catch (err) {
               console.error(err);
-              triggerToast("CSV 구조 분석 중 실패했습니다. 구조를 재점검하세요.", "danger");
+              triggerToast("CSV 형식이 올바르지 않습니다.", "danger");
             }
           },
           error: (err) => {
@@ -590,7 +591,7 @@
 
       const handleCsvExport = () => {
         if (students.length === 0) {
-          triggerToast("출력 대상 데이터가 존재하지 않습니다.", "danger");
+          triggerToast("내보낼 데이터가 없습니다.", "danger");
           return;
         }
 
@@ -615,7 +616,7 @@
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        triggerToast("엑셀 호환 CSV 백업 파일의 다운로드를 시작했습니다.");
+        triggerToast("CSV 파일 다운로드 시작.");
       };
 
       const handleAddStudent = (e) => {
@@ -712,8 +713,8 @@
       const handleSaveEdit = () => {
         if (!editingStudent) return;
         
-        if (editHours !== editingStudent.originalHours && !editReason.trim()) {
-          setFeedbackMsg("시간 조정 발생 시 사유 내용을 반드시 입력하셔야 합니다.");
+        if (editHours !== editingStudent.hours && !editReason.trim()) {
+          setFeedbackMsg("시간을 변경할 경우 사유를 입력해야 합니다.");
           return;
         }
 
@@ -772,9 +773,7 @@
         let autoReason = target.reason;
 
         if (nextHours !== target.originalHours && !target.reason) {
-          autoReason = "활동 확인 후 인정 시간 수동 제어";
-        } else if (nextHours === target.originalHours) {
-          autoReason = "";
+          autoReason = "시간 수동 조정";
         }
 
         const operatorRole = isAdmin ? "관리자" : "담임 교사 및 지도 교사";
@@ -817,11 +816,8 @@
           
           {/* Toast 알림 레이어 */}
           {alertToast && (
-            <div className={`fixed top-6 right-6 z-50 flex items-center gap-2.5 px-6 py-4.5 rounded-2xl shadow-2xl backdrop-blur-md transition-all duration-300 transform translate-y-0 text-white font-normal text-base ${
-              alertToast.type === 'danger' ? 'bg-red-600/95 shadow-red-600/20' : 'bg-emerald-600/95 shadow-emerald-600/20'
-            }`}>
-              {alertToast.type === 'danger' ? "🚨" : "✅"}
-              <span className="ml-1.5 font-light">{alertToast.msg}</span>
+            <div className="fixed bottom-7 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-5 py-3 rounded-full shadow-2xl backdrop-blur-md text-white font-medium text-sm" style={{background:'rgba(28,28,30,0.82)'}}>
+              <span>{alertToast.msg}</span>
             </div>
           )}
 
@@ -868,11 +864,12 @@
                     )}
                   </div>
 
-                  <button 
-                    type="submit" 
-                    className="w-full py-4 px-6 rounded-xl bg-accent hover:bg-accent-hover text-white font-normal text-base transition-all shadow-lg shadow-accent/25 hover:shadow-accent/40 flex items-center justify-center hover:-translate-y-0.5 active:translate-y-0"
+                  <button
+                    type="submit"
+                    className="w-full py-4 px-6 rounded-full text-white font-semibold text-base transition-all shadow-lg shadow-accent/25 hover:brightness-110 flex items-center justify-center hover:-translate-y-0.5 active:translate-y-0 active:scale-[.97]"
+                    style={{background:'var(--accent-grad)'}}
                   >
-                    <span>접속</span>
+                    접속
                   </button>
                 </form>
 
@@ -905,10 +902,10 @@
                       <div className="flex items-center gap-1.5">
                         <span className={`inline-block w-2.5 h-2.5 rounded-full ${firebaseError ? 'bg-amber-500' : 'bg-emerald-500'} animate-pulse`}></span>
                         <span className="text-xs font-normal text-text-secondary uppercase tracking-widest">
-                          {isAdmin ? "보안 마스터 모드 활성" : firebaseError ? "동기화 일시 중단" : "실시간 관리 모드"}
+                          {isAdmin ? "관리자 모드" : firebaseError ? "동기화 일시 중단" : "실시간 연결됨"}
                         </span>
                       </div>
-                      <h1 className="text-lg sm:text-xl font-light tracking-tight">관산중학교 봉사활동 도우미 포탈</h1>
+                      <h1 className="text-lg sm:text-xl font-light tracking-tight">관산중학교 봉사활동 도우미 포털</h1>
                     </div>
                   </div>
                 </div>
@@ -993,7 +990,7 @@
                     <div>
                       <h2 className="text-base sm:text-lg font-normal text-text-primary flex items-center gap-2">
                         <span>🛡️</span>
-                        <span>시스템 총괄 마스터 관리 콘솔</span>
+                        <span>관리자 콘솔</span>
                       </h2>
                       <p className="text-xs text-text-secondary font-normal mt-1">
                         전체 도우미 명단 데이터의 영구 추가/삭제와 CSV 파일 입출력 마스터 제어를 관리합니다.
@@ -1110,7 +1107,7 @@
                     {/* CSV 도구 및 파일 파서 */}
                     <div className="lg:col-span-5 bg-white/10 dark:bg-black/15 p-5 rounded-2xl border border-white/20 dark:border-white/5 flex flex-col justify-between space-y-4">
                       <div>
-                        <h3 className="text-xs sm:text-sm font-normal text-text-primary uppercase tracking-wider mb-2">📁 CSV 명단 연동 및 내보내기</h3>
+                        <h3 className="text-xs sm:text-sm font-normal text-text-primary uppercase tracking-wider mb-2">CSV 명단 가져오기 / 내보내기</h3>
                         <p className="text-xs sm:text-sm text-text-secondary font-normal leading-relaxed">
                           봉사활동 도우미 시트 CSV 데이터를 로드하거나, 현재까지 수정된 전체 기록 사유 데이터를 NEIS 등록 규격의 엑셀 CSV로 출력 저장할 수 있습니다.
                         </p>
@@ -1125,7 +1122,7 @@
                             onChange={handleCsvImport}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                           />
-                          <span className="text-xs sm:text-sm text-text-primary font-bold">📥 새 도우미 명단 CSV 파일 업로드</span>
+                          <span className="text-xs sm:text-sm text-text-primary font-bold">CSV 파일 업로드</span>
                         </div>
                         
                         {/* 백업출력 */}
@@ -1133,7 +1130,7 @@
                           onClick={handleCsvExport}
                           className="w-full py-2.5 bg-accent/25 hover:bg-accent/35 text-accent text-xs sm:text-sm font-bold rounded-xl transition-all border border-accent/35 flex items-center justify-center gap-1.5"
                         >
-                          📤 최종 마스터 CSV 보존용 저장
+                          CSV로 내보내기
                         </button>
                       </div>
                     </div>
@@ -1289,7 +1286,7 @@
 
                     <div className="text-xs text-text-secondary font-normal flex items-start gap-1.5 mt-2 bg-white/20 dark:bg-black/20 p-3 rounded-2xl">
                       <span className="text-accent shrink-0">💡</span>
-                      <span className="leading-relaxed">학급 필터와 도우미 필터는 혼동 방지를 위해 한 번에 하나의 조건만 활성화되어 독립적으로 작동합니다.</span>
+                      <span className="leading-relaxed">학급 필터와 역할 필터는 동시에 선택할 수 없습니다. 검색어는 두 필터와 함께 사용할 수 있습니다.</span>
                     </div>
                   </div>
                 </div>
@@ -1459,8 +1456,8 @@
                 
                 <div className="text-center mb-6">
                   <span className="text-3xl block mb-2">🛡️</span>
-                  <h3 className="text-lg font-bold text-text-primary">최고 관리자 인증</h3>
-                  <p className="text-xs sm:text-sm text-text-secondary font-normal mt-1">마스터 보안 암호를 기재하십시오.</p>
+                  <h3 className="text-lg font-bold text-text-primary">관리자 인증</h3>
+                  <p className="text-xs sm:text-sm text-text-secondary font-normal mt-1">관리자 암호를 입력하세요.</p>
                 </div>
 
                 <form onSubmit={handleAdminVerify} className="space-y-4">
