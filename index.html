@@ -1306,8 +1306,8 @@
                         </span>
                       </div>
                       
-                      <span className="text-xs sm:text-sm text-text-secondary font-bold">
-                        인정시간 조정 시 우측 <span className="text-accent font-normal">사유 작성 필수</span>
+                      <span className="text-xs text-text-secondary">
+                        편집 버튼에서 시간 조정 및 사유 작성
                       </span>
                     </div>
 
@@ -1358,30 +1358,16 @@
                                     </span>
                                   </td>
 
-                                  {/* 시간 조절 */}
-                                  <td className="py-2.5 px-3 whitespace-nowrap">
-                                    <div className="flex items-center justify-center gap-2">
-                                      <button
-                                        onClick={() => adjustHoursQuickly(student.id, -1)}
-                                        className="w-7 h-7 rounded-full bg-red-600/10 hover:bg-red-600 text-red-600 hover:text-white transition-colors flex items-center justify-center text-base leading-none"
-                                        title="1시간 단축"
-                                      >−</button>
-                                      <div className="text-center min-w-[60px]">
-                                        {isEdited ? (
-                                          <div className="flex flex-col items-center leading-tight">
-                                            <span className="text-[10px] text-text-secondary line-through">{student.originalHours}시간</span>
-                                            <span className="text-sm text-amber-600 dark:text-amber-400">{student.hours}시간</span>
-                                          </div>
-                                        ) : (
-                                          <span className="text-sm text-text-primary">{student.hours}시간</span>
-                                        )}
+                                  {/* 인정 시간 (표시만) */}
+                                  <td className="py-2.5 px-3 whitespace-nowrap text-center">
+                                    {isEdited ? (
+                                      <div className="flex flex-col items-center leading-tight">
+                                        <span className="text-[10px] text-text-secondary line-through">{student.originalHours}시간</span>
+                                        <span className="text-sm text-amber-600 dark:text-amber-400">{student.hours}시간</span>
                                       </div>
-                                      <button
-                                        onClick={() => adjustHoursQuickly(student.id, 1)}
-                                        className="w-7 h-7 rounded-full bg-emerald-600/10 hover:bg-emerald-600 text-emerald-600 hover:text-white transition-colors flex items-center justify-center text-base leading-none"
-                                        title="1시간 추가"
-                                      >+</button>
-                                    </div>
+                                    ) : (
+                                      <span className="text-sm text-text-primary">{student.hours}시간</span>
+                                    )}
                                   </td>
 
                                   {/* 사유 */}
@@ -1402,7 +1388,7 @@
                                         onClick={() => openEditModal(student)}
                                         className="px-3 py-1.5 rounded-full text-white text-xs hover:brightness-110 transition-all"
                                         style={{background:'var(--accent-grad)'}}
-                                      >사유 작성</button>
+                                      >편집</button>
                                       {isAdmin && (
                                         <button
                                           onClick={() => handleDeleteStudent(student.id, student.name)}
