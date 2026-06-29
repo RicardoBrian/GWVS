@@ -5,10 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>관산중학교 봉사활동 도우미 관리 시스템</title>
   
-  <!-- IBM Plex Sans KR 구글 폰트 적용 (300 Light 추가로 깨짐 최소화 및 고급 가독성 확보) -->
+  <!-- 파비콘 지정 -->
+  <link rel="icon" href="logo.png" type="image/png">
+  <link rel="shortcut icon" href="logo.png" type="image/png">
+  
+  <!-- IBM Plex Sans KR 구글 폰트 적용 (300, 400 가중치 확보하여 깨짐 제거 및 가독성 완성) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600&display=swap" rel="stylesheet">
   
   <!-- CDNs: React, Tailwind, PapaParse, Firebase -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -57,40 +61,40 @@
     :root {
       --font-sans: 'IBM Plex Sans KR', sans-serif;
       
-      /* Light Mode - 폰트 크기 상향 및 명도비 100% 극대화 */
-      --bg-gradient: radial-gradient(circle at 0% 0%, rgba(240, 245, 255, 1) 0%, rgba(225, 233, 252, 1) 50%, rgba(245, 235, 250, 1) 100%);
-      --glass-bg: rgba(255, 255, 255, 0.75);
-      --glass-border: rgba(0, 102, 204, 0.25);
+      /* Light Mode - 부드럽고 눈이 안 피로한 실버화이트톤과 가독성 가중 */
+      --bg-gradient: radial-gradient(circle at 0% 0%, #f4f6fa 0%, #eaedf5 50%, #f1e9f7 100%);
+      --glass-bg: rgba(255, 255, 255, 0.85);
+      --glass-border: rgba(0, 80, 180, 0.15);
       --glass-edge: rgba(255, 255, 255, 0.95);
-      --glass-shadow: 0 10px 35px 0 rgba(0, 30, 100, 0.08), 0 1px 2px 0 rgba(255, 255, 255, 0.7) inset;
-      --text-primary: #0a0a0c; /* 극대화된 차콜블랙 가독성 */
-      --text-secondary: #2c2c35; /* 진한 서브 가독성 텍스트 */
-      --accent: #005bc5; /* 또렷하게 가독성을 올린 진한 블루 */
-      --accent-hover: #004ba3;
-      --accent-light: rgba(0, 91, 197, 0.08);
+      --glass-shadow: 0 10px 30px 0 rgba(0, 30, 80, 0.05), 0 1px 2px 0 rgba(255, 255, 255, 0.8) inset;
+      --text-primary: #121215; 
+      --text-secondary: #3e3e48; 
+      --accent: #0056b3; 
+      --accent-hover: #004494;
+      --accent-light: rgba(0, 86, 179, 0.06);
       --danger: #d70015;
-      --danger-light: rgba(215, 0, 21, 0.08);
-      --success: #1d7e33;
-      --success-light: rgba(29, 126, 51, 0.08);
-      --blur: 24px;
+      --danger-light: rgba(215, 0, 21, 0.06);
+      --success: #1a722f;
+      --success-light: rgba(26, 114, 47, 0.06);
+      --blur: 20px;
     }
 
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg-gradient: radial-gradient(circle at 0% 0%, #08080a 0%, #0f0f13 50%, #140d1c 100%);
-        --glass-bg: rgba(18, 18, 22, 0.85);
-        --glass-border: rgba(255, 255, 255, 0.15);
-        --glass-edge: rgba(255, 255, 255, 0.2);
-        --glass-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5), 0 1px 0px 0 rgba(255, 255, 255, 0.15) inset;
-        --text-primary: #ffffff;
-        --text-secondary: #e5e5ea;
+        --bg-gradient: radial-gradient(circle at 0% 0%, #0a0a0c 0%, #111115 50%, #150f1d 100%);
+        --glass-bg: rgba(20, 20, 25, 0.88);
+        --glass-border: rgba(255, 255, 255, 0.1);
+        --glass-edge: rgba(255, 255, 255, 0.15);
+        --glass-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.4), 0 1px 0px 0 rgba(255, 255, 255, 0.1) inset;
+        --text-primary: #f5f5f7;
+        --text-secondary: #d1d1d6;
         --accent: #3ea0ff;
         --accent-hover: #66b5ff;
-        --accent-light: rgba(62, 160, 255, 0.18);
+        --accent-light: rgba(62, 160, 255, 0.12);
         --danger: #ff453a;
-        --danger-light: rgba(255, 69, 58, 0.2);
+        --danger-light: rgba(255, 69, 58, 0.15);
         --success: #32d74b;
-        --success-light: rgba(50, 215, 75, 0.2);
+        --success-light: rgba(50, 215, 75, 0.15);
       }
     }
 
@@ -100,14 +104,14 @@
       font-family: var(--font-sans);
       color: var(--text-primary);
       overflow-x: hidden;
-      font-size: 16px; /* 기본 폰트 크기 상향 */
+      font-size: 17px; /* 전반적인 폰트 크기 상향 */
       line-height: 1.6;
     }
 
     .glass-card {
       background: var(--glass-bg);
-      backdrop-filter: blur(var(--blur)) saturate(190%);
-      -webkit-backdrop-filter: blur(var(--blur)) saturate(190%);
+      backdrop-filter: blur(var(--blur)) saturate(180%);
+      -webkit-backdrop-filter: blur(var(--blur)) saturate(180%);
       border: 1px solid var(--glass-border);
       border-top: 1px solid var(--glass-edge);
       border-left: 1px solid var(--glass-edge);
@@ -116,7 +120,7 @@
 
     .inp:focus {
       outline: none;
-      box-shadow: 0 0 0 3px rgba(0, 91, 197, 0.35);
+      box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.25);
       border-color: var(--accent);
     }
     
@@ -128,19 +132,15 @@
       background: transparent;
     }
     ::-webkit-scrollbar-thumb {
-      background: rgba(134, 134, 139, 0.4);
+      background: rgba(134, 134, 139, 0.3);
       border-radius: 999px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: rgba(134, 134, 139, 0.6);
+      background: rgba(134, 134, 139, 0.5);
     }
   </style>
 </head>
 <body class="antialiased font-light">
-
-  <!-- 데코 배경 블롭 -->
-  <div class="fixed -top-40 -left-40 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-15 dark:opacity-10 animate-pulse pointer-events-none"></div>
-  <div class="fixed -bottom-40 -right-40 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-15 dark:opacity-10 pointer-events-none" style="animation-delay: 2s;"></div>
 
   <div id="root"></div>
 
@@ -148,10 +148,7 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo } = React;
 
-    // ==========================================
-    // [다중 사용자 연동용 FIREBASE 설정]
-    // 제공받은 관산중학교 Firebase App Key 세트 연동 완료
-    // ==========================================
+    // 관산중학교 Firebase 설정 정보 연동
     const firebaseConfig = {
       apiKey: "AIzaSyC0M-QpErLS_haeexoymRiZ8l0tdC_SRgg",
       authDomain: "gwvs-77114.firebaseapp.com",
@@ -176,6 +173,11 @@
         console.error("Firebase 초기화 에러:", err);
       }
     }
+
+    // 보안이 강화된 Firestore Strict Paths 가이드 적용 (RULE 1)
+    const appId = "volunteer-portal-gwvs";
+    const studentsColPath = `artifacts/${appId}/public/data/students`;
+    const logsColPath = `artifacts/${appId}/public/data/logs`;
 
     const DEFAULT_STUDENTS = [
       { id: 's1', grade: 1, class: 1, number: 1, neisName: "BAROI ANGEL NAMROTA", name: "엔젤", helperName: "기자재 관리도우미", hours: 5, originalHours: 5, reason: "" },
@@ -243,9 +245,8 @@
       const [alertToast, setAlertToast] = useState(null);
       const [liveTime, setLiveTime] = useState("");
 
-      // 실시간 클라우드 연동 리스너
+      // 실시간 클라우드 연동 리스너 (경로 보정으로 기기 간 동기화 정합성 해결)
       useEffect(() => {
-        // 기존 세션 확인
         const isAuth = sessionStorage.getItem("portal_auth");
         if (isAuth === "true") {
           setIsAuthenticated(true);
@@ -256,33 +257,49 @@
           setIsAdmin(true);
         }
 
-        // Firebase 연동 리스너 설정
         if (isFirebaseActive && db) {
-          // 익명 로그인 보장
+          // RULE 3 - 선인증 후 쿼리 작동
           auth.signInAnonymously().then(() => {
-            // 학생 명단 동기화
-            const unsubscribeStudents = db.collection("students").onSnapshot(
+            
+            // 공용 연동 가이드라인에 부합하는 컬렉션 경로 바인딩
+            const unsubscribeStudents = db.collection(studentsColPath).onSnapshot(
               (snapshot) => {
                 if (snapshot.empty) {
-                  // 비어 있으면 초기 데이터 원본 적재
+                  // DB가 완전 비어있을 경우 초기 데이터 업로드 동기화
                   DEFAULT_STUDENTS.forEach(async (s) => {
-                    await db.collection("students").doc(s.id).set(s);
+                    await db.collection(studentsColPath).doc(s.id).set(s);
                   });
                 } else {
                   const items = snapshot.docs.map(doc => doc.data());
+                  // 학급 정보 정렬
+                  items.sort((a, b) => {
+                    if (a.grade !== b.grade) return a.grade - b.grade;
+                    if (a.class !== b.class) return a.class - b.class;
+                    return a.number - b.number;
+                  });
                   setStudents(items);
                 }
               },
-              (err) => console.error("Firestore 학생 연동 실패:", err)
+              (err) => {
+                console.error("학생 명단 실시간 수신 실패 (권한 점검 필요):", err);
+                loadFromLocalStorage();
+              }
             );
 
-            // 로그 내역 동기화
-            const unsubscribeLogs = db.collection("logs").orderBy("id", "desc").onSnapshot(
+            // 로그 실시간 컬렉션 바인딩
+            const unsubscribeLogs = db.collection(logsColPath).onSnapshot(
               (snapshot) => {
                 const logsList = snapshot.docs.map(doc => doc.data());
+                logsList.sort((a, b) => {
+                  const idA = a.id ? a.id.split('_')[1] : 0;
+                  const idB = b.id ? b.id.split('_')[1] : 0;
+                  return idB - idA;
+                });
                 setEditLogs(logsList);
               },
-              (err) => console.error("Firestore 로그 연동 실패:", err)
+              (err) => {
+                console.error("로그 내역 실시간 수신 실패 (권한 점검 필요):", err);
+              }
             );
 
             return () => {
@@ -290,7 +307,7 @@
               unsubscribeLogs();
             };
           }).catch(err => {
-            console.error("Firebase 익명인증 실패, 로컬스토리지 모드로 자동 복구합니다.", err);
+            console.error("Firebase 익명 로그인 불가, 로컬 저장소 모드로 전환.", err);
             loadFromLocalStorage();
           });
         } else {
@@ -333,7 +350,6 @@
         setTimeout(() => setAlertToast(null), 3000);
       };
 
-      // 마스터 포탈 로그인 (1985)
       const handleLoginSubmit = (e) => {
         e.preventDefault();
         if (password === "1985") {
@@ -346,7 +362,6 @@
         }
       };
 
-      // 관리자 게이트 비밀번호 검증 (9600)
       const handleAdminVerify = (e) => {
         e.preventDefault();
         if (adminPasswordInput === "9600") {
@@ -365,11 +380,9 @@
       const updateStudentsState = async (newStudents) => {
         setStudents(newStudents);
         if (isFirebaseActive && db) {
-          // Firebase 업데이트
           const batch = db.batch();
-          // 기존 문서들 삭제 후 재적재 방식 혹은 개별 업데이트 지원
           newStudents.forEach(s => {
-            const docRef = db.collection("students").doc(s.id);
+            const docRef = db.collection(studentsColPath).doc(s.id);
             batch.set(docRef, s);
           });
           await batch.commit();
@@ -392,13 +405,12 @@
         setEditLogs(updatedLogs);
 
         if (isFirebaseActive && db) {
-          await db.collection("logs").doc(newLog.id).set(newLog);
+          await db.collection(logsColPath).doc(newLog.id).set(newLog);
         } else {
           localStorage.setItem("helper_students_logs_v4", JSON.stringify(updatedLogs));
         }
       };
 
-      // 로그 삭제 처리
       const handleClearSelectedLogs = async () => {
         const checkedIds = Object.keys(selectedLogs).filter(id => selectedLogs[id]);
         if (checkedIds.length === 0) {
@@ -414,7 +426,7 @@
           if (isFirebaseActive && db) {
             const batch = db.batch();
             checkedIds.forEach(id => {
-              const docRef = db.collection("logs").doc(id);
+              const docRef = db.collection(logsColPath).doc(id);
               batch.delete(docRef);
             });
             await batch.commit();
@@ -462,7 +474,6 @@
         if (window.confirm("주의! 수정된 모든 내용을 지우고 원래 배정 명단으로 전체 초기화하시겠습니까?")) {
           setSelectedLogs({});
           if (isFirebaseActive && db) {
-            // Firestore 내용 전체 교체
             const studentSnaps = await db.collection("students").get();
             const logSnaps = await db.collection("logs").get();
             
@@ -486,7 +497,6 @@
         }
       };
 
-      // CSV 임포트 핸들러 (관리자 전용)
       const handleCsvImport = (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -540,7 +550,6 @@
         });
       };
 
-      // CSV 내보내기 다운로드
       const handleCsvExport = () => {
         if (students.length === 0) {
           triggerToast("출력 대상 데이터가 존재하지 않습니다.", "danger");
@@ -571,7 +580,6 @@
         triggerToast("엑셀 호환 CSV 백업 파일의 다운로드를 시작했습니다.");
       };
 
-      // 학생 직접 수동 추가 (관리자 전용)
       const handleAddStudent = (e) => {
         e.preventDefault();
         if (!newStudent.grade || !newStudent.class || !newStudent.number || !newStudent.name) {
@@ -600,16 +608,22 @@
         triggerToast(`${added.name} 학생 도우미 명단에 추가 완료!`);
       };
 
-      // 학생 삭제 (관리자 전용)
       const handleDeleteStudent = (id, name) => {
         if (window.confirm(`${name} 도우미를 관리 대상에서 영구적으로 제외 처리하겠습니까?`)) {
-          const updated = students.filter(s => s.id !== id);
-          updateStudentsState(updated);
-          triggerToast(`${name} 학생이 명단에서 영구 제외되었습니다.`, "danger");
+          if (isFirebaseActive && db) {
+            db.collection(studentsColPath).doc(id).delete().then(() => {
+              triggerToast(`${name} 학생이 명단에서 영구 제외되었습니다.`, "danger");
+            }).catch(err => {
+              console.error("삭제 실패:", err);
+            });
+          } else {
+            const updated = students.filter(s => s.id !== id);
+            updateStudentsState(updated);
+            triggerToast(`${name} 학생이 명단에서 영구 제외되었습니다.`, "danger");
+          }
         }
       };
 
-      // 학급별 고유 리스트 가공
       const uniqueClasses = useMemo(() => {
         const classes = students.map(s => `${s.grade}학년 ${s.class}반`);
         return ["all", ...new Set(classes)].sort((a, b) => {
@@ -619,13 +633,11 @@
         });
       }, [students]);
 
-      // 도우미명 목록 고유 리스트 가공
       const uniqueHelpers = useMemo(() => {
         const helpers = students.map(s => s.helperName).filter(Boolean);
         return ["all", ...new Set(helpers)];
       }, [students]);
 
-      // 검색 및 교집합 방지형 독립적 필터링 반영 학생 목록
       const filteredStudents = useMemo(() => {
         return students.filter(s => {
           if (selectedGradeClass !== "all") {
@@ -667,30 +679,49 @@
           return;
         }
 
-        const updated = students.map(s => {
-          if (s.id === editingStudent.id) {
-            return {
-              ...s,
-              hours: Number(editHours),
-              reason: editReason
-            };
-          }
-          return s;
-        });
-
-        updateStudentsState(updated);
-        saveLog(
-          editingStudent.name, 
-          editingStudent.hours, 
-          Number(editHours), 
-          editReason, 
-          isAdmin ? "관리자" : "담임/도우미 교사"
-        );
-        
-        setIsModalOpen(false);
-        setEditingStudent(null);
-        setFeedbackMsg("");
-        triggerToast(`${editingStudent.name} 학생의 도우미 정보가 성공적으로 반영되었습니다.`);
+        if (isFirebaseActive && db) {
+          db.collection(studentsColPath).doc(editingStudent.id).update({
+            hours: Number(editHours),
+            reason: editReason
+          }).then(() => {
+            saveLog(
+              editingStudent.name, 
+              editingStudent.hours, 
+              Number(editHours), 
+              editReason, 
+              isAdmin ? "관리자" : "담임/도우미 교사"
+            );
+            setIsModalOpen(false);
+            setEditingStudent(null);
+            setFeedbackMsg("");
+            triggerToast(`${editingStudent.name} 학생의 도우미 정보가 성공적으로 반영되었습니다.`);
+          }).catch(err => {
+            console.error("수정 실패:", err);
+          });
+        } else {
+          const updated = students.map(s => {
+            if (s.id === editingStudent.id) {
+              return {
+                ...s,
+                hours: Number(editHours),
+                reason: editReason
+              };
+            }
+            return s;
+          });
+          updateStudentsState(updated);
+          saveLog(
+            editingStudent.name, 
+            editingStudent.hours, 
+            Number(editHours), 
+            editReason, 
+            isAdmin ? "관리자" : "담임/도우미 교사"
+          );
+          setIsModalOpen(false);
+          setEditingStudent(null);
+          setFeedbackMsg("");
+          triggerToast(`${editingStudent.name} 학생의 도우미 정보가 성공적으로 반영되었습니다.`);
+        }
       };
 
       const adjustHoursQuickly = (id, delta) => {
@@ -706,22 +737,37 @@
           autoReason = "";
         }
 
-        const updated = students.map(s => {
-          if (s.id === id) {
-            return { ...s, hours: nextHours, reason: autoReason };
-          }
-          return s;
-        });
-
-        updateStudentsState(updated);
-        saveLog(
-          target.name, 
-          target.hours, 
-          nextHours, 
-          autoReason || "퀵 조정 기능을 이용함", 
-          isAdmin ? "관리자" : "담임/도우미 교사"
-        );
-        triggerToast("인정 시간을 신속하게 조정했습니다.");
+        if (isFirebaseActive && db) {
+          db.collection(studentsColPath).doc(id).update({
+            hours: nextHours,
+            reason: autoReason
+          }).then(() => {
+            saveLog(
+              target.name, 
+              target.hours, 
+              nextHours, 
+              autoReason || "퀵 조정 기능을 이용함", 
+              isAdmin ? "관리자" : "담임/도우미 교사"
+            );
+            triggerToast("인정 시간을 신속하게 조정했습니다.");
+          });
+        } else {
+          const updated = students.map(s => {
+            if (s.id === id) {
+              return { ...s, hours: nextHours, reason: autoReason };
+            }
+            return s;
+          });
+          updateStudentsState(updated);
+          saveLog(
+            target.name, 
+            target.hours, 
+            nextHours, 
+            autoReason || "퀵 조정 기능을 이용함", 
+            isAdmin ? "관리자" : "담임/도우미 교사"
+          );
+          triggerToast("인정 시간을 신속하게 조정했습니다.");
+        }
       };
 
       return (
@@ -729,11 +775,11 @@
           
           {/* Toast 알림 레이어 */}
           {alertToast && (
-            <div className={`fixed top-6 right-6 z-50 flex items-center gap-2.5 px-6 py-4.5 rounded-2xl shadow-2xl backdrop-blur-md transition-all duration-300 transform translate-y-0 text-white font-semibold text-base ${
+            <div className={`fixed top-6 right-6 z-50 flex items-center gap-2.5 px-6 py-4.5 rounded-2xl shadow-2xl backdrop-blur-md transition-all duration-300 transform translate-y-0 text-white font-normal text-base ${
               alertToast.type === 'danger' ? 'bg-red-600/95 shadow-red-600/20' : 'bg-emerald-600/95 shadow-emerald-600/20'
             }`}>
               {alertToast.type === 'danger' ? "🚨" : "✅"}
-              <span className="ml-1.5">{alertToast.msg}</span>
+              <span className="ml-1.5 font-light">{alertToast.msg}</span>
             </div>
           )}
 
@@ -744,7 +790,6 @@
                 <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/50 to-transparent"></div>
                 
                 <div className="text-center mb-8">
-                  {/* 자물쇠 이모지 대신 학교 로고 이미지 적용 (Fallback 포함) */}
                   <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-white/40 dark:bg-black/25 mb-4 border border-white/25 overflow-hidden">
                     <img 
                       src="logo.png" 
@@ -756,25 +801,25 @@
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-2 text-text-primary leading-snug">
+                  <h1 className="text-xl sm:text-2xl font-light tracking-tight mb-2 text-text-primary leading-snug">
                     관산중학교 <br/>봉사활동 도우미 관리페이지
                   </h1>
                 </div>
 
                 <form onSubmit={handleLoginSubmit} className="space-y-6">
                   <div>
-                    <label className="block text-sm font-bold text-text-secondary mb-2">비밀번호</label>
+                    <label className="block text-sm font-normal text-text-secondary mb-2">비밀번호</label>
                     <input 
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="비밀번호 입력"
-                      className="inp w-full px-4 py-3.5 bg-white/40 dark:bg-black/35 border border-white/40 dark:border-white/10 rounded-xl text-text-primary placeholder:text-text-secondary/40 text-center text-lg font-mono tracking-widest font-bold"
+                      className="inp w-full px-4 py-3.5 bg-white/40 dark:bg-black/35 border border-white/40 dark:border-white/10 rounded-xl text-text-primary placeholder:text-text-secondary/40 text-center text-lg font-mono tracking-widest font-normal"
                       required
                       autoFocus
                     />
                     {passwordError && (
-                      <p className="mt-2.5 text-xs text-red-600 font-bold flex items-center gap-1.5">
+                      <p className="mt-2.5 text-xs text-red-600 font-normal flex items-center gap-1.5">
                         <span>⚠</span>
                         <span>{passwordError}</span>
                       </p>
@@ -783,14 +828,14 @@
 
                   <button 
                     type="submit" 
-                    className="w-full py-4 px-6 rounded-xl bg-accent hover:bg-accent-hover text-white font-bold text-base transition-all shadow-lg shadow-accent/25 hover:shadow-accent/40 flex items-center justify-center hover:-translate-y-0.5 active:translate-y-0"
+                    className="w-full py-4 px-6 rounded-xl bg-accent hover:bg-accent-hover text-white font-normal text-base transition-all shadow-lg shadow-accent/25 hover:shadow-accent/40 flex items-center justify-center hover:-translate-y-0.5 active:translate-y-0"
                   >
                     <span>접속</span>
                   </button>
                 </form>
 
                 <div className="mt-8 text-center border-t border-white/10 pt-5">
-                  <span className="text-xs text-text-secondary font-semibold">
+                  <span className="text-xs text-text-secondary font-normal">
                     비밀번호는 담당자에게 문의하십시오.
                   </span>
                 </div>
@@ -817,18 +862,18 @@
                     <div>
                       <div className="flex items-center gap-1.5">
                         <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">
+                        <span className="text-xs font-normal text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">
                           {isAdmin ? "보안 마스터 모드 활성" : "실시간 관리 모드"}
                         </span>
                       </div>
-                      <h1 className="text-lg sm:text-xl font-bold tracking-tight">관산중학교 봉사활동 도우미 포탈</h1>
+                      <h1 className="text-lg sm:text-xl font-light tracking-tight">관산중학교 봉사활동 도우미 포탈</h1>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex flex-wrap items-center justify-center gap-3">
                   {/* 라이브 클럭 */}
-                  <div className="px-3.5 py-2 bg-white/20 dark:bg-black/20 border border-white/30 dark:border-white/10 rounded-xl text-xs font-mono font-bold text-text-secondary flex items-center gap-1.5">
+                  <div className="px-3.5 py-2 bg-white/20 dark:bg-black/20 border border-white/30 dark:border-white/10 rounded-xl text-xs font-mono font-normal text-text-secondary flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-accent"></span>
                     <span>{liveTime || "00:00:00"}</span>
                   </div>
@@ -837,7 +882,7 @@
                   {!isAdmin ? (
                     <button 
                       onClick={() => setIsAdminGateOpen(true)}
-                      className="p-2.5 bg-white/20 hover:bg-white/35 border border-white/30 dark:border-white/10 text-text-primary rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                      className="p-2.5 bg-white/20 hover:bg-white/35 border border-white/30 dark:border-white/10 text-text-primary rounded-xl text-xs font-normal flex items-center gap-1.5 transition-all shadow-sm"
                       title="관리자 전용 설정 진입"
                     >
                       <span className="text-base">⚙️</span>
@@ -846,7 +891,7 @@
                   ) : (
                     <button 
                       onClick={handleExitAdminMode}
-                      className="px-3.5 py-2.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/35 text-amber-800 dark:text-amber-400 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
+                      className="px-3.5 py-2.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/35 text-amber-800 dark:text-amber-400 rounded-xl text-xs font-normal flex items-center gap-1.5 transition-all"
                     >
                       <span>🔄 교사 모드로 복귀</span>
                     </button>
@@ -854,7 +899,7 @@
 
                   <button 
                     onClick={handleLogout}
-                    className="px-4 py-2.5 rounded-xl bg-red-600/10 hover:bg-red-600 text-red-600 hover:text-white border border-red-600/20 text-xs font-bold flex items-center gap-1.5 transition-all"
+                    className="px-4 py-2.5 rounded-xl bg-red-600/10 hover:bg-red-600 text-red-600 hover:text-white border border-red-600/20 text-xs font-normal flex items-center gap-1.5 transition-all"
                   >
                     <span>접속 종료</span>
                   </button>
@@ -865,18 +910,18 @@
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="glass-card p-6 rounded-2xl flex items-center justify-between">
                   <div>
-                    <span className="text-xs font-semibold text-text-secondary block mb-1">등록 도우미 인원</span>
-                    <span className="text-2xl sm:text-3xl font-black text-text-primary">{stats.total}명</span>
+                    <span className="text-xs font-normal text-text-secondary block mb-1">등록 도우미 인원</span>
+                    <span className="text-2xl sm:text-3xl font-light text-text-primary">{stats.total}명</span>
                   </div>
-                  <div className="w-12 h-12 rounded-xl bg-accent-light text-accent flex items-center justify-center text-lg font-bold">
+                  <div className="w-12 h-12 rounded-xl bg-accent-light text-accent flex items-center justify-center text-lg">
                     👥
                   </div>
                 </div>
 
                 <div className="glass-card p-6 rounded-2xl flex items-center justify-between">
                   <div>
-                    <span className="text-xs font-semibold text-text-secondary block mb-1">관리 등급 권한</span>
-                    <span className="text-base sm:text-lg font-bold text-text-primary">
+                    <span className="text-xs font-normal text-text-secondary block mb-1">관리 등급 권한</span>
+                    <span className="text-base sm:text-lg font-light text-text-primary">
                       {isAdmin ? "시스템 총괄 최고관리자" : "일반 교직원 및 담임교사"}
                     </span>
                   </div>
@@ -891,11 +936,11 @@
                 <div className="glass-card p-6 rounded-3xl space-y-6 border-t-4 border-t-accent shadow-lg">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                      <h2 className="text-base sm:text-lg font-bold text-text-primary flex items-center gap-2">
+                      <h2 className="text-base sm:text-lg font-normal text-text-primary flex items-center gap-2">
                         <span>🛡️</span>
                         <span>시스템 총괄 마스터 관리 콘솔</span>
                       </h2>
-                      <p className="text-xs text-text-secondary font-medium mt-1">
+                      <p className="text-xs text-text-secondary font-normal mt-1">
                         전체 도우미 명단 데이터의 영구 추가/삭제와 CSV 파일 입출력 마스터 제어를 관리합니다.
                       </p>
                     </div>
@@ -903,7 +948,7 @@
                     <div className="flex items-center gap-2">
                       <button 
                         onClick={handleResetData}
-                        className="px-4 py-2 bg-red-600/10 hover:bg-red-600 text-red-600 hover:text-white rounded-xl text-xs font-bold transition-all border border-red-600/20"
+                        className="px-4 py-2 bg-red-600/10 hover:bg-red-600 text-red-600 hover:text-white rounded-xl text-xs font-normal transition-all border border-red-600/20"
                       >
                         전체 데이터 리셋
                       </button>
@@ -914,70 +959,70 @@
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     {/* 도우미 추가 폼 */}
                     <form onSubmit={handleAddStudent} className="lg:col-span-7 bg-white/10 dark:bg-black/15 p-5 rounded-2xl border border-white/20 dark:border-white/5 space-y-4">
-                      <h3 className="text-xs sm:text-sm font-bold text-text-primary uppercase tracking-wider">🛠️ 도우미 개별 배정 추가</h3>
+                      <h3 className="text-xs sm:text-sm font-normal text-text-primary uppercase tracking-wider">🛠️ 도우미 개별 배정 추가</h3>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         <div>
-                          <label className="block text-[11px] font-bold text-text-secondary mb-1">학년</label>
+                          <label className="block text-[11px] font-normal text-text-secondary mb-1">학년</label>
                           <input 
                             type="number"
                             placeholder="학년 입력"
                             value={newStudent.grade}
                             onChange={(e) => setNewStudent({...newStudent, grade: e.target.value})}
-                            className="inp w-full px-3 py-2 bg-white/20 dark:bg-black/30 text-xs sm:text-sm rounded-lg text-text-primary border border-white/20 font-semibold"
+                            className="inp w-full px-3 py-2 bg-white/20 dark:bg-black/30 text-xs sm:text-sm rounded-lg text-text-primary border border-white/20 font-normal"
                             required
                           />
                         </div>
                         <div>
-                          <label className="block text-[11px] font-bold text-text-secondary mb-1">반</label>
+                          <label className="block text-[11px] font-normal text-text-secondary mb-1">반</label>
                           <input 
                             type="number"
                             placeholder="반 입력"
                             value={newStudent.class}
                             onChange={(e) => setNewStudent({...newStudent, class: e.target.value})}
-                            className="inp w-full px-3 py-2 bg-white/20 dark:bg-black/30 text-xs sm:text-sm rounded-lg text-text-primary border border-white/20 font-semibold"
+                            className="inp w-full px-3 py-2 bg-white/20 dark:bg-black/30 text-xs sm:text-sm rounded-lg text-text-primary border border-white/20 font-normal"
                             required
                           />
                         </div>
                         <div>
-                          <label className="block text-[11px] font-bold text-text-secondary mb-1">번호</label>
+                          <label className="block text-[11px] font-normal text-text-secondary mb-1">번호</label>
                           <input 
                             type="number"
                             placeholder="번호 입력"
                             value={newStudent.number}
                             onChange={(e) => setNewStudent({...newStudent, number: e.target.value})}
-                            className="inp w-full px-3 py-2 bg-white/20 dark:bg-black/30 text-xs sm:text-sm rounded-lg text-text-primary border border-white/20 font-semibold"
+                            className="inp w-full px-3 py-2 bg-white/20 dark:bg-black/30 text-xs sm:text-sm rounded-lg text-text-primary border border-white/20 font-normal"
                             required
                           />
                         </div>
                         <div>
-                          <label className="block text-[11px] font-bold text-text-secondary mb-1">한글 이름</label>
+                          <label className="block text-[11px] font-normal text-text-secondary mb-1">한글 이름</label>
                           <input 
                             type="text"
                             placeholder="한글 성명"
                             value={newStudent.name}
                             onChange={(e) => setNewStudent({...newStudent, name: e.target.value})}
-                            className="inp w-full px-3 py-2 bg-white/20 dark:bg-black/30 text-xs sm:text-sm rounded-lg text-text-primary border border-white/20 font-semibold"
+                            className="inp w-full px-3 py-2 bg-white/20 dark:bg-black/30 text-xs sm:text-sm rounded-lg text-text-primary border border-white/20 font-normal"
                             required
                           />
                         </div>
                         <div>
-                          <label className="block text-[11px] font-bold text-text-secondary mb-1">나이스 영문 성명</label>
+                          <label className="block text-[11px] font-normal text-text-secondary mb-1">나이스 영문 성명</label>
                           <input 
                             type="text"
                             placeholder="영문 이름"
                             value={newStudent.neisName}
                             onChange={(e) => setNewStudent({...newStudent, neisName: e.target.value})}
-                            className="inp w-full px-3 py-2 bg-white/20 dark:bg-black/30 text-xs sm:text-sm rounded-lg text-text-primary border border-white/20 font-mono font-semibold"
+                            className="inp w-full px-3 py-2 bg-white/20 dark:bg-black/30 text-xs sm:text-sm rounded-lg text-text-primary border border-white/20 font-mono font-normal"
                           />
                         </div>
                         <div>
-                          <label className="block text-[11px] font-bold text-text-secondary mb-1">봉사 인정 시간</label>
+                          <label className="block text-[11px] font-normal text-text-secondary mb-1">봉사 인정 시간</label>
                           <input 
                             type="number"
                             placeholder="기본 봉사 시간"
                             value={newStudent.hours}
                             onChange={(e) => setNewStudent({...newStudent, hours: e.target.value})}
-                            className="inp w-full px-3 py-2 bg-white/20 dark:bg-black/30 text-xs sm:text-sm rounded-lg text-text-primary border border-white/20 font-semibold"
+                            className="inp w-full px-3 py-2 bg-white/20 dark:bg-black/30 text-xs sm:text-sm rounded-lg text-text-primary border border-white/20 font-normal"
                             required
                           />
                         </div>
@@ -985,11 +1030,11 @@
 
                       <div className="flex gap-2.5">
                         <div className="flex-1">
-                          <label className="block text-[11px] font-bold text-text-secondary mb-1">도우미 역할 지정</label>
+                          <label className="block text-[11px] font-normal text-text-secondary mb-1">도우미 역할 지정</label>
                           <select 
                             value={newStudent.helperName}
                             onChange={(e) => setNewStudent({...newStudent, helperName: e.target.value})}
-                            className="inp w-full px-3 py-2 bg-white/30 dark:bg-black/35 text-xs sm:text-sm rounded-lg text-text-primary border border-white/25 font-bold"
+                            className="inp w-full px-3 py-2 bg-white/30 dark:bg-black/35 text-xs sm:text-sm rounded-lg text-text-primary border border-white/25 font-normal"
                           >
                             <option value="급식 도우미">급식 도우미</option>
                             <option value="학급 분리수거도우미">학급 분리수거도우미</option>
@@ -1000,7 +1045,7 @@
                         </div>
                         <button 
                           type="submit"
-                          className="self-end px-5 py-2 bg-accent hover:bg-accent-hover text-white text-xs sm:text-sm font-bold rounded-lg transition-all h-[38px]"
+                          className="self-end px-5 py-2 bg-accent hover:bg-accent-hover text-white text-xs sm:text-sm font-normal rounded-lg transition-all h-[38px]"
                         >
                           명단 반영 추가
                         </button>
@@ -1010,8 +1055,8 @@
                     {/* CSV 도구 및 파일 파서 */}
                     <div className="lg:col-span-5 bg-white/10 dark:bg-black/15 p-5 rounded-2xl border border-white/20 dark:border-white/5 flex flex-col justify-between space-y-4">
                       <div>
-                        <h3 className="text-xs sm:text-sm font-bold text-text-primary uppercase tracking-wider mb-2">📁 CSV 명단 연동 및 내보내기</h3>
-                        <p className="text-xs sm:text-sm text-text-secondary font-semibold leading-relaxed">
+                        <h3 className="text-xs sm:text-sm font-normal text-text-primary uppercase tracking-wider mb-2">📁 CSV 명단 연동 및 내보내기</h3>
+                        <p className="text-xs sm:text-sm text-text-secondary font-normal leading-relaxed">
                           봉사활동 도우미 시트 CSV 데이터를 로드하거나, 현재까지 수정된 전체 기록 사유 데이터를 NEIS 등록 규격의 엑셀 CSV로 출력 저장할 수 있습니다.
                         </p>
                       </div>
@@ -1025,13 +1070,13 @@
                             onChange={handleCsvImport}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                           />
-                          <span className="text-xs sm:text-sm text-text-primary font-bold">📥 새 도우미 명단 CSV 파일 업로드</span>
+                          <span className="text-xs sm:text-sm text-text-primary font-normal">📥 새 도우미 명단 CSV 파일 업로드</span>
                         </div>
                         
                         {/* 백업출력 */}
                         <button 
                           onClick={handleCsvExport}
-                          className="w-full py-2.5 bg-accent/25 hover:bg-accent/35 text-accent text-xs sm:text-sm font-bold rounded-xl transition-all border border-accent/35 flex items-center justify-center gap-1.5"
+                          className="w-full py-2.5 bg-accent/25 hover:bg-accent/35 text-accent text-xs sm:text-sm font-normal rounded-xl transition-all border border-accent/35 flex items-center justify-center gap-1.5"
                         >
                           📤 최종 마스터 CSV 보존용 저장
                         </button>
@@ -1043,14 +1088,14 @@
                   <div className="bg-white/10 dark:bg-black/15 p-5 rounded-2xl border border-white/20 dark:border-white/5">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
                       <div className="flex items-center gap-2">
-                        <h3 className="text-xs sm:text-sm font-bold text-text-primary uppercase tracking-wider">최근 변경 이력 및 단축 사유 확인</h3>
-                        <span className="px-1.5 py-0.5 text-[10px] font-bold bg-amber-500/20 text-amber-600 rounded">실시간 집계: {editLogs.length}건</span>
+                        <h3 className="text-xs sm:text-sm font-normal text-text-primary uppercase tracking-wider">최근 변경 이력 및 단축 사유 확인</h3>
+                        <span className="px-1.5 py-0.5 text-[10px] font-normal bg-amber-500/20 text-amber-600 rounded">실시간 집계: {editLogs.length}건</span>
                       </div>
                       
                       {editLogs.length > 0 && (
                         <button 
                           onClick={handleClearSelectedLogs}
-                          className="px-2.5 py-1.5 bg-red-600/15 hover:bg-red-600 hover:text-white text-red-600 text-xs sm:text-sm font-bold rounded-lg transition-all border border-red-600/20"
+                          className="px-2.5 py-1.5 bg-red-600/15 hover:bg-red-600 hover:text-white text-red-600 text-xs sm:text-sm font-normal rounded-lg transition-all border border-red-600/20"
                         >
                           ✓ 선택 항목 확인 및 정리 완료
                         </button>
@@ -1058,10 +1103,10 @@
                     </div>
 
                     {editLogs.length === 0 ? (
-                      <p className="text-xs sm:text-sm text-text-secondary font-semibold italic">현재 변경 내역이 비어 있습니다.</p>
+                      <p className="text-xs sm:text-sm text-text-secondary font-normal italic">현재 변경 내역이 비어 있습니다.</p>
                     ) : (
                       <div className="max-h-48 overflow-y-auto space-y-2 text-xs sm:text-sm">
-                        <div className="flex items-center gap-2 px-2.5 py-1 text-text-secondary font-bold border-b border-white/10">
+                        <div className="flex items-center gap-2 px-2.5 py-1 text-text-secondary font-normal border-b border-white/10">
                           <input 
                             type="checkbox"
                             className="rounded accent-accent scale-110 cursor-pointer"
@@ -1080,13 +1125,13 @@
                             <div className="flex-1 flex flex-col sm:flex-row justify-between gap-1.5">
                               <div>
                                 <span className="text-text-secondary font-mono mr-2">[{log.timestamp}]</span>
-                                <strong className="text-text-primary font-bold">{log.studentName}</strong> 학생 : {log.originalHours}h ➡️ <span className="text-accent font-bold">{log.newHours}h</span>
-                                <p className="text-xs text-text-secondary mt-1 font-semibold leading-relaxed">
+                                <strong className="text-text-primary font-normal">{log.studentName}</strong> 학생 : {log.originalHours}h ➡️ <span className="text-accent font-normal">{log.newHours}h</span>
+                                <p className="text-xs text-text-secondary mt-1 font-normal leading-relaxed">
                                   사유: {log.reason}
                                 </p>
                               </div>
                               <div className="text-right shrink-0">
-                                <span className="px-2 py-0.5 rounded-full bg-white/30 text-[10px] font-bold text-text-secondary">{log.operator}</span>
+                                <span className="px-2 py-0.5 rounded-full bg-white/30 text-[10px] font-normal text-text-secondary">{log.operator}</span>
                               </div>
                             </div>
                           </div>
@@ -1097,8 +1142,8 @@
                 </div>
               )}
 
-              {/* ----------------- [3. 통합 필터링 패널] ----------------- */}
-              <div className="glass-card p-6 rounded-3xl space-y-4">
+              {/* ----------------- [3. 통합 필터링 패널 (차분한 드롭다운 및 시각적 구획선 배치)] ----------------- */}
+              <div className="glass-card p-6 rounded-3xl space-y-5">
                 
                 {/* 실시간 텍스트 검색 */}
                 <div className="relative">
@@ -1110,7 +1155,7 @@
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="도우미 학생 한글 이름, 나이스 영문명, 또는 담당 역할 즉시 검색..."
-                    className="inp w-full pl-12 pr-10 py-3.5 bg-white/30 dark:bg-black/35 border border-white/40 dark:border-white/15 rounded-2xl text-text-primary text-sm sm:text-base font-semibold placeholder:text-text-secondary/50 shadow-sm"
+                    className="inp w-full pl-12 pr-10 py-3.5 bg-white/40 dark:bg-black/45 border border-white/40 dark:border-white/15 rounded-2xl text-text-primary text-sm sm:text-base font-normal placeholder:text-text-secondary/50 shadow-sm"
                   />
                   {searchQuery && (
                     <button 
@@ -1122,11 +1167,11 @@
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-2">
                   
-                  {/* 학급별 드롭다운 필터 */}
-                  <div className="space-y-1.5">
-                    <label className="block text-xs sm:text-sm font-bold text-text-secondary uppercase tracking-widest">
+                  {/* 학급별 드롭다운 필터 (눈이 부시지 않도록 차분한 백그라운드 가미) */}
+                  <div className="space-y-2">
+                    <label className="block text-xs sm:text-sm font-normal text-text-secondary uppercase tracking-widest">
                       🏫 학급별 선택 (교과/학급 담임 전용)
                     </label>
                     <select
@@ -1135,7 +1180,7 @@
                         setSelectedGradeClass(e.target.value);
                         setSelectedHelper("all");
                       }}
-                      className="inp w-full px-3.5 py-3.5 bg-white/40 dark:bg-black/40 border border-white/40 dark:border-white/10 rounded-2xl text-text-primary text-sm sm:text-base font-bold cursor-pointer"
+                      className="inp w-full px-3.5 py-3.5 bg-[#f0f2f7] dark:bg-[#1a1a22] border border-gray-300 dark:border-gray-700 rounded-2xl text-text-primary text-sm sm:text-base font-normal cursor-pointer shadow-inner"
                     >
                       <option value="all">전체 학급 조회</option>
                       {uniqueClasses.filter(c => c !== "all").map(c => {
@@ -1149,9 +1194,9 @@
                     </select>
                   </div>
 
-                  {/* 도우미 역할명별 드롭다운 필터 */}
-                  <div className="space-y-1.5">
-                    <label className="block text-xs sm:text-sm font-bold text-text-secondary uppercase tracking-widest">
+                  {/* 도우미 역할명별 드롭다운 필터 (시각적으로 분리하기 위해 테두리 및 톤 변경) */}
+                  <div className="space-y-2 border-t md:border-t-0 md:border-l border-gray-300 dark:border-gray-700 pt-4 md:pt-0 md:pl-8">
+                    <label className="block text-xs sm:text-sm font-normal text-text-secondary uppercase tracking-widest">
                       📋 도우미 역할별 선택 (담당교사 전용)
                     </label>
                     <select
@@ -1160,7 +1205,7 @@
                         setSelectedHelper(e.target.value);
                         setSelectedGradeClass("all");
                       }}
-                      className="inp w-full px-3.5 py-3.5 bg-white/40 dark:bg-black/40 border border-white/40 dark:border-white/10 rounded-2xl text-text-primary text-sm sm:text-base font-bold cursor-pointer"
+                      className="inp w-full px-3.5 py-3.5 bg-[#f0f2f7] dark:bg-[#1a1a22] border border-gray-300 dark:border-gray-700 rounded-2xl text-text-primary text-sm sm:text-base font-normal cursor-pointer shadow-inner"
                     >
                       <option value="all">전체 도우미 역할 조회</option>
                       {uniqueHelpers.filter(h => h !== "all").map(h => {
@@ -1176,7 +1221,7 @@
 
                 </div>
 
-                <div className="text-xs sm:text-sm text-text-secondary font-bold flex items-center gap-1.5 mt-2 bg-white/10 dark:bg-black/10 p-2.5 rounded-xl">
+                <div className="text-xs sm:text-sm text-text-secondary font-normal flex items-center gap-1.5 mt-2 bg-white/10 dark:bg-black/10 p-2.5 rounded-xl">
                   <span className="text-accent">💡 안내:</span>
                   <span>학급 필터와 도우미 필터는 연동 오류를 방지하기 위해 각각 독립적으로 렌더링을 진행합니다.</span>
                 </div>
@@ -1187,37 +1232,37 @@
               <div className="glass-card rounded-3xl overflow-hidden shadow-sm">
                 <div className="px-6 py-5 border-b border-white/25 flex items-center justify-between bg-white/10">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-sm sm:text-base font-bold text-text-primary">도우미 명단 및 시간 제어</h2>
-                    <span className="px-2.5 py-0.5 rounded-full bg-accent-light text-accent text-xs font-bold border border-accent/20">
+                    <h2 className="text-sm sm:text-base font-normal text-text-primary">도우미 명단 및 시간 제어</h2>
+                    <span className="px-2.5 py-0.5 rounded-full bg-accent-light text-accent text-xs font-normal border border-accent/20">
                       {filteredStudents.length}명 배정됨
                     </span>
                   </div>
                   
-                  <span className="text-xs sm:text-sm text-text-secondary font-bold">
-                    인정시간 조정 시 우측 <span className="text-accent font-extrabold">사유 작성 필수</span>
+                  <span className="text-xs sm:text-sm text-text-secondary font-normal">
+                    인정시간 조정 시 우측 <span className="text-accent font-normal">사유 작성 필수</span>
                   </span>
                 </div>
 
                 {filteredStudents.length === 0 ? (
                   <div className="py-16 text-center">
-                    <p className="text-sm sm:text-base font-bold text-text-primary">선택 조건에 적합한 도우미 학생 명단이 없습니다.</p>
-                    <p className="text-xs sm:text-sm text-text-secondary font-semibold mt-1">상단의 학급 또는 도우미 역할 필터를 조정해 주십시오.</p>
+                    <p className="text-sm sm:text-base font-normal text-text-primary">선택 조건에 적합한 도우미 학생 명단이 없습니다.</p>
+                    <p className="text-xs sm:text-sm text-text-secondary font-normal mt-1">상단의 학급 또는 도우미 역할 필터를 조정해 주십시오.</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="bg-white/10 text-xs font-bold text-text-secondary uppercase tracking-wider border-b border-white/20">
-                          <th className="py-4 px-6">학급정보</th>
-                          <th className="py-4 px-6">한글 이름</th>
-                          <th className="py-4 px-6">나이스 영문명</th>
-                          <th className="py-4 px-6">배정된 역할</th>
-                          <th className="py-4 px-6 text-center">인정 시간</th>
-                          <th className="py-4 px-6">시간 조정 사유</th>
-                          <th className="py-4 px-6 text-center">동작</th>
+                        <tr className="bg-white/10 text-xs font-normal text-text-secondary uppercase tracking-wider border-b border-white/20">
+                          <th className="py-4 px-6 font-normal">학급정보</th>
+                          <th className="py-4 px-6 font-normal">한글 이름</th>
+                          <th className="py-4 px-6 font-normal">나이스 영문명</th>
+                          <th className="py-4 px-6 font-normal">배정된 역할</th>
+                          <th className="py-4 px-6 text-center font-normal">인정 시간</th>
+                          <th className="py-4 px-6 font-normal">시간 조정 사유</th>
+                          <th className="py-4 px-6 text-center font-normal">동작</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-white/15 text-sm">
+                      <tbody className="divide-y divide-white/15 text-sm font-light">
                         {filteredStudents.map((student) => {
                           const isEdited = student.hours !== student.originalHours;
                           const hasReason = student.reason && student.reason.trim();
@@ -1231,24 +1276,24 @@
                             >
                               {/* 학급 인적사항 */}
                               <td className="py-4 px-6 whitespace-nowrap">
-                                <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-white/25 dark:bg-black/25 text-text-primary font-bold text-sm border border-white/30 dark:border-white/10">
+                                <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-white/25 dark:bg-black/25 text-text-primary font-normal text-sm border border-white/30 dark:border-white/10">
                                   {student.grade}학기 {student.class}반 {student.number}번
                                 </span>
                               </td>
                               
                               {/* 학생 성명 */}
-                              <td className="py-4 px-6 font-bold text-text-primary whitespace-nowrap text-sm sm:text-base">
+                              <td className="py-4 px-6 font-normal text-text-primary whitespace-nowrap text-sm sm:text-base">
                                 {student.name}
                               </td>
 
                               {/* 나이스 영문 */}
-                              <td className="py-4 px-6 text-text-secondary text-xs sm:text-sm font-mono font-semibold whitespace-nowrap">
+                              <td className="py-4 px-6 text-text-secondary text-xs sm:text-sm font-mono font-normal whitespace-nowrap">
                                 {student.neisName || "-"}
                               </td>
 
                               {/* 지정 도우미 활동명 */}
                               <td className="py-4 px-6 whitespace-nowrap">
-                                <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-accent-light text-accent text-sm font-bold border border-accent/20">
+                                <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-accent-light text-accent text-sm font-normal border border-accent/20">
                                   {student.helperName}
                                 </span>
                               </td>
@@ -1258,7 +1303,7 @@
                                 <div className="flex items-center justify-center gap-2.5">
                                   <button 
                                     onClick={() => adjustHoursQuickly(student.id, -1)}
-                                    className="w-8 h-8 rounded-lg bg-red-600/10 hover:bg-red-600 text-red-600 hover:text-white transition-colors flex items-center justify-center font-bold text-lg"
+                                    className="w-8 h-8 rounded-lg bg-red-600/10 hover:bg-red-600 text-red-600 hover:text-white transition-colors flex items-center justify-center font-normal text-lg"
                                     title="1시간 단축"
                                   >
                                     -
@@ -1267,17 +1312,17 @@
                                   <div className="text-center min-w-[75px]">
                                     {isEdited ? (
                                       <div className="flex flex-col items-center">
-                                        <span className="text-[11px] text-text-secondary font-bold line-through">{student.originalHours}시간</span>
-                                        <span className="text-sm sm:text-base font-black text-amber-600 dark:text-amber-400">{student.hours}시간</span>
+                                        <span className="text-[11px] text-text-secondary font-normal line-through">{student.originalHours}시간</span>
+                                        <span className="text-sm sm:text-base font-normal text-amber-600 dark:text-amber-400">{student.hours}시간</span>
                                       </div>
                                     ) : (
-                                      <span className="font-bold text-text-primary text-sm sm:text-base">{student.hours}시간</span>
+                                      <span className="font-normal text-text-primary text-sm sm:text-base">{student.hours}시간</span>
                                     )}
                                   </div>
 
                                   <button 
                                     onClick={() => adjustHoursQuickly(student.id, 1)}
-                                    className="w-8 h-8 rounded-lg bg-emerald-600/10 hover:bg-emerald-600 text-emerald-600 hover:text-white transition-colors flex items-center justify-center font-bold text-lg"
+                                    className="w-8 h-8 rounded-lg bg-emerald-600/10 hover:bg-emerald-600 text-emerald-600 hover:text-white transition-colors flex items-center justify-center font-normal text-lg"
                                     title="1시간 추가"
                                   >
                                     +
@@ -1288,11 +1333,11 @@
                               {/* 변경 사유 기재사항 */}
                               <td className="py-4 px-6 max-w-xs">
                                 {isEdited ? (
-                                  <span className={`text-xs sm:text-sm block truncate font-bold ${hasReason ? 'text-text-primary' : 'text-red-600 animate-pulse'}`}>
+                                  <span className={`text-xs sm:text-sm block truncate font-normal ${hasReason ? 'text-text-primary' : 'text-red-600 animate-pulse'}`}>
                                     {student.reason || "⚠️ 사유 정보를 기재하세요."}
                                   </span>
                                 ) : (
-                                  <span className="text-xs text-text-secondary/50 italic font-semibold">변동 없음</span>
+                                  <span className="text-xs text-text-secondary/50 italic font-normal">변동 없음</span>
                                 )}
                               </td>
 
@@ -1301,7 +1346,7 @@
                                 <div className="flex items-center justify-center gap-2">
                                   <button 
                                     onClick={() => openEditModal(student)}
-                                    className="px-3.5 py-2 rounded-lg bg-accent text-white text-xs sm:text-sm font-bold hover:bg-accent-hover shadow-sm transition-all"
+                                    className="px-3.5 py-2 rounded-lg bg-accent text-white text-xs sm:text-sm font-normal hover:bg-accent-hover shadow-sm transition-all"
                                   >
                                     사유 편집
                                   </button>
@@ -1325,12 +1370,11 @@
                   </div>
                 )}
                 
-                <div className="bg-white/10 dark:bg-black/15 px-6 py-4.5 border-t border-white/20 dark:border-white/5 text-xs sm:text-sm text-text-secondary flex flex-col sm:flex-row sm:items-center justify-between gap-2 font-semibold">
+                <div className="bg-white/10 dark:bg-black/15 px-6 py-4.5 border-t border-white/20 dark:border-white/5 text-xs sm:text-sm text-text-secondary flex flex-col sm:flex-row sm:items-center justify-between gap-2 font-normal">
                   <span className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-accent animate-ping"></span>
                     입력 및 수정 완료 시 실시간으로 데이터 저장소에 안전하게 동기화가 유지됩니다.
                   </span>
-                  <span>관산중학교 최고 관리자(9600) 권한으로 더 많은 명단 및 CSV 입출력 제어가 가능합니다.</span>
                 </div>
               </div>
 
@@ -1345,8 +1389,8 @@
                 
                 <div className="text-center mb-6">
                   <span className="text-3xl block mb-2">🛡️</span>
-                  <h3 className="text-lg font-bold text-text-primary">최고 관리자 인증</h3>
-                  <p className="text-xs sm:text-sm text-text-secondary font-medium mt-1">마스터 보안 암호를 기재하십시오.</p>
+                  <h3 className="text-lg font-normal text-text-primary">최고 관리자 인증</h3>
+                  <p className="text-xs sm:text-sm text-text-secondary font-normal mt-1">마스터 보안 암호를 기재하십시오.</p>
                 </div>
 
                 <form onSubmit={handleAdminVerify} className="space-y-4">
@@ -1355,12 +1399,12 @@
                     value={adminPasswordInput}
                     onChange={(e) => setAdminPasswordInput(e.target.value)}
                     placeholder="인증코드 입력"
-                    className="inp w-full px-4 py-3 bg-white/20 dark:bg-black/35 text-center text-lg font-mono tracking-widest text-text-primary rounded-xl border border-white/20 font-bold"
+                    className="inp w-full px-4 py-3 bg-white/20 dark:bg-black/35 text-center text-lg font-mono tracking-widest text-text-primary rounded-xl border border-white/20 font-normal"
                     required
                     autoFocus
                   />
                   {adminPasswordError && (
-                    <p className="text-xs sm:text-sm text-red-600 text-center font-bold">⚠ {adminPasswordError}</p>
+                    <p className="text-xs sm:text-sm text-red-600 text-center font-normal">⚠ {adminPasswordError}</p>
                   )}
 
                   <div className="flex gap-2.5 pt-2">
@@ -1391,7 +1435,7 @@
                 <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
 
                 <div className="flex justify-between items-start mb-5">
-                  <h3 className="text-base sm:text-lg font-bold text-text-primary">✏️ 봉사시간 수정 및 사유 기재</h3>
+                  <h3 className="text-base sm:text-lg font-normal text-text-primary">✏️ 봉사시간 수정 및 사유 기재</h3>
                   <button 
                     onClick={() => { setIsModalOpen(false); setEditingStudent(null); setFeedbackMsg(""); }}
                     className="p-1.5 rounded-lg hover:bg-white/20 text-text-secondary hover:text-text-primary text-sm"
@@ -1404,22 +1448,22 @@
                 <div className="bg-accent/5 dark:bg-black/30 rounded-2xl p-4 border border-accent/20 dark:border-white/10 mb-5 text-sm">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <span className="text-text-secondary text-xs sm:text-sm font-bold block mb-0.5">대상 도우미</span>
-                      <strong className="text-sm sm:text-base font-bold text-text-primary">
+                      <span className="text-text-secondary text-xs sm:text-sm font-normal block mb-0.5">대상 도우미</span>
+                      <strong className="text-sm sm:text-base font-normal text-text-primary">
                         {editingStudent.grade}학년 {editingStudent.class}반 {editingStudent.number}번 {editingStudent.name}
                       </strong>
                     </div>
                     <div>
-                      <span className="text-text-secondary text-xs sm:text-sm font-bold block mb-0.5">나이스 성명</span>
-                      <strong className="text-sm sm:text-base font-bold text-text-primary font-mono">{editingStudent.neisName || "-"}</strong>
+                      <span className="text-text-secondary text-xs sm:text-sm font-normal block mb-0.5">나이스 성명</span>
+                      <strong className="text-sm sm:text-base font-normal text-text-primary font-mono">{editingStudent.neisName || "-"}</strong>
                     </div>
                     <div>
-                      <span className="text-text-secondary text-xs sm:text-sm font-bold block mb-0.5">도우미 명칭</span>
-                      <strong className="text-sm sm:text-base font-bold text-accent">{editingStudent.helperName}</strong>
+                      <span className="text-text-secondary text-xs sm:text-sm font-normal block mb-0.5">도우미 명칭</span>
+                      <strong className="text-sm sm:text-base font-normal text-accent">{editingStudent.helperName}</strong>
                     </div>
                     <div>
-                      <span className="text-text-secondary text-xs sm:text-sm font-bold block mb-0.5">기존 인정시간</span>
-                      <strong className="text-sm sm:text-base font-bold text-text-primary">{editingStudent.originalHours}시간</strong>
+                      <span className="text-text-secondary text-xs sm:text-sm font-normal block mb-0.5">기존 인정시간</span>
+                      <strong className="text-sm sm:text-base font-normal text-text-primary">{editingStudent.originalHours}시간</strong>
                     </div>
                   </div>
                 </div>
@@ -1427,7 +1471,7 @@
                 <div className="space-y-5">
                   {/* 슬라이더 제어 */}
                   <div>
-                    <label className="block text-xs sm:text-sm font-bold text-text-secondary uppercase tracking-widest mb-2">변경 반영 봉사 시간</label>
+                    <label className="block text-xs sm:text-sm font-normal text-text-secondary uppercase tracking-widest mb-2">변경 반영 봉사 시간</label>
                     <div className="flex items-center gap-3">
                       <input 
                         type="range"
@@ -1442,16 +1486,16 @@
                           type="number"
                           value={editHours}
                           onChange={(e) => setEditHours(Math.max(0, Number(e.target.value)))}
-                          className="w-12 bg-transparent text-center font-black text-sm text-text-primary outline-none focus:ring-0"
+                          className="w-12 bg-transparent text-center font-normal text-sm text-text-primary outline-none focus:ring-0"
                         />
-                        <span className="text-xs sm:text-sm font-bold text-text-secondary">시간</span>
+                        <span className="text-xs sm:text-sm font-normal text-text-secondary">시간</span>
                       </div>
                     </div>
                   </div>
 
                   {/* 사유 작성 기재부 */}
                   <div>
-                    <label className="block text-xs sm:text-sm font-bold text-text-secondary uppercase tracking-widest mb-2">
+                    <label className="block text-xs sm:text-sm font-normal text-text-secondary uppercase tracking-widest mb-2">
                       시간 조정 사유 작성
                     </label>
                     <textarea 
@@ -1459,11 +1503,11 @@
                       value={editReason}
                       onChange={(e) => setEditReason(e.target.value)}
                       placeholder="예시) 활동 불성실로 인한 시간 단축 등"
-                      className="inp w-full px-4 py-3 bg-white/40 dark:bg-black/35 border border-white/40 dark:border-white/10 rounded-xl text-text-primary text-xs sm:text-sm font-bold placeholder:text-text-secondary/50 leading-relaxed"
+                      className="inp w-full px-4 py-3 bg-white/40 dark:bg-black/35 border border-white/40 dark:border-white/10 rounded-xl text-text-primary text-xs sm:text-sm font-normal placeholder:text-text-secondary/50 leading-relaxed"
                     ></textarea>
                     
                     {feedbackMsg && (
-                      <p className="text-xs sm:text-sm text-red-600 font-bold mt-2.5 flex items-center gap-1.5">
+                      <p className="text-xs sm:text-sm text-red-600 font-normal mt-2.5 flex items-center gap-1.5">
                         <span>⚠️</span>
                         <span>{feedbackMsg}</span>
                       </p>
