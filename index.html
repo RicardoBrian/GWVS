@@ -245,7 +245,7 @@
       const [alertToast, setAlertToast] = useState(null);
       const [liveTime, setLiveTime] = useState("");
 
-      // 실시간 클라우드 연동 리스너 (경로 보정으로 기기 간 동기화 정합성 해결)
+      // 실시간 클라우드 연동 리스너 (경로 보정 및 초기화 레이스 컨디션 차단)
       useEffect(() => {
         const isAuth = sessionStorage.getItem("portal_auth");
         if (isAuth === "true") {
@@ -261,15 +261,26 @@
           // RULE 3 - 선인증 후 쿼리 작동
           auth.signInAnonymously().then(() => {
             
-            // 공용 연동 가이드라인에 부합하는 컬렉션 경로 바인딩
+            // [원격 데이터가 완전히 비어있는 최초 1회만 기본 명단 자동 세팅]
+            db.collection(studentsColPath).get().then((snapshot) => {
+              if (snapshot.empty) {
+                const batch = db.batch();
+                DEFAULT_STUDENTS.forEach((s) => {
+                  const docRef = db.collection(studentsColPath).doc(s.id);
+                  batch.set(docRef, s);
+                });
+                batch.commit().then(() => {
+                  console.log("초기 기본 명단 파이어베이스 업로드 세팅 성공");
+                });
+              }
+            }).catch(err => {
+              console.error("Firestore 초기 명단 검사 에러:", err);
+            });
+
+            // 학생 명단 실시간 수신 리스너 (onSnapshot 내부의 초기화 코드를 지워 레이스 컨디션 방지)
             const unsubscribeStudents = db.collection(studentsColPath).onSnapshot(
               (snapshot) => {
-                if (snapshot.empty) {
-                  // DB가 완전 비어있을 경우 초기 데이터 업로드 동기화
-                  DEFAULT_STUDENTS.forEach(async (s) => {
-                    await db.collection(studentsColPath).doc(s.id).set(s);
-                  });
-                } else {
+                if (!snapshot.empty) {
                   const items = snapshot.docs.map(doc => doc.data());
                   // 학급 정보 정렬
                   items.sort((a, b) => {
@@ -278,6 +289,9 @@
                     return a.number - b.number;
                   });
                   setStudents(items);
+                } else {
+                  // 동기화 도중 데이터가 일시적으로 비거나 완전히 리셋되었을 때 무한 루프에 돌지 않고 정직하게 빈 명단 출력
+                  setStudents([]);
                 }
               },
               (err) => {
@@ -377,15 +391,32 @@
         }
       };
 
+      // 원격 파이어베이스 데이터를 원자적(Atomic)으로 완전히 덮어쓰는 구조로 리팩토링 완료
       const updateStudentsState = async (newStudents) => {
         setStudents(newStudents);
         if (isFirebaseActive && db) {
-          const batch = db.batch();
-          newStudents.forEach(s => {
-            const docRef = db.collection(studentsColPath).doc(s.id);
-            batch.set(docRef, s);
-          });
-          await batch.commit();
+          try {
+            // 1. 기존 파이어베이스 상의 명단을 완전히 삭제하기 위해 먼저 전체 문서를 스냅샷으로 조회
+            const snapshot = await db.collection(studentsColPath).get();
+            const batch = db.batch();
+            
+            // 2. 기존 도우미 명단 문서 삭제 예약 등록
+            snapshot.docs.forEach(doc => {
+              batch.delete(doc.ref);
+            });
+            
+            // 3. 업로드된 새 CSV 명단(또는 가공된 상태의 명단) 등록 예약
+            newStudents.forEach(s => {
+              const docRef = db.collection(studentsColPath).doc(s.id);
+              batch.set(docRef, s);
+            });
+            
+            // 4. 단일 배치 커밋으로 삭제와 신규 등록을 트랜잭션 단위로 한 번에 처리 (유실 및 레이스 컨디션 제로화)
+            await batch.commit();
+          } catch (err) {
+            console.error("Firestore 동기화 연동 에러:", err);
+            triggerToast("원격 동기화 중 오류가 발생했습니다.", "danger");
+          }
         } else {
           localStorage.setItem("helper_students_data_v4", JSON.stringify(newStudents));
         }
@@ -474,8 +505,8 @@
         if (window.confirm("주의! 수정된 모든 내용을 지우고 원래 배정 명단으로 전체 초기화하시겠습니까?")) {
           setSelectedLogs({});
           if (isFirebaseActive && db) {
-            const studentSnaps = await db.collection("students").get();
-            const logSnaps = await db.collection("logs").get();
+            const studentSnaps = await db.collection(studentsColPath).get();
+            const logSnaps = await db.collection(logsColPath).get();
             
             const batch = db.batch();
             studentSnaps.docs.forEach(doc => batch.delete(doc.ref));
@@ -484,7 +515,7 @@
 
             const nextBatch = db.batch();
             DEFAULT_STUDENTS.forEach(s => {
-              const ref = db.collection("students").doc(s.id);
+              const ref = db.collection(studentsColPath).doc(s.id);
               nextBatch.set(ref, s);
             });
             await nextBatch.commit();
@@ -1045,7 +1076,7 @@
                         </div>
                         <button 
                           type="submit"
-                          className="self-end px-5 py-2 bg-accent hover:bg-accent-hover text-white text-xs sm:text-sm font-normal rounded-lg transition-all h-[38px]"
+                          className="self-end px-5 py-2 bg-accent hover:bg-accent-hover text-white text-xs sm:text-sm font-bold rounded-lg transition-all h-[38px]"
                         >
                           명단 반영 추가
                         </button>
@@ -1056,7 +1087,7 @@
                     <div className="lg:col-span-5 bg-white/10 dark:bg-black/15 p-5 rounded-2xl border border-white/20 dark:border-white/5 flex flex-col justify-between space-y-4">
                       <div>
                         <h3 className="text-xs sm:text-sm font-normal text-text-primary uppercase tracking-wider mb-2">📁 CSV 명단 연동 및 내보내기</h3>
-                        <p className="text-xs sm:text-sm text-text-secondary font-normal leading-relaxed">
+                        <p className="text-xs sm:text-sm text-text-secondary font-semibold leading-relaxed">
                           봉사활동 도우미 시트 CSV 데이터를 로드하거나, 현재까지 수정된 전체 기록 사유 데이터를 NEIS 등록 규격의 엑셀 CSV로 출력 저장할 수 있습니다.
                         </p>
                       </div>
@@ -1070,13 +1101,13 @@
                             onChange={handleCsvImport}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                           />
-                          <span className="text-xs sm:text-sm text-text-primary font-normal">📥 새 도우미 명단 CSV 파일 업로드</span>
+                          <span className="text-xs sm:text-sm text-text-primary font-bold">📥 새 도우미 명단 CSV 파일 업로드</span>
                         </div>
                         
                         {/* 백업출력 */}
                         <button 
                           onClick={handleCsvExport}
-                          className="w-full py-2.5 bg-accent/25 hover:bg-accent/35 text-accent text-xs sm:text-sm font-normal rounded-xl transition-all border border-accent/35 flex items-center justify-center gap-1.5"
+                          className="w-full py-2.5 bg-accent/25 hover:bg-accent/35 text-accent text-xs sm:text-sm font-bold rounded-xl transition-all border border-accent/35 flex items-center justify-center gap-1.5"
                         >
                           📤 최종 마스터 CSV 보존용 저장
                         </button>
@@ -1103,7 +1134,7 @@
                     </div>
 
                     {editLogs.length === 0 ? (
-                      <p className="text-xs sm:text-sm text-text-secondary font-normal italic">현재 변경 내역이 비어 있습니다.</p>
+                      <p className="text-xs sm:text-sm text-text-secondary font-semibold italic">현재 변경 내역이 비어 있습니다.</p>
                     ) : (
                       <div className="max-h-48 overflow-y-auto space-y-2 text-xs sm:text-sm">
                         <div className="flex items-center gap-2 px-2.5 py-1 text-text-secondary font-normal border-b border-white/10">
@@ -1427,7 +1458,7 @@
             </div>
           )}
 
-          {/* ----------------- [봉사 상세 조절 및 사유 기재 모달 (요청 반영)] ----------------- */}
+          {/* ----------------- [봉사 상세 조절 및 사유 기재 모달] ----------------- */}
           {isModalOpen && editingStudent && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
               <div className="glass-card w-full max-w-lg p-6 sm:p-8 rounded-3xl shadow-2xl relative overflow-hidden border border-white/20">
