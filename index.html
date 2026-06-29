@@ -63,18 +63,18 @@
 
       /* Light Mode — Liquid Glass vibrancy */
       --bg-gradient:
-        radial-gradient(at 18% 18%, #e7ecff 0%, transparent 52%),
-        radial-gradient(at 82% 12%, #ffe7f2 0%, transparent 46%),
-        radial-gradient(at 65% 88%, #e0f5ff 0%, transparent 52%),
-        radial-gradient(at 8%  92%, #eee6ff 0%, transparent 44%),
-        #f4f5fa;
-      --glass-bg: rgba(255, 255, 255, 0.62);
-      --glass-border: rgba(255, 255, 255, 0.55);
-      --glass-edge: rgba(255, 255, 255, 0.95);
-      --glass-shadow: 0 10px 30px rgba(40, 60, 130, 0.12);
-      --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 0 0 0.5px rgba(255, 255, 255, 0.4);
-      --text-primary: #1a1c22;
-      --text-secondary: #5b606b;
+        radial-gradient(at 18% 18%, #dce4ff 0%, transparent 52%),
+        radial-gradient(at 82% 12%, #ffd6ec 0%, transparent 46%),
+        radial-gradient(at 65% 88%, #d4f0ff 0%, transparent 52%),
+        radial-gradient(at 8%  92%, #e5d8ff 0%, transparent 44%),
+        #eceef6;
+      --glass-bg: rgba(255, 255, 255, 0.78);
+      --glass-border: rgba(255, 255, 255, 0.7);
+      --glass-edge: rgba(255, 255, 255, 0.98);
+      --glass-shadow: 0 10px 32px rgba(30, 50, 120, 0.13);
+      --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 0 0 0.5px rgba(255, 255, 255, 0.5);
+      --text-primary: #111318;
+      --text-secondary: #4a505c;
       --accent: #0071e3;
       --accent-hover: #0a84ff;
       --accent-light: rgba(0, 113, 227, 0.12);
@@ -94,13 +94,13 @@
           radial-gradient(at 65% 90%, #0e2438 0%, transparent 52%),
           radial-gradient(at 8%  92%, #1a1530 0%, transparent 46%),
           #07080d;
-        --glass-bg: rgba(44, 46, 58, 0.58);
-        --glass-border: rgba(255, 255, 255, 0.14);
-        --glass-edge: rgba(255, 255, 255, 0.15);
-        --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
-        --text-primary: #f2f4f8;
-        --text-secondary: #aab0bd;
+        --glass-bg: rgba(36, 38, 52, 0.72);
+        --glass-border: rgba(255, 255, 255, 0.16);
+        --glass-edge: rgba(255, 255, 255, 0.18);
+        --glass-shadow: 0 10px 32px rgba(0, 0, 0, 0.55);
+        --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+        --text-primary: #f0f2f8;
+        --text-secondary: #9ba3b5;
         --accent: #0a84ff;
         --accent-hover: #409cff;
         --accent-light: rgba(10, 132, 255, 0.18);
@@ -138,13 +138,13 @@
         radial-gradient(at 65% 90%, #0e2438 0%, transparent 52%),
         radial-gradient(at 8%  92%, #1a1530 0%, transparent 46%),
         #07080d;
-      --glass-bg: rgba(44, 46, 58, 0.58);
-      --glass-border: rgba(255, 255, 255, 0.14);
-      --glass-edge: rgba(255, 255, 255, 0.15);
-      --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-      --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
-      --text-primary: #f2f4f8;
-      --text-secondary: #aab0bd;
+      --glass-bg: rgba(36, 38, 52, 0.72);
+      --glass-border: rgba(255, 255, 255, 0.16);
+      --glass-edge: rgba(255, 255, 255, 0.18);
+      --glass-shadow: 0 10px 32px rgba(0, 0, 0, 0.55);
+      --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+      --text-primary: #f0f2f8;
+      --text-secondary: #9ba3b5;
       --accent: #0a84ff;
       --accent-hover: #409cff;
       --accent-light: rgba(10, 132, 255, 0.18);
@@ -155,6 +155,22 @@
       --success-light: rgba(48, 209, 88, 0.2);
     }
 
+    .inp {
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      color: var(--text-primary);
+      transition: border-color .18s, box-shadow .18s;
+    }
+    html.dark .inp {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+    @media (prefers-color-scheme: dark) {
+      .inp {
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+      }
+    }
     .inp:focus {
       outline: none;
       box-shadow: 0 0 0 3px var(--accent-light);
@@ -882,7 +898,7 @@
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="비밀번호 입력"
-                      className="inp w-full px-4 py-3.5 bg-white/40 dark:bg-black/35 border border-white/40 dark:border-white/10 rounded-xl text-text-primary placeholder:text-text-secondary/40 text-center text-lg font-mono tracking-widest font-normal"
+                      className="inp w-full px-4 py-3.5 rounded-xl text-text-primary placeholder:text-text-secondary/40 text-center text-lg font-mono tracking-widest font-normal"
                       required
                       autoFocus
                     />
@@ -1032,7 +1048,7 @@
                             placeholder="학년 입력"
                             value={newStudent.grade}
                             onChange={(e) => setNewStudent({...newStudent, grade: e.target.value})}
-                            className="inp w-full px-3 py-2 bg-white/20 dark:bg-black/30 text-xs sm:text-sm rounded-lg text-text-primary border border-white/20 font-normal"
+                            className="inp w-full px-3 py-2 text-xs sm:text-sm rounded-lg text-text-primary font-normal"
                             required
                           />
                         </div>
@@ -1043,7 +1059,7 @@
                             placeholder="반 입력"
                             value={newStudent.class}
                             onChange={(e) => setNewStudent({...newStudent, class: e.target.value})}
-                            className="inp w-full px-3 py-2 bg-white/20 dark:bg-black/30 text-xs sm:text-sm rounded-lg text-text-primary border border-white/20 font-normal"
+                            className="inp w-full px-3 py-2 text-xs sm:text-sm rounded-lg text-text-primary font-normal"
                             required
                           />
                         </div>
@@ -1054,7 +1070,7 @@
                             placeholder="번호 입력"
                             value={newStudent.number}
                             onChange={(e) => setNewStudent({...newStudent, number: e.target.value})}
-                            className="inp w-full px-3 py-2 bg-white/20 dark:bg-black/30 text-xs sm:text-sm rounded-lg text-text-primary border border-white/20 font-normal"
+                            className="inp w-full px-3 py-2 text-xs sm:text-sm rounded-lg text-text-primary font-normal"
                             required
                           />
                         </div>
@@ -1065,7 +1081,7 @@
                             placeholder="한글 성명"
                             value={newStudent.name}
                             onChange={(e) => setNewStudent({...newStudent, name: e.target.value})}
-                            className="inp w-full px-3 py-2 bg-white/20 dark:bg-black/30 text-xs sm:text-sm rounded-lg text-text-primary border border-white/20 font-normal"
+                            className="inp w-full px-3 py-2 text-xs sm:text-sm rounded-lg text-text-primary font-normal"
                             required
                           />
                         </div>
@@ -1076,7 +1092,7 @@
                             placeholder="영문 이름"
                             value={newStudent.neisName}
                             onChange={(e) => setNewStudent({...newStudent, neisName: e.target.value})}
-                            className="inp w-full px-3 py-2 bg-white/20 dark:bg-black/30 text-xs sm:text-sm rounded-lg text-text-primary border border-white/20 font-mono font-normal"
+                            className="inp w-full px-3 py-2 text-xs sm:text-sm rounded-lg text-text-primary font-mono font-normal"
                           />
                         </div>
                         <div>
@@ -1086,7 +1102,7 @@
                             placeholder="기본 봉사 시간"
                             value={newStudent.hours}
                             onChange={(e) => setNewStudent({...newStudent, hours: e.target.value})}
-                            className="inp w-full px-3 py-2 bg-white/20 dark:bg-black/30 text-xs sm:text-sm rounded-lg text-text-primary border border-white/20 font-normal"
+                            className="inp w-full px-3 py-2 text-xs sm:text-sm rounded-lg text-text-primary font-normal"
                             required
                           />
                         </div>
@@ -1098,7 +1114,7 @@
                           <select 
                             value={newStudent.helperName}
                             onChange={(e) => setNewStudent({...newStudent, helperName: e.target.value})}
-                            className="inp w-full px-3 py-2 bg-white/30 dark:bg-black/35 text-xs sm:text-sm rounded-lg text-text-primary border border-white/25 font-normal"
+                            className="inp w-full px-3 py-2 text-xs sm:text-sm rounded-lg text-text-primary font-normal"
                           >
                             <option value="급식 도우미">급식 도우미</option>
                             <option value="학급 분리수거도우미">학급 분리수거도우미</option>
@@ -1223,7 +1239,7 @@
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                           placeholder="이름, 영문명, 역할 검색..."
-                          className="inp w-full px-4 pr-10 py-3 bg-white/40 dark:bg-black/45 border border-white/40 dark:border-white/15 rounded-2xl text-text-primary text-sm font-normal placeholder:text-text-secondary/50"
+                          className="inp w-full px-4 pr-10 py-3 rounded-2xl text-text-primary text-sm font-normal placeholder:text-text-secondary/50"
                         />
                         {searchQuery && (
                           <button
@@ -1495,7 +1511,7 @@
                           type="number" min="1" max="3"
                           value={editGrade}
                           onChange={(e) => setEditGrade(e.target.value)}
-                          className="inp w-full px-3 py-2.5 bg-white/40 dark:bg-black/35 border border-white/40 dark:border-white/10 rounded-xl text-text-primary text-sm text-center outline-none"
+                          className="inp w-full px-3 py-2.5 rounded-xl text-text-primary text-sm text-center outline-none"
                         />
                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-text-secondary pointer-events-none">학년</span>
                       </div>
@@ -1504,7 +1520,7 @@
                           type="number" min="1"
                           value={editClass}
                           onChange={(e) => setEditClass(e.target.value)}
-                          className="inp w-full px-3 py-2.5 bg-white/40 dark:bg-black/35 border border-white/40 dark:border-white/10 rounded-xl text-text-primary text-sm text-center outline-none"
+                          className="inp w-full px-3 py-2.5 rounded-xl text-text-primary text-sm text-center outline-none"
                         />
                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-text-secondary pointer-events-none">반</span>
                       </div>
@@ -1513,7 +1529,7 @@
                           type="number" min="1"
                           value={editNumber}
                           onChange={(e) => setEditNumber(e.target.value)}
-                          className="inp w-full px-3 py-2.5 bg-white/40 dark:bg-black/35 border border-white/40 dark:border-white/10 rounded-xl text-text-primary text-sm text-center outline-none"
+                          className="inp w-full px-3 py-2.5 rounded-xl text-text-primary text-sm text-center outline-none"
                         />
                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-text-secondary pointer-events-none">번</span>
                       </div>
@@ -1530,7 +1546,7 @@
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
                           placeholder="한글 이름"
-                          className="inp w-full px-3 py-2.5 bg-white/40 dark:bg-black/35 border border-white/40 dark:border-white/10 rounded-xl text-text-primary text-sm outline-none"
+                          className="inp w-full px-3 py-2.5 rounded-xl text-text-primary text-sm outline-none"
                         />
                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-text-secondary pointer-events-none">한글</span>
                       </div>
@@ -1540,7 +1556,7 @@
                           value={editNeisName}
                           onChange={(e) => setEditNeisName(e.target.value)}
                           placeholder="나이스 성명"
-                          className="inp w-full px-3 py-2.5 bg-white/40 dark:bg-black/35 border border-white/40 dark:border-white/10 rounded-xl text-text-primary text-sm font-mono outline-none"
+                          className="inp w-full px-3 py-2.5 rounded-xl text-text-primary text-sm font-mono outline-none"
                         />
                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-text-secondary pointer-events-none">나이스</span>
                       </div>
@@ -1557,7 +1573,7 @@
                         onChange={(e) => setEditHours(Number(e.target.value))}
                         className="w-full h-2 bg-white/30 dark:bg-black/40 rounded-lg appearance-none cursor-pointer accent-accent"
                       />
-                      <div className="flex items-center border border-white/40 dark:border-white/10 rounded-xl bg-white/20 dark:bg-black/20 px-3 py-1.5 shrink-0">
+                      <div className="inp flex items-center rounded-xl px-3 py-1.5 shrink-0">
                         <input
                           type="number"
                           value={editHours}
@@ -1577,7 +1593,7 @@
                       value={editReason}
                       onChange={(e) => setEditReason(e.target.value)}
                       placeholder="예시) 활동 불성실로 인한 시간 단축 등"
-                      className="inp w-full px-4 py-3 bg-white/40 dark:bg-black/35 border border-white/40 dark:border-white/10 rounded-xl text-text-primary text-sm placeholder:text-text-secondary/50 leading-relaxed outline-none"
+                      className="inp w-full px-4 py-3 rounded-xl text-text-primary text-sm placeholder:text-text-secondary/50 leading-relaxed outline-none"
                     ></textarea>
                     {feedbackMsg && (
                       <p className="text-xs text-red-600 mt-2">{feedbackMsg}</p>
