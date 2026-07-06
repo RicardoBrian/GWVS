@@ -291,7 +291,7 @@
       const [selectedLogs, setSelectedLogs] = useState({});
 
       const [newStudent, setNewStudent] = useState({
-        grade: "", class: "", number: "", neisName: "", name: "", helperName: "급식 도우미", hours: 5
+        grade: "", class: "", number: "", neisName: "", name: "", helperName: "급식 도우미", hours: 5, activityContent: ""
       });
 
       const [isModalOpen, setIsModalOpen] = useState(false);
@@ -303,6 +303,7 @@
       const [editNumber, setEditNumber] = useState("");
       const [editName, setEditName] = useState("");
       const [editNeisName, setEditNeisName] = useState("");
+      const [editActivityContent, setEditActivityContent] = useState("");
       const [feedbackMsg, setFeedbackMsg] = useState("");
 
       const [alertToast, setAlertToast] = useState(null);
@@ -628,6 +629,7 @@
                   neisName: getVal(["나이스성명", "영문성명", "neis"]),
                   name: getVal(["한글이름", "이름", "name"]),
                   helperName: getVal(["도우미명", "도우미역할", "도우미", "role"]) || "일반 도우미",
+                  activityContent: getVal(["활동내용", "활동", "activity"]) || "",
                   hours: parsedHours,
                   originalHours: parsedHours,
                   reason: getVal(["봉사시간변경사유", "변경사유", "사유", "reason"]) || ""
@@ -653,15 +655,16 @@
           return;
         }
 
-        const csvHeaders = ["학년", "반", "번호", "나이스 성명", "한글 이름", "도우미명", "봉사시간", "봉사시간 변경 사유"];
+        const csvHeaders = ["학년", "반", "번호", "나이스 성명", "한글 이름", "인정시간", "도우미명", "활동내용", "봉사시간 변경 사유"];
         const rows = students.map(s => [
           s.grade,
           s.class,
           s.number,
           s.neisName,
           s.name,
-          s.helperName,
           s.hours,
+          s.helperName,
+          s.activityContent || "",
           s.reason || ""
         ]);
 
@@ -692,6 +695,7 @@
           neisName: newStudent.neisName || newStudent.name,
           name: newStudent.name,
           helperName: newStudent.helperName,
+          activityContent: newStudent.activityContent || "",
           hours: Number(newStudent.hours),
           originalHours: Number(newStudent.hours),
           reason: ""
@@ -700,7 +704,7 @@
         const updated = [...students, added];
         updateStudentsState(updated);
         setNewStudent({
-          grade: "", class: "", number: "", neisName: "", name: "", helperName: "급식 도우미", hours: 5
+          grade: "", class: "", number: "", neisName: "", name: "", helperName: "급식 도우미", hours: 5, activityContent: ""
         });
         triggerToast(`${added.name} 학생 도우미 명단에 추가 완료!`);
       };
@@ -768,6 +772,7 @@
         setEditNumber(String(student.number));
         setEditName(student.name);
         setEditNeisName(student.neisName || "");
+        setEditActivityContent(student.activityContent || "");
         setEditHours(student.hours);
         setEditReason(student.reason || "");
         setIsModalOpen(true);
@@ -788,6 +793,7 @@
           number: Number(editNumber) || editingStudent.number,
           name: editName.trim(),
           neisName: editNeisName.trim(),
+          activityContent: editActivityContent.trim(),
           hours: Number(editHours),
           reason: editReason
         };
@@ -1111,7 +1117,7 @@
                       <div className="flex gap-2.5">
                         <div className="flex-1">
                           <label className="block text-[11px] font-normal text-text-secondary mb-1">도우미 역할 지정</label>
-                          <select 
+                          <select
                             value={newStudent.helperName}
                             onChange={(e) => setNewStudent({...newStudent, helperName: e.target.value})}
                             className="inp w-full px-3 py-2 text-xs sm:text-sm rounded-lg text-text-primary font-normal"
@@ -1122,6 +1128,16 @@
                             <option value="분리수거장 도우미">분리수거장 도우미</option>
                             <option value="기자재 관리도우미">기자재 관리도우미</option>
                           </select>
+                        </div>
+                        <div className="flex-[2]">
+                          <label className="block text-[11px] font-normal text-text-secondary mb-1">활동 내용</label>
+                          <input
+                            type="text"
+                            placeholder="예: 매일 점심 급식 배식 보조"
+                            value={newStudent.activityContent}
+                            onChange={(e) => setNewStudent({...newStudent, activityContent: e.target.value})}
+                            className="inp w-full px-3 py-2 text-xs sm:text-sm rounded-lg text-text-primary font-normal"
+                          />
                         </div>
                         <button 
                           type="submit"
@@ -1561,6 +1577,18 @@
                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-text-secondary pointer-events-none">나이스</span>
                       </div>
                     </div>
+                  </div>
+
+                  {/* 활동 내용 */}
+                  <div>
+                    <label className="block text-xs text-text-secondary mb-2">활동 내용</label>
+                    <input
+                      type="text"
+                      value={editActivityContent}
+                      onChange={(e) => setEditActivityContent(e.target.value)}
+                      placeholder="예: 매일 점심 급식 배식 보조"
+                      className="inp w-full px-4 py-2.5 rounded-xl text-text-primary text-sm outline-none"
+                    />
                   </div>
 
                   {/* 인정시간 */}
