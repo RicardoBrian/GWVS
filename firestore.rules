@@ -1,0 +1,26 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 앱 데이터(학생 명단, 활동 로그): 익명 로그인을 포함해 인증된 사용자만 접근 가능.
+    // 익명 로그인 자체는 Cloudflare Pages Function의 비밀번호 검증을 통과한
+    // 클라이언트에서만 트리거되도록 프론트에서 순서를 맞춘다.
+    match /artifacts/{appId}/public/data/{collection}/{docId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // 관리자 목록: 문서 ID = 관리자 이메일. 본인 이메일 문서만 조회 가능,
+    // 클라이언트에서의 쓰기는 금지(등록/삭제는 Firebase 콘솔에서 수동 관리).
+    match /admins/{adminEmail} {
+      allow get: if request.auth != null
+                  && request.auth.token.email == adminEmail;
+      allow list, write: if false;
+    }
+
+    // 그 외 경로는 기본적으로 차단
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

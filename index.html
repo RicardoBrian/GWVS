@@ -278,7 +278,6 @@
       const [passwordError, setPasswordError] = useState("");
       
       const [isAdminGateOpen, setIsAdminGateOpen] = useState(false);
-      const [adminPasswordInput, setAdminPasswordInput] = useState("");
       const [adminPasswordError, setAdminPasswordError] = useState("");
 
       const [students, setStudents] = useState([]);
@@ -433,29 +432,56 @@
         setTimeout(() => setAlertToast(null), 3000);
       };
 
-      const handleLoginSubmit = (e) => {
+      const handleLoginSubmit = async (e) => {
         e.preventDefault();
-        if (password === "1985") {
-          setIsAuthenticated(true);
-          sessionStorage.setItem("portal_auth", "true");
-          triggerToast("접속되었습니다.", "success");
-        } else {
-          setPasswordError("비밀번호가 올바르지 않습니다. 다시 입력하세요.");
+        try {
+          const res = await fetch("/api/verify-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ password }),
+          });
+          const data = await res.json();
+          if (data.ok) {
+            setIsAuthenticated(true);
+            sessionStorage.setItem("portal_auth", "true");
+            triggerToast("접속되었습니다.", "success");
+          } else {
+            setPasswordError("비밀번호가 올바르지 않습니다. 다시 입력하세요.");
+            triggerToast("접속 실패", "danger");
+          }
+        } catch (err) {
+          console.error("비밀번호 검증 요청 실패:", err);
+          setPasswordError("서버에 연결할 수 없습니다. 잠시 후 다시 시도하세요.");
           triggerToast("접속 실패", "danger");
         }
       };
 
-      const handleAdminVerify = (e) => {
-        e.preventDefault();
-        if (adminPasswordInput === "9600") {
-          setIsAdmin(true);
-          setIsAdminGateOpen(false);
-          setAdminPasswordInput("");
-          setAdminPasswordError("");
-          sessionStorage.setItem("portal_admin_auth", "true");
-          triggerToast("관리자 모드가 활성화되었습니다.", "success");
-        } else {
-          setAdminPasswordError("관리자 승인 비밀번호가 일치하지 않습니다.");
+      const handleAdminVerify = async () => {
+        if (!isFirebaseActive || !auth || !db) {
+          setAdminPasswordError("Firebase가 설정되지 않아 관리자 로그인을 사용할 수 없습니다.");
+          return;
+        }
+        try {
+          const provider = new firebase.auth.GoogleAuthProvider();
+          const result = await auth.signInWithPopup(provider);
+          const email = result.user && result.user.email;
+          const adminDoc = email ? await db.collection("admins").doc(email).get() : null;
+
+          if (adminDoc && adminDoc.exists) {
+            setIsAdmin(true);
+            setIsAdminGateOpen(false);
+            setAdminPasswordError("");
+            sessionStorage.setItem("portal_admin_auth", "true");
+            triggerToast("관리자 모드가 활성화되었습니다.", "success");
+          } else {
+            setAdminPasswordError("관리자 권한이 없는 구글 계정입니다.");
+            triggerToast("관리자 인증 실패", "danger");
+            // 관리자 목록에 없으면 다시 익명 로그인으로 되돌려 일반 데이터 동기화를 유지한다.
+            await auth.signInAnonymously();
+          }
+        } catch (err) {
+          console.error("관리자 구글 로그인 실패:", err);
+          setAdminPasswordError("구글 로그인에 실패했습니다. 다시 시도해 주세요.");
           triggerToast("관리자 인증 실패", "danger");
         }
       };
@@ -564,9 +590,17 @@
         triggerToast("안전하게 접속 종료되었습니다.");
       };
 
-      const handleExitAdminMode = () => {
+      const handleExitAdminMode = async () => {
         setIsAdmin(false);
         sessionStorage.removeItem("portal_admin_auth");
+        if (isFirebaseActive && auth) {
+          try {
+            await auth.signOut();
+            await auth.signInAnonymously();
+          } catch (err) {
+            console.error("일반 모드 전환 중 재로그인 실패:", err);
+          }
+        }
         triggerToast("일반 사용자 권한으로 전환되었습니다.");
       };
 
@@ -1501,19 +1535,10 @@
                 
                 <div className="text-center mb-6">
                   <h3 className="text-lg font-bold text-text-primary">관리자 인증</h3>
-                  <p className="text-xs text-text-secondary font-normal mt-1">관리자 암호를 입력하세요.</p>
+                  <p className="text-xs text-text-secondary font-normal mt-1">관리자로 등록된 구글 계정으로 로그인하세요.</p>
                 </div>
 
-                <form onSubmit={handleAdminVerify} className="space-y-4">
-                  <input
-                    type="password"
-                    value={adminPasswordInput}
-                    onChange={(e) => setAdminPasswordInput(e.target.value)}
-                    placeholder="암호 입력"
-                    className="inp w-full px-4 py-3 bg-white/20 dark:bg-black/35 text-center text-lg font-mono tracking-widest text-text-primary rounded-2xl border border-white/20"
-                    required
-                    autoFocus
-                  />
+                <div className="space-y-4">
                   {adminPasswordError && (
                     <p className="text-xs text-red-600 text-center">{adminPasswordError}</p>
                   )}
@@ -1521,20 +1546,21 @@
                   <div className="flex gap-2.5 pt-2">
                     <button
                       type="button"
-                      onClick={() => { setIsAdminGateOpen(false); setAdminPasswordInput(""); setAdminPasswordError(""); }}
+                      onClick={() => { setIsAdminGateOpen(false); setAdminPasswordError(""); }}
                       className="flex-1 py-2.5 bg-white/20 hover:bg-white/30 text-text-primary text-xs sm:text-sm font-semibold rounded-full transition-all border border-white/10"
                     >
                       취소
                     </button>
                     <button
-                      type="submit"
+                      type="button"
+                      onClick={handleAdminVerify}
                       className="flex-1 py-2.5 text-white text-xs sm:text-sm font-semibold rounded-full transition-all hover:brightness-110"
                       style={{background:'var(--accent-grad)'}}
                     >
-                      확인
+                      Google로 로그인
                     </button>
                   </div>
-                </form>
+                </div>
               </div>
             </div>
           )}
