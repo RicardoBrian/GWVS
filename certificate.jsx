@@ -263,7 +263,7 @@
     return pages;
   }
 
-  function buildPages(group, setting, confirmDate) {
+  function buildPages(group, setting, confirmDate, period = {}) {
     const rows = group.students.map((s) => ({
       grade: s.grade,
       class: s.class,
@@ -277,8 +277,8 @@
       grade: first.grade || "",
       klass: first.class || "",
       personName: `${rows[0] ? rows[0].name : ""}${others > 0 ? ` 외 ${others}명` : ""}`,
-      start: group.periodStart,
-      end: group.periodEnd,
+      start: period.start ? parseYMD(period.start) : group.periodStart,
+      end: period.end ? parseYMD(period.end) : group.periodEnd,
       area: setting.area || AREAS[0],
       inCurriculum: !!setting.inCurriculum,
       content: setting.content != null ? setting.content : group.defaultContent,
@@ -501,9 +501,32 @@
   }
 
   function CertificateModal({ students, db, settingsDocPath, onClose, onToast }) {
-    const groups = useMemo(() => buildCertGroups(students), [students]);
+    const gradeOf = (s) => String(s.grade ?? "").trim() || "미지정";
+    const allGrades = useMemo(
+      () => [...new Set(students.map(gradeOf))].sort((a, b) => toNum(a) - toNum(b)),
+      [students]
+    );
+    const [grades, setGrades] = useState(() => new Set(allGrades));
+    const groups = useMemo(
+      () => buildCertGroups(students.filter((s) => grades.has(gradeOf(s)))),
+      [students, grades]
+    );
     const [settings, setSettings] = useState({});
-    const [selected, setSelected] = useState(() => new Set(groups.map((g) => g.helperName)));
+    const [excluded, setExcluded] = useState(() => new Set());
+    const selected = useMemo(
+      () => new Set(groups.map((g) => g.helperName).filter((n) => !excluded.has(n))),
+      [groups, excluded]
+    );
+    // 활동 기간은 출력할 때마다 바뀌는 값이라 저장하지 않고 이 창에서만 쓴다.
+    const [periods, setPeriods] = useState({});
+    const setPeriod = (helperName, patch) =>
+      setPeriods((prev) => ({ ...prev, [helperName]: { ...(prev[helperName] || {}), ...patch } }));
+    const toggleGrade = (g) =>
+      setGrades((prev) => {
+        const next = new Set(prev);
+        next.has(g) ? next.delete(g) : next.add(g);
+        return next;
+      });
     const [confirmDate, setConfirmDate] = useState(() => {
       const d = new Date();
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -534,7 +557,7 @@
       setSettings((prev) => ({ ...prev, [helperName]: { ...(prev[helperName] || {}), ...patch } }));
 
     const toggle = (helperName) =>
-      setSelected((prev) => {
+      setExcluded((prev) => {
         const next = new Set(prev);
         next.has(helperName) ? next.delete(helperName) : next.add(helperName);
         return next;
@@ -544,8 +567,8 @@
       () =>
         groups
           .filter((g) => selected.has(g.helperName))
-          .flatMap((g) => buildPages(g, settings[g.helperName] || {}, confirmDate)),
-      [groups, selected, settings, confirmDate]
+          .flatMap((g) => buildPages(g, settings[g.helperName] || {}, confirmDate, periods[g.helperName])),
+      [groups, selected, settings, confirmDate, periods]
     );
 
     const saveSettings = async () => {
@@ -608,12 +631,31 @@
                   <label className="block text-[11px] text-text-secondary mb-1">확인 날짜 (모든 확인서 공통)</label>
                   <input type="date" value={confirmDate} onChange={(e) => setConfirmDate(e.target.value)} className="inp px-3 py-2 text-sm rounded-lg text-text-primary" />
                 </div>
+                <div>
+                  <span className="block text-[11px] text-text-secondary mb-1">학년</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {allGrades.map((g) => (
+                      <button
+                        key={g}
+                        onClick={() => toggleGrade(g)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                          grades.has(g) ? "text-white border-transparent" : "bg-white/15 text-text-secondary border-white/20"
+                        }`}
+                        style={grades.has(g) ? { background: "var(--accent-grad)" } : undefined}
+                      >
+                        {g === "미지정" ? g : `${g}학년`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="text-xs text-text-secondary pb-2">
                   선택 {selected.size}개 역할 · {pages.length}쪽{warnCount > 0 && <span className="text-amber-600 dark:text-amber-400"> · 확인할 경고 {warnCount}건</span>}
                 </div>
               </div>
 
-              {groups.length === 0 && <p className="text-sm text-text-secondary">등록된 도우미가 없습니다.</p>}
+              {groups.length === 0 && (
+                <p className="text-sm text-text-secondary">{grades.size === 0 ? "학년을 선택하세요." : "선택한 학년에 등록된 도우미가 없습니다."}</p>
+              )}
 
               {groups.map((g) => {
                 const st = settings[g.helperName] || {};
@@ -695,8 +737,36 @@
                         </select>
                       </div>
                     </div>
-                    <div className="text-[11px] text-text-secondary">
-                      기간: {fmtStart(g.periodStart)} ~ {fmtEnd(g.periodEnd)} (학생들의 가장 이른 시작일 ~ 가장 늦은 종료일)
+                    <div className="flex flex-wrap items-end gap-2">
+                      <div>
+                        <label className="block text-[11px] text-text-secondary mb-1">활동 시작일</label>
+                        <input
+                          type="date"
+                          value={(periods[g.helperName] || {}).start || (g.periodStart ? g.periodStart.key : "")}
+                          onChange={(e) => setPeriod(g.helperName, { start: e.target.value })}
+                          className="inp px-3 py-2 text-sm rounded-lg text-text-primary"
+                        />
+                      </div>
+                      <span className="pb-2 text-text-secondary">~</span>
+                      <div>
+                        <label className="block text-[11px] text-text-secondary mb-1">활동 종료일</label>
+                        <input
+                          type="date"
+                          value={(periods[g.helperName] || {}).end || (g.periodEnd ? g.periodEnd.key : "")}
+                          onChange={(e) => setPeriod(g.helperName, { end: e.target.value })}
+                          className="inp px-3 py-2 text-sm rounded-lg text-text-primary"
+                        />
+                      </div>
+                      {periods[g.helperName] && (periods[g.helperName].start || periods[g.helperName].end) ? (
+                        <button
+                          onClick={() => setPeriods((prev) => ({ ...prev, [g.helperName]: {} }))}
+                          className="mb-1 px-2.5 py-1 rounded-full text-[11px] bg-white/15 text-text-secondary border border-white/20"
+                        >
+                          학생 데이터 기준으로 되돌리기
+                        </button>
+                      ) : (
+                        <span className="pb-2 text-[11px] text-text-secondary">학생들의 가장 이른 시작일 ~ 가장 늦은 종료일</span>
+                      )}
                     </div>
                   </div>
                 );
