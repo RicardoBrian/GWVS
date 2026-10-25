@@ -9,10 +9,7 @@
   <link rel="icon" href="logo.png" type="image/png">
   <link rel="shortcut icon" href="logo.png" type="image/png">
   
-  <!-- IBM Plex Sans KR 구글 폰트 적용 (300, 400 가중치 확보하여 깨짐 제거 및 가독성 완성) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   
   <!-- CDNs: React, Tailwind, PapaParse, Firebase -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -27,211 +24,162 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <link rel="stylesheet" href="certificate.css">
 
-  <!-- Tailwind 커스텀 토큰 설정 -->
   <script>
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
           fontFamily: {
-            sans: ['"IBM Plex Sans KR"', 'sans-serif'],
+            sans: ['"Pretendard Variable"', 'Pretendard', '"Malgun Gothic"', 'sans-serif'],
           },
           colors: {
-            accent: {
-              DEFAULT: 'var(--accent)',
-              hover: 'var(--accent-hover)',
-              light: 'var(--accent-light)',
-            },
-            glass: {
-              bg: 'var(--glass-bg)',
-              border: 'var(--glass-border)',
-              edge: 'var(--glass-edge)',
-            },
-            text: {
-              primary: 'var(--text-primary)',
-              secondary: 'var(--text-secondary)',
-            }
+            accent: { DEFAULT: 'var(--accent)', hover: 'var(--accent-hover)', light: 'var(--accent-soft)' },
+            text: { primary: 'var(--ink)', secondary: 'var(--muted)' },
+            surface: 'var(--surface)',
+            line: 'var(--line)',
           }
         }
       }
     }
   </script>
 
-  <!-- Liquid Glass 프리미엄 테마 스타일링 및 폰트 개선 -->
   <style>
     :root {
-      --font-sans: 'IBM Plex Sans KR', sans-serif;
-
-      /* Light Mode — Liquid Glass vibrancy */
-      --bg-gradient:
-        radial-gradient(at 18% 18%, #dce4ff 0%, transparent 52%),
-        radial-gradient(at 82% 12%, #ffd6ec 0%, transparent 46%),
-        radial-gradient(at 65% 88%, #d4f0ff 0%, transparent 52%),
-        radial-gradient(at 8%  92%, #e5d8ff 0%, transparent 44%),
-        #eceef6;
-      --glass-bg: rgba(255, 255, 255, 0.78);
-      --glass-border: rgba(255, 255, 255, 0.7);
-      --glass-edge: rgba(255, 255, 255, 0.98);
-      --glass-shadow: 0 10px 32px rgba(30, 50, 120, 0.13);
-      --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 0 0 0.5px rgba(255, 255, 255, 0.5);
-      --text-primary: #111318;
-      --text-secondary: #4a505c;
-      --accent: #0071e3;
-      --accent-hover: #0a84ff;
-      --accent-light: rgba(0, 113, 227, 0.12);
-      --accent-grad: linear-gradient(180deg, #3a9bff 0%, #0071e3 100%);
-      --danger: #ff3b30;
-      --danger-light: rgba(255, 59, 48, 0.12);
-      --success: #34c759;
-      --success-light: rgba(52, 199, 89, 0.16);
-      --blur: 22px;
+      --bg: #f4f5f7;
+      --surface: #ffffff;
+      --surface-2: #f8f9fa;
+      --line: #e2e4e8;
+      --line-strong: #cfd3d9;
+      --ink: #1c1e22;
+      --muted: #6a707a;
+      --accent: #8b2e3c;
+      --accent-hover: #74242f;
+      --accent-soft: #f6eaec;
+      --warn: #b45309;
+      --warn-soft: #fdf3e3;
+      --danger: #c0392b;
+      --danger-soft: #fbeceb;
+      --ok: #1f7a4d;
+      color-scheme: light;
     }
-
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg-gradient:
-          radial-gradient(at 18% 18%, #1b2444 0%, transparent 55%),
-          radial-gradient(at 82% 12%, #2c1a44 0%, transparent 48%),
-          radial-gradient(at 65% 90%, #0e2438 0%, transparent 52%),
-          radial-gradient(at 8%  92%, #1a1530 0%, transparent 46%),
-          #07080d;
-        --glass-bg: rgba(36, 38, 52, 0.72);
-        --glass-border: rgba(255, 255, 255, 0.16);
-        --glass-edge: rgba(255, 255, 255, 0.18);
-        --glass-shadow: 0 10px 32px rgba(0, 0, 0, 0.55);
-        --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
-        --text-primary: #f0f2f8;
-        --text-secondary: #9ba3b5;
-        --accent: #0a84ff;
-        --accent-hover: #409cff;
-        --accent-light: rgba(10, 132, 255, 0.18);
-        --accent-grad: linear-gradient(180deg, #2b95ff 0%, #0a84ff 100%);
-        --danger: #ff453a;
-        --danger-light: rgba(255, 69, 58, 0.18);
-        --success: #30d158;
-        --success-light: rgba(48, 209, 88, 0.2);
-      }
-    }
-
-    body {
-      background: var(--bg-gradient);
-      min-height: 100vh;
-      font-family: var(--font-sans);
-      color: var(--text-primary);
-      overflow-x: hidden;
-      font-size: 17px; /* 전반적인 폰트 크기 상향 */
-      line-height: 1.6;
-    }
-
-    .glass-card {
-      background: var(--glass-bg);
-      backdrop-filter: saturate(180%) blur(var(--blur));
-      -webkit-backdrop-filter: saturate(180%) blur(var(--blur));
-      border: 1px solid var(--glass-border);
-      box-shadow: var(--glass-highlight), var(--glass-shadow);
-    }
-
-    /* .dark 클래스 기반 다크모드 (토글 지원) */
     html.dark {
-      --bg-gradient:
-        radial-gradient(at 18% 18%, #1b2444 0%, transparent 55%),
-        radial-gradient(at 82% 12%, #2c1a44 0%, transparent 48%),
-        radial-gradient(at 65% 90%, #0e2438 0%, transparent 52%),
-        radial-gradient(at 8%  92%, #1a1530 0%, transparent 46%),
-        #07080d;
-      --glass-bg: rgba(36, 38, 52, 0.72);
-      --glass-border: rgba(255, 255, 255, 0.16);
-      --glass-edge: rgba(255, 255, 255, 0.18);
-      --glass-shadow: 0 10px 32px rgba(0, 0, 0, 0.55);
-      --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
-      --text-primary: #f0f2f8;
-      --text-secondary: #9ba3b5;
-      --accent: #0a84ff;
-      --accent-hover: #409cff;
-      --accent-light: rgba(10, 132, 255, 0.18);
-      --accent-grad: linear-gradient(180deg, #2b95ff 0%, #0a84ff 100%);
-      --danger: #ff453a;
-      --danger-light: rgba(255, 69, 58, 0.18);
-      --success: #30d158;
-      --success-light: rgba(48, 209, 88, 0.2);
+      --bg: #121316;
+      --surface: #1b1d21;
+      --surface-2: #22252a;
+      --line: #2e3137;
+      --line-strong: #3b3f46;
+      --ink: #e7e8eb;
+      --muted: #9aa0a9;
+      --accent: #d9788a;
+      --accent-hover: #e590a0;
+      --accent-soft: #3a2228;
+      --warn: #f0b25a;
+      --warn-soft: #33281a;
+      --danger: #ef7b6e;
+      --danger-soft: #3a2220;
+      --ok: #5cc28e;
+      color-scheme: dark;
     }
+
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Pretendard Variable", Pretendard, "Malgun Gothic", sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+      letter-spacing: -0.01em;
+    }
+
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+    .muted { color: var(--muted); }
+    .num { font-variant-numeric: tabular-nums; }
 
     .inp {
-      background: rgba(255, 255, 255, 0.55);
-      border: 1px solid rgba(0, 0, 0, 0.12);
-      color: var(--text-primary);
-      transition: border-color .18s, box-shadow .18s;
+      background: var(--surface);
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      color: var(--ink);
+      height: 38px;
+      padding: 0 10px;
+      font-size: 14px;
+      width: 100%;
+      transition: border-color .15s, box-shadow .15s;
     }
-    html.dark .inp {
-      background: rgba(0, 0, 0, 0.35);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-    }
-    @media (prefers-color-scheme: dark) {
-      .inp {
-        background: rgba(0, 0, 0, 0.35);
-        border: 1px solid rgba(255, 255, 255, 0.14);
-      }
-    }
-    .inp:focus {
-      outline: none;
-      box-shadow: 0 0 0 3px var(--accent-light);
-      border-color: var(--accent);
-    }
-
-    /* Glass select */
-    .glass-select {
-      background: var(--glass-bg);
-      backdrop-filter: saturate(180%) blur(var(--blur));
-      -webkit-backdrop-filter: saturate(180%) blur(var(--blur));
-      border: 1px solid var(--glass-border);
-      color: var(--text-primary);
+    textarea.inp { height: auto; padding: 8px 10px; line-height: 1.5; }
+    select.inp {
       appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238a8f99' d='M6 8L1.5 3.5l1-1L6 6l3.5-3.5 1 1z'/%3E%3C/svg%3E");
+      padding-right: 30px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%238a9099' d='M5 7L1 3h8z'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
-      background-position: right 14px center;
-      padding-right: 36px;
+      background-position: right 10px center;
+    }
+    .inp::placeholder { color: var(--muted); opacity: .7; }
+    .inp:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+    .field-label { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 4px; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      height: 36px; padding: 0 14px; border-radius: 6px;
+      font-size: 14px; font-weight: 500; white-space: nowrap;
+      border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink);
+      transition: background-color .15s, border-color .15s, color .15s;
       cursor: pointer;
     }
-    .glass-select:focus {
-      outline: none;
-      box-shadow: 0 0 0 3px var(--accent-light);
-      border-color: var(--accent);
+    .btn:hover { background: var(--surface-2); }
+    .btn:disabled { opacity: .5; cursor: default; }
+    .btn-sm { height: 30px; padding: 0 10px; font-size: 13px; }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    html.dark .btn-primary { color: #1b1d21; }
+    .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+    .btn-ghost { border-color: transparent; background: transparent; }
+    .btn-ghost:hover { background: var(--surface-2); }
+    .btn-danger { color: var(--danger); }
+    .btn-danger:hover { background: var(--danger-soft); border-color: var(--danger); }
+
+    .badge {
+      display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 4px;
+      font-size: 12px; font-weight: 500; white-space: nowrap;
+      background: var(--surface-2); color: var(--muted); border: 1px solid var(--line);
+    }
+    .badge-accent { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+    .badge-warn { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+
+    .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .data-table th {
+      position: sticky; top: 0; z-index: 1;
+      background: var(--surface-2); color: var(--muted);
+      font-size: 12px; font-weight: 600; text-align: left;
+      padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap;
+    }
+    .data-table td { padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    .data-table tbody tr:hover td { background: var(--surface-2); }
+    .data-table tbody tr:last-child td { border-bottom: 0; }
+
+    .modal-backdrop {
+      position: fixed; inset: 0; z-index: 50; background: rgba(15, 17, 20, .45);
+      display: flex; align-items: center; justify-content: center; padding: 16px;
+    }
+    .modal {
+      background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, .18);
+      width: 100%; max-height: calc(100vh - 32px); display: flex; flex-direction: column;
+    }
+    .modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+    .modal-body { padding: 16px 20px; overflow-y: auto; }
+    .modal-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--line); }
+    @media (max-width: 639px) {
+      .modal-backdrop { align-items: flex-end; padding: 0; }
+      .modal { border-radius: 12px 12px 0 0; max-height: 92vh; }
     }
 
-    /* Dark toggle pill */
-    .dark-toggle {
-      width: 44px; height: 26px; border-radius: 999px;
-      background: var(--glass-bg); border: 1px solid var(--glass-border);
-      cursor: pointer; position: relative;
-      transition: background .26s; box-shadow: var(--glass-highlight);
-      flex-shrink: 0;
-    }
-    html.dark .dark-toggle { background: var(--accent); border-color: transparent; }
-    .dark-toggle::after {
-      content: ''; position: absolute; top: 2px; left: 2px;
-      width: 20px; height: 20px; border-radius: 50%;
-      background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3);
-      transition: transform .26s;
-    }
-    html.dark .dark-toggle::after { transform: translateX(18px); }
-
-    ::-webkit-scrollbar {
-      width: 10px;
-      height: 10px;
-    }
-    ::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: rgba(134, 134, 139, 0.3);
-      border-radius: 999px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: rgba(134, 134, 139, 0.5);
-    }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 999px; border: 2px solid var(--bg); }
   </style>
 </head>
-<body class="antialiased font-light">
+<body class="antialiased">
 
   <div id="root"></div>
   <div id="cert-print-root"></div>
@@ -313,14 +261,20 @@
       const [feedbackMsg, setFeedbackMsg] = useState("");
 
       const [alertToast, setAlertToast] = useState(null);
-      const [liveTime, setLiveTime] = useState("");
       const [firebaseError, setFirebaseError] = useState("");
-      const [isDark, setIsDark] = useState(() =>
-        window.matchMedia('(prefers-color-scheme: dark)').matches
-      );
+      const [isAddOpen, setIsAddOpen] = useState(false);
+      const [isLogsOpen, setIsLogsOpen] = useState(false);
+      const [isDark, setIsDark] = useState(() => {
+        try {
+          const saved = localStorage.getItem("portal_theme");
+          if (saved) return saved === "dark";
+        } catch (e) {}
+        return window.matchMedia('(prefers-color-scheme: dark)').matches;
+      });
 
       useEffect(() => {
         document.documentElement.classList.toggle('dark', isDark);
+        try { localStorage.setItem("portal_theme", isDark ? "dark" : "light"); } catch (e) {}
       }, [isDark]);
 
       // 실시간 클라우드 연동 리스너 (경로 보정 및 초기화 레이스 컨디션 차단)
@@ -419,14 +373,7 @@
           }
         }
 
-        const updateClock = () => {
-          const now = new Date();
-          setLiveTime(now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-        };
-        updateClock();
-        const interval = setInterval(updateClock, 1000);
         return () => {
-          clearInterval(interval);
           if (unsubscribeStudents) unsubscribeStudents();
           if (unsubscribeLogs) unsubscribeLogs();
         };
@@ -449,15 +396,12 @@
           if (data.ok) {
             setIsAuthenticated(true);
             sessionStorage.setItem("portal_auth", "true");
-            triggerToast("접속되었습니다.", "success");
           } else {
-            setPasswordError("비밀번호가 올바르지 않습니다. 다시 입력하세요.");
-            triggerToast("접속 실패", "danger");
+            setPasswordError("비밀번호가 맞지 않습니다.");
           }
         } catch (err) {
           console.error("비밀번호 검증 요청 실패:", err);
           setPasswordError("서버에 연결할 수 없습니다. 잠시 후 다시 시도하세요.");
-          triggerToast("접속 실패", "danger");
         }
       };
 
@@ -477,17 +421,15 @@
             setIsAdminGateOpen(false);
             setAdminPasswordError("");
             sessionStorage.setItem("portal_admin_auth", "true");
-            triggerToast("관리자 모드가 활성화되었습니다.", "success");
+            triggerToast("관리자로 로그인했습니다.");
           } else {
-            setAdminPasswordError("관리자 권한이 없는 구글 계정입니다.");
-            triggerToast("관리자 인증 실패", "danger");
+            setAdminPasswordError("관리자로 등록되지 않은 계정입니다.");
             // 관리자 목록에 없으면 다시 익명 로그인으로 되돌려 일반 데이터 동기화를 유지한다.
             await auth.signInAnonymously();
           }
         } catch (err) {
           console.error("관리자 구글 로그인 실패:", err);
-          setAdminPasswordError("구글 로그인에 실패했습니다. 다시 시도해 주세요.");
-          triggerToast("관리자 인증 실패", "danger");
+          setAdminPasswordError("Google 로그인에 실패했습니다. 다시 시도해 주세요.");
         }
       };
 
@@ -515,7 +457,7 @@
             await batch.commit();
           } catch (err) {
             console.error("Firestore 동기화 연동 에러:", err);
-            triggerToast("원격 동기화 중 오류가 발생했습니다.", "danger");
+            triggerToast("저장 중 오류가 발생했습니다.", "danger");
           }
         } else {
           localStorage.setItem("helper_students_data_v4", JSON.stringify(newStudents));
@@ -545,11 +487,11 @@
       const handleClearSelectedLogs = async () => {
         const checkedIds = Object.keys(selectedLogs).filter(id => selectedLogs[id]);
         if (checkedIds.length === 0) {
-          triggerToast("선택된 이력 로그 항목이 없습니다.", "danger");
+          triggerToast("삭제할 이력을 선택하세요.", "danger");
           return;
         }
 
-        if (window.confirm(`선택한 ${checkedIds.length}건의 시간 수정 이력을 확인 완료하고 완전히 삭제하시겠습니까?`)) {
+        if (window.confirm(`선택한 이력 ${checkedIds.length}건을 삭제할까요?`)) {
           const remainingLogs = editLogs.filter(log => !selectedLogs[log.id]);
           setEditLogs(remainingLogs);
           setSelectedLogs({});
@@ -564,7 +506,7 @@
           } else {
             localStorage.setItem("helper_students_logs_v4", JSON.stringify(remainingLogs));
           }
-          triggerToast("선택된 변경 이력이 정상적으로 삭제 처리되었습니다.");
+          triggerToast("이력을 삭제했습니다.");
         }
       };
 
@@ -592,7 +534,7 @@
         sessionStorage.removeItem("portal_admin_auth");
         setPassword("");
         setPasswordError("");
-        triggerToast("안전하게 접속 종료되었습니다.");
+        triggerToast("로그아웃했습니다.");
       };
 
       const handleExitAdminMode = async () => {
@@ -606,11 +548,11 @@
             console.error("일반 모드 전환 중 재로그인 실패:", err);
           }
         }
-        triggerToast("일반 사용자 권한으로 전환되었습니다.");
+        triggerToast("관리자 모드를 종료했습니다.");
       };
 
       const handleResetData = async () => {
-        if (window.confirm("주의! 수정된 모든 내용을 지우고 원래 배정 명단으로 전체 초기화하시겠습니까?")) {
+        if (window.confirm("명단과 변경 이력을 모두 지우고 처음 상태로 되돌립니다. 되돌릴 수 없습니다. 계속할까요?")) {
           setSelectedLogs({});
           if (isFirebaseActive && db && !firebaseError) {
             const studentSnaps = await db.collection(studentsColPath).get();
@@ -632,12 +574,13 @@
             setEditLogs([]);
             localStorage.removeItem("helper_students_logs_v4");
           }
-          triggerToast("초기 명단으로 복원되었습니다.", "success");
+          triggerToast("초기화했습니다.");
         }
       };
 
       const handleCsvImport = (e) => {
         const file = e.target.files[0];
+        e.target.value = "";
         if (!file) return;
 
         Papa.parse(file, {
@@ -646,7 +589,7 @@
           complete: (results) => {
             const data = results.data;
             if (data.length === 0) {
-              triggerToast("데이터가 없는 CSV 파일입니다.", "danger");
+              triggerToast("CSV 파일에 데이터가 없습니다.", "danger");
               return;
             }
 
@@ -680,14 +623,14 @@
               });
 
               updateStudentsState(formatted);
-              triggerToast(`성공적으로 ${formatted.length}명의 도우미 정보를 업로드 연동했습니다.`, "success");
+              triggerToast(`${formatted.length}명을 불러왔습니다.`);
             } catch (err) {
               console.error(err);
               triggerToast("CSV 형식이 올바르지 않습니다.", "danger");
             }
           },
           error: (err) => {
-            triggerToast("파일 데이터 로드 실패", "danger");
+            triggerToast("파일을 읽지 못했습니다.", "danger");
           }
         });
       };
@@ -722,13 +665,13 @@
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        triggerToast("CSV 파일 다운로드 시작.");
+        triggerToast("CSV 파일을 내려받았습니다.");
       };
 
       const handleAddStudent = (e) => {
         e.preventDefault();
         if (!newStudent.grade || !newStudent.class || !newStudent.number || !newStudent.name) {
-          triggerToast("학생의 학적 기본 사항(학년/반/번호/이름)을 빠짐없이 등록하세요.", "danger");
+          triggerToast("학년, 반, 번호, 이름을 모두 입력하세요.", "danger");
           return;
         }
 
@@ -751,23 +694,24 @@
         const updated = [...students, added];
         updateStudentsState(updated);
         setNewStudent({
-          grade: "", class: "", number: "", neisName: "", name: "", helperName: "급식 도우미", hours: 5, activityContent: "", activityStartDate: "", activityEndDate: ""
+          grade: "", class: "", number: "", neisName: "", name: "", helperName: added.helperName, hours: 5, activityContent: added.activityContent, activityStartDate: added.activityStartDate, activityEndDate: added.activityEndDate
         });
-        triggerToast(`${added.name} 학생 도우미 명단에 추가 완료!`);
+        setIsAddOpen(false);
+        triggerToast(`${added.name} 학생을 추가했습니다.`);
       };
 
       const handleDeleteStudent = (id, name) => {
-        if (window.confirm(`${name} 도우미를 관리 대상에서 영구적으로 제외 처리하겠습니까?`)) {
+        if (window.confirm(`${name} 학생을 명단에서 제외할까요?`)) {
           if (isFirebaseActive && db && !firebaseError) {
             db.collection(studentsColPath).doc(id).delete().then(() => {
-              triggerToast(`${name} 학생이 명단에서 영구 제외되었습니다.`, "danger");
+              triggerToast(`${name} 학생을 명단에서 제외했습니다.`);
             }).catch(err => {
               console.error("삭제 실패:", err);
             });
           } else {
             const updated = students.filter(s => s.id !== id);
             updateStudentsState(updated);
-            triggerToast(`${name} 학생이 명단에서 영구 제외되었습니다.`, "danger");
+            triggerToast(`${name} 학생을 명단에서 제외했습니다.`);
           }
         }
       };
@@ -829,9 +773,9 @@
 
       const handleSaveEdit = () => {
         if (!editingStudent) return;
-        if (!editName.trim()) { setFeedbackMsg("이름을 입력해야 합니다."); return; }
+        if (!editName.trim()) { setFeedbackMsg("이름을 입력하세요."); return; }
         if (editHours !== editingStudent.hours && !editReason.trim()) {
-          setFeedbackMsg("시간을 변경할 경우 특이사항을 입력해야 합니다.");
+          setFeedbackMsg("인정 시간을 바꾸면 특이사항을 적어야 합니다.");
           return;
         }
 
@@ -853,7 +797,7 @@
           setIsModalOpen(false);
           setEditingStudent(null);
           setFeedbackMsg("");
-          triggerToast(`${patch.name} 학생의 정보가 저장되었습니다.`);
+          triggerToast("저장했습니다.");
         };
 
         if (isFirebaseActive && db && !firebaseError) {
@@ -893,7 +837,7 @@
               autoReason || "퀵 조정 기능을 이용함", 
               operatorRole
             );
-            triggerToast("인정 시간을 신속하게 조정했습니다.");
+            triggerToast("인정 시간을 바꿨습니다.");
           });
         } else {
           const updated = students.map(s => {
@@ -910,633 +854,257 @@
             autoReason || "퀵 조정 기능을 이용함", 
             operatorRole
           );
-          triggerToast("인정 시간을 신속하게 조정했습니다.");
+          triggerToast("인정 시간을 바꿨습니다.");
         }
       };
 
+      const ROLE_PRESETS = ["급식 도우미", "학급 분리수거도우미", "특별실 분리수거 도우미", "분리수거장 도우미", "기자재 관리도우미"];
+      const roleOptions = [...new Set([...ROLE_PRESETS, ...students.map(s => s.helperName).filter(Boolean)])];
+      const shortDate = (d) => {
+        const m = String(d || "").match(/^\d{4}-(\d{2})-(\d{2})$/);
+        return m ? `${m[1]}.${m[2]}` : (d || "");
+      };
+      const period = (s) => (s.activityStartDate || s.activityEndDate)
+        ? `${shortDate(s.activityStartDate) || "?"} – ${shortDate(s.activityEndDate) || "?"}`
+        : "";
+      const hasFilter = searchQuery.trim() || selectedGradeClass !== "all" || selectedHelper !== "all";
+      const closeEdit = () => { setIsModalOpen(false); setEditingStudent(null); setFeedbackMsg(""); };
+
+      const Hours = ({ s }) => (s.hours !== s.originalHours ? (
+        <span className="num whitespace-nowrap">
+          <span className="font-semibold" style={{ color: 'var(--warn)' }}>{s.hours}시간</span>
+          <span className="muted text-xs line-through ml-1">{s.originalHours}</span>
+        </span>
+      ) : (
+        <span className="num whitespace-nowrap">{s.hours}시간</span>
+      ));
+
+      const ThemeIcon = () => isDark ? (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      ) : (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      );
+
       return (
-        <div className="min-h-screen pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pt-6 text-text-primary">
-          
-          {/* Toast 알림 레이어 */}
+        <div className="min-h-screen text-text-primary">
+
           {alertToast && (
-            <div className="fixed bottom-7 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-5 py-3 rounded-full shadow-2xl backdrop-blur-md text-white font-medium text-sm" style={{background:'rgba(28,28,30,0.82)'}}>
-              <span>{alertToast.msg}</span>
+            <div
+              className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-4 py-2.5 rounded-md text-sm text-white shadow-lg max-w-[90vw]"
+              style={{ background: alertToast.type === "danger" ? "var(--danger)" : "#2a2d33" }}
+            >
+              {alertToast.msg}
             </div>
           )}
 
-          {/* ----------------- [1. 관산중학교 전용 로그인 게이트 (1985)] ----------------- */}
           {!isAuthenticated ? (
-            <div className="flex flex-col items-center justify-center min-h-[85vh] py-12">
-              <div className="glass-card w-full max-w-md p-8 sm:p-10 rounded-3xl relative overflow-hidden border border-white/35">
-                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/50 to-transparent"></div>
-                
-                <div className="text-center mb-8">
-                  <div className="inline-flex items-center justify-center w-24 h-24 rounded-2xl bg-white/40 dark:bg-black/25 mb-4 border border-white/25 overflow-hidden">
-                    <img 
-                      src="logo.png" 
-                      alt="관산중학교" 
-                      onError={(e) => { 
-                        e.target.onerror = null;
-                        e.target.src = "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=150"; 
-                      }} 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <h1 className="text-xl sm:text-2xl font-light tracking-tight mb-2 text-text-primary leading-snug">
-                    관산중학교 <br/>봉사활동 도우미 관리페이지
-                  </h1>
+            /* ---------- 로그인 ---------- */
+            <div className="min-h-screen flex items-center justify-center px-4 py-10">
+              <div className="w-full max-w-[360px]">
+                <div className="flex flex-col items-center text-center mb-6">
+                  <img src="logo.png" alt="" className="w-14 h-14 object-contain mb-4" onError={(e) => { e.target.style.display = 'none'; }} />
+                  <p className="text-sm muted">관산중학교</p>
+                  <h1 className="text-xl font-bold mt-0.5">봉사활동 도우미 관리</h1>
                 </div>
-
-                <form onSubmit={handleLoginSubmit} className="space-y-6">
+                <form onSubmit={handleLoginSubmit} className="card p-5 space-y-4">
                   <div>
-                    <label className="block text-sm font-normal text-text-secondary mb-2">비밀번호</label>
-                    <input 
+                    <label className="field-label" htmlFor="pw">접속 비밀번호</label>
+                    <input
+                      id="pw"
                       type="password"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="비밀번호 입력"
-                      className="inp w-full px-4 py-3.5 rounded-xl text-text-primary placeholder:text-text-secondary/40 text-center text-lg font-mono tracking-widest font-normal"
+                      onChange={(e) => { setPassword(e.target.value); setPasswordError(""); }}
+                      className="inp"
+                      autoComplete="current-password"
                       required
                       autoFocus
                     />
-                    {passwordError && (
-                      <p className="mt-2 text-xs text-red-600">{passwordError}</p>
-                    )}
+                    {passwordError && <p className="mt-1.5 text-[13px]" style={{ color: 'var(--danger)' }}>{passwordError}</p>}
                   </div>
-
-                  <button
-                    type="submit"
-                    className="w-full py-4 px-6 rounded-full text-white font-semibold text-base transition-all shadow-lg shadow-accent/25 hover:brightness-110 flex items-center justify-center hover:-translate-y-0.5 active:translate-y-0 active:scale-[.97]"
-                    style={{background:'var(--accent-grad)'}}
-                  >
-                    접속
-                  </button>
+                  <button type="submit" className="btn btn-primary w-full" style={{ height: 40 }}>접속</button>
                 </form>
-
-                <div className="mt-8 text-center border-t border-white/10 pt-5">
-                  <span className="text-xs text-text-secondary font-normal">
-                    비밀번호는 담당자에게 문의하십시오.
-                  </span>
-                </div>
+                <p className="text-center text-[13px] muted mt-4">비밀번호는 담당 선생님께 문의하세요.</p>
               </div>
             </div>
           ) : (
-            
-            // ----------------- [2. 대시보드 메인 인터페이스] -----------------
-            <div className="space-y-6">
-              
-              {/* 상단 헤더 */}
-              <header className="glass-card p-5 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <img
-                    src="logo.png"
-                    alt="관산중 로고"
-                    onError={(e) => { e.target.onerror = null; e.target.src = "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=150"; }}
-                    className="w-10 h-10 object-cover rounded-xl"
-                  />
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className={`inline-block w-2 h-2 rounded-full ${firebaseError ? 'bg-amber-500' : 'bg-emerald-500'} animate-pulse`}></span>
-                      <span className="text-[11px] font-medium text-text-secondary uppercase tracking-widest">
-                        {isAdmin ? "관리자 모드" : firebaseError ? "오프라인" : "실시간 연결됨"}
-                      </span>
+            <>
+              {/* ---------- 상단 바 ---------- */}
+              <header className="sticky top-0 z-30 border-b" style={{ background: 'var(--surface)', borderColor: 'var(--line)' }}>
+                <div className="max-w-[1440px] mx-auto px-4 sm:px-6 h-14 flex items-center gap-3">
+                  <img src="logo.png" alt="" className="w-7 h-7 object-contain shrink-0" onError={(e) => { e.target.style.display = 'none'; }} />
+                  <div className="min-w-0 flex-1">
+                    <div className="font-bold text-[15px] truncate">
+                      <span className="hidden sm:inline">관산중학교 봉사활동 </span>도우미 관리
                     </div>
-                    <h1 className="text-base sm:text-lg font-medium tracking-tight">관산중학교 봉사활동 도우미 관리페이지</h1>
                   </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <div className="px-3 py-1.5 bg-white/20 dark:bg-black/20 border border-white/30 dark:border-white/10 rounded-full text-xs font-mono text-text-secondary flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent"></span>
-                    <span>{liveTime || "00:00:00"}</span>
-                  </div>
-
+                  {firebaseError && <span className="hidden sm:inline"><span className="badge badge-warn" title={firebaseError}>오프라인</span></span>}
+                  {isAdmin && <span className="hidden sm:inline"><span className="badge badge-accent">관리자</span></span>}
                   {!isAdmin ? (
-                    <button
-                      onClick={() => setIsAdminGateOpen(true)}
-                      className="px-3.5 py-2 bg-white/20 hover:bg-white/35 border border-white/30 dark:border-white/10 text-text-primary rounded-full text-xs font-medium flex items-center gap-1.5 transition-all"
-                    >
-                      관리자
-                    </button>
+                    <button onClick={() => setIsAdminGateOpen(true)} className="btn btn-sm btn-ghost">관리자</button>
                   ) : (
-                    <button
-                      onClick={handleExitAdminMode}
-                      className="px-3.5 py-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/35 text-amber-700 dark:text-amber-400 rounded-full text-xs font-medium transition-all"
-                    >
-                      일반 모드로 전환
-                    </button>
+                    <button onClick={handleExitAdminMode} className="btn btn-sm btn-ghost">관리자 종료</button>
                   )}
-
-                  <button
-                    onClick={handleLogout}
-                    className="px-3.5 py-2 rounded-full bg-red-600/10 hover:bg-red-600 text-red-600 hover:text-white border border-red-600/20 text-xs font-medium transition-all"
-                  >
-                    로그아웃
+                  <button onClick={handleLogout} className="btn btn-sm btn-ghost">로그아웃</button>
+                  <button onClick={() => setIsDark(d => !d)} className="btn btn-sm btn-ghost" style={{ padding: "0 8px" }} title="화면 밝기 전환" aria-label="화면 밝기 전환">
+                    <ThemeIcon />
                   </button>
-
-                  <div className="dark-toggle" onClick={() => setIsDark(d => !d)} title="다크모드 전환"></div>
                 </div>
               </header>
 
-              {/* 파이어베이스 설정 누락 경고 배너 */}
-              {firebaseError && (
-                <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5 text-sm text-amber-900 dark:text-amber-300 font-normal">
-                  <h4 className="font-semibold text-sm mb-1">클라우드 연동 중단</h4>
-                  <p className="leading-relaxed text-xs font-light">{firebaseError}</p>
-                </div>
-              )}
+              <main className="max-w-[1440px] mx-auto px-4 sm:px-6 py-5 space-y-4">
+                {firebaseError && (
+                  <div className="rounded-md px-4 py-3 text-[13px]" style={{ background: 'var(--warn-soft)', color: 'var(--warn)' }}>
+                    <strong className="font-semibold">클라우드에 연결되지 않았습니다.</strong> 이 기기에만 저장됩니다. ({firebaseError})
+                  </div>
+                )}
 
-              {/* 통계 요약 카드 세션 */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="glass-card p-6 rounded-2xl flex items-center justify-between">
+                {/* ---------- 제목 + 관리자 작업 ---------- */}
+                <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3">
                   <div>
-                    <span className="text-xs font-semibold text-text-secondary block mb-1">등록 도우미 인원</span>
-                    <span className="text-2xl sm:text-3xl font-black text-text-primary">{stats.total}명</span>
-                  </div>
-                  <div className="w-12 h-12 rounded-xl bg-accent-light flex items-center justify-center">
-                    <svg width="22" height="22" fill="none" stroke="var(--accent)" strokeWidth="1.8" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg>
-                  </div>
-                </div>
-
-                <div className="glass-card p-6 rounded-2xl flex items-center justify-between">
-                  <div>
-                    <span className="text-xs font-semibold text-text-secondary block mb-1">권한 등급</span>
-                    <span className="text-base sm:text-lg font-bold text-text-primary">
-                      {isAdmin ? "관리자" : "교사"}
-                    </span>
-                  </div>
-                  <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                    <svg width="20" height="20" fill="none" stroke="#34c759" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                  </div>
-                </div>
-              </div>
-
-              {/* ----------------- [4. 관리자 전용 제어반] ----------------- */}
-              {isAdmin && (
-                <div className="glass-card p-6 rounded-3xl space-y-6 border-t-4 border-t-accent shadow-lg animate-in fade-in slide-in-from-top-4 duration-200">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                      <h2 className="text-base sm:text-lg font-semibold text-text-primary">관리자 콘솔</h2>
-                      <p className="text-xs text-text-secondary font-normal mt-1">
-                        도우미 명단 추가·삭제, CSV 가져오기·내보내기를 관리합니다.
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setIsCertOpen(true)}
-                        className="px-4 py-2 text-white rounded-full text-xs font-semibold transition-all hover:brightness-110"
-                        style={{background:'var(--accent-grad)'}}
-                      >
-                        확인서 출력
-                      </button>
-                      <button
-                        onClick={handleResetData}
-                        className="px-4 py-2 bg-red-600/10 hover:bg-red-600 text-red-600 hover:text-white rounded-full text-xs font-semibold transition-all border border-red-600/20"
-                      >
-                        초기화
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* 도우미 추가 및 CSV 관리 */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    {/* 도우미 추가 폼 */}
-                    <form onSubmit={handleAddStudent} className="lg:col-span-7 bg-white/10 dark:bg-black/15 p-5 rounded-2xl border border-white/20 dark:border-white/5 space-y-4">
-                      <h3 className="text-xs sm:text-sm font-semibold text-text-primary uppercase tracking-wider">도우미 추가</h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        <div>
-                          <label className="block text-[11px] font-normal text-text-secondary mb-1">학년</label>
-                          <input 
-                            type="number"
-                            placeholder="학년 입력"
-                            value={newStudent.grade}
-                            onChange={(e) => setNewStudent({...newStudent, grade: e.target.value})}
-                            className="inp w-full px-3 py-2 text-xs sm:text-sm rounded-lg text-text-primary font-normal"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-normal text-text-secondary mb-1">반</label>
-                          <input 
-                            type="number"
-                            placeholder="반 입력"
-                            value={newStudent.class}
-                            onChange={(e) => setNewStudent({...newStudent, class: e.target.value})}
-                            className="inp w-full px-3 py-2 text-xs sm:text-sm rounded-lg text-text-primary font-normal"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-normal text-text-secondary mb-1">번호</label>
-                          <input 
-                            type="number"
-                            placeholder="번호 입력"
-                            value={newStudent.number}
-                            onChange={(e) => setNewStudent({...newStudent, number: e.target.value})}
-                            className="inp w-full px-3 py-2 text-xs sm:text-sm rounded-lg text-text-primary font-normal"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-normal text-text-secondary mb-1">한글 이름</label>
-                          <input 
-                            type="text"
-                            placeholder="한글 성명"
-                            value={newStudent.name}
-                            onChange={(e) => setNewStudent({...newStudent, name: e.target.value})}
-                            className="inp w-full px-3 py-2 text-xs sm:text-sm rounded-lg text-text-primary font-normal"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-normal text-text-secondary mb-1">나이스 영문 성명</label>
-                          <input 
-                            type="text"
-                            placeholder="영문 이름"
-                            value={newStudent.neisName}
-                            onChange={(e) => setNewStudent({...newStudent, neisName: e.target.value})}
-                            className="inp w-full px-3 py-2 text-xs sm:text-sm rounded-lg text-text-primary font-mono font-normal"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-normal text-text-secondary mb-1">봉사 인정 시간</label>
-                          <input 
-                            type="number"
-                            placeholder="기본 봉사 시간"
-                            value={newStudent.hours}
-                            onChange={(e) => setNewStudent({...newStudent, hours: e.target.value})}
-                            className="inp w-full px-3 py-2 text-xs sm:text-sm rounded-lg text-text-primary font-normal"
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2.5">
-                        <div className="flex-1">
-                          <label className="block text-[11px] font-normal text-text-secondary mb-1">도우미 역할 지정</label>
-                          <select
-                            value={newStudent.helperName}
-                            onChange={(e) => setNewStudent({...newStudent, helperName: e.target.value})}
-                            className="inp w-full px-3 py-2 text-xs sm:text-sm rounded-lg text-text-primary font-normal"
-                          >
-                            <option value="급식 도우미">급식 도우미</option>
-                            <option value="학급 분리수거도우미">학급 분리수거도우미</option>
-                            <option value="특별실 분리수거 도우미">특별실 분리수거 도우미</option>
-                            <option value="분리수거장 도우미">분리수거장 도우미</option>
-                            <option value="기자재 관리도우미">기자재 관리도우미</option>
-                          </select>
-                        </div>
-                        <div className="flex-[2]">
-                          <label className="block text-[11px] font-normal text-text-secondary mb-1">활동 내용</label>
-                          <input
-                            type="text"
-                            placeholder="예: 매일 점심 급식 배식 보조"
-                            value={newStudent.activityContent}
-                            onChange={(e) => setNewStudent({...newStudent, activityContent: e.target.value})}
-                            className="inp w-full px-3 py-2 text-xs sm:text-sm rounded-lg text-text-primary font-normal"
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <label className="block text-[11px] font-normal text-text-secondary mb-1">활동 시작일</label>
-                          <input
-                            type="date"
-                            value={newStudent.activityStartDate}
-                            onChange={(e) => setNewStudent({...newStudent, activityStartDate: e.target.value})}
-                            className="inp w-full px-3 py-2 text-xs sm:text-sm rounded-lg text-text-primary font-normal"
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <label className="block text-[11px] font-normal text-text-secondary mb-1">활동 종료일</label>
-                          <input
-                            type="date"
-                            value={newStudent.activityEndDate}
-                            onChange={(e) => setNewStudent({...newStudent, activityEndDate: e.target.value})}
-                            className="inp w-full px-3 py-2 text-xs sm:text-sm rounded-lg text-text-primary font-normal"
-                          />
-                        </div>
-                        <button
-                          type="submit"
-                          className="self-end px-5 py-2 text-white text-xs sm:text-sm font-semibold rounded-full transition-all hover:brightness-110 h-[38px]" style={{background:'var(--accent-grad)'}}
-                        >
-                          명단 반영 추가
-                        </button>
-                      </div>
-                    </form>
-
-                    {/* CSV 도구 및 파일 파서 */}
-                    <div className="lg:col-span-5 bg-white/10 dark:bg-black/15 p-5 rounded-2xl border border-white/20 dark:border-white/5 flex flex-col justify-between space-y-4">
-                      <div>
-                        <h3 className="text-xs sm:text-sm font-normal text-text-primary uppercase tracking-wider mb-2">CSV 명단 가져오기 / 내보내기</h3>
-                        <p className="text-xs sm:text-sm text-text-secondary font-normal leading-relaxed">
-                          봉사활동 도우미 시트 CSV 데이터를 로드하거나, 현재까지 수정된 전체 기록 사유 데이터를 NEIS 등록 규격의 엑셀 CSV로 출력 저장할 수 있습니다.
-                        </p>
-                      </div>
-
-                      <div className="space-y-2.5">
-                        {/* 업로드 */}
-                        <div className="relative border border-dashed border-accent/40 dark:border-white/20 hover:border-accent bg-white/20 rounded-xl p-3 text-center cursor-pointer transition-all">
-                          <input 
-                            type="file" 
-                            accept=".csv"
-                            onChange={handleCsvImport}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                          />
-                          <span className="text-xs sm:text-sm text-text-primary font-bold">CSV 파일 업로드</span>
-                        </div>
-                        
-                        {/* 백업출력 */}
-                        <button 
-                          onClick={handleCsvExport}
-                          className="w-full py-2.5 bg-accent/15 hover:bg-accent/25 text-accent text-xs sm:text-sm font-semibold rounded-full transition-all border border-accent/30 flex items-center justify-center"
-                        >
-                          CSV로 내보내기
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 세부 변경 이력 로그 뷰 */}
-                  <div className="bg-white/10 dark:bg-black/15 p-5 rounded-2xl border border-white/20 dark:border-white/5">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-xs sm:text-sm font-semibold text-text-primary uppercase tracking-wider">변경 이력</h3>
-                        <span className="px-2 py-0.5 text-[10px] font-semibold bg-amber-500/20 text-amber-600 rounded-full">{editLogs.length}건</span>
-                      </div>
-                      
-                      {editLogs.length > 0 && (
-                        <button 
-                          onClick={handleClearSelectedLogs}
-                          className="px-3 py-1.5 bg-red-600/10 hover:bg-red-600 hover:text-white text-red-600 text-xs font-semibold rounded-full transition-all border border-red-600/20"
-                        >
-                          선택 삭제
-                        </button>
-                      )}
-                    </div>
-
-                    {editLogs.length === 0 ? (
-                      <p className="text-xs sm:text-sm text-text-secondary font-semibold italic">현재 변경 내역이 비어 있습니다.</p>
-                    ) : (
-                      <div className="max-h-48 overflow-y-auto space-y-2 text-xs sm:text-sm">
-                        <div className="flex items-center gap-2 px-2.5 py-1 text-text-secondary font-normal border-b border-white/10">
-                          <input 
-                            type="checkbox"
-                            className="rounded accent-accent scale-110 cursor-pointer"
-                            onChange={(e) => handleAllLogsCheck(e.target.checked)}
-                          />
-                          <span>전체 선택</span>
-                        </div>
-                        {editLogs.map(log => (
-                          <div key={log.id} className="p-2.5 bg-white/20 dark:bg-black/25 rounded-lg border border-white/15 dark:border-white/5 flex items-start gap-3">
-                            <input 
-                              type="checkbox"
-                              checked={!!selectedLogs[log.id]}
-                              onChange={() => handleToggleLogCheck(log.id)}
-                              className="mt-1 rounded accent-accent scale-110 cursor-pointer"
-                            />
-                            <div className="flex-1 flex flex-col sm:flex-row justify-between gap-1.5">
-                              <div>
-                                <span className="text-text-secondary font-mono mr-2">[{log.timestamp}]</span>
-                                <strong className="text-text-primary font-normal">{log.studentName}</strong> {log.originalHours}h → <span className="text-accent font-normal">{log.newHours}h</span>
-                                <p className="text-xs text-text-secondary mt-1 font-normal leading-relaxed">
-                                  사유: {log.reason}
-                                </p>
-                              </div>
-                              <div className="text-right shrink-0">
-                                <span className="px-2 py-0.5 rounded-full bg-white/30 text-[10px] font-bold text-text-secondary">{log.operator}</span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* ----------------- [3. 2단 그리드 레이아웃 (PC 최적화: 좌 필터, 우 목록)] ----------------- */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                
-                {/* 3-A. 좌측 필터 패널 (lg 해상도에서 4칸 차지) */}
-                <div className="lg:col-span-4 space-y-5 lg:sticky lg:top-6">
-                  <div className="glass-card p-6 rounded-3xl space-y-5">
-                    {/* 실시간 텍스트 검색 */}
-                    <div className="space-y-1.5">
-                      <label className="block text-xs text-text-secondary tracking-wide">
-                        이름 또는 역할 검색
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          placeholder="이름, 영문명, 역할 검색..."
-                          className="inp w-full px-4 pr-10 py-3 rounded-2xl text-text-primary text-sm font-normal placeholder:text-text-secondary/50"
-                        />
-                        {searchQuery && (
-                          <button
-                            onClick={() => setSearchQuery("")}
-                            className="absolute inset-y-0 right-4 flex items-center text-text-secondary hover:text-text-primary text-xs font-bold"
-                          >
-                            ×
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* 학급별 드롭다운 필터 */}
-                    <div className="space-y-1.5">
-                      <label className="block text-xs text-text-secondary tracking-wide">학급</label>
-                      <select
-                        value={selectedGradeClass}
-                        onChange={(e) => {
-                          setSelectedGradeClass(e.target.value);
-                          setSelectedHelper("all");
-                        }}
-                        className="glass-select inp w-full px-3.5 py-3 rounded-2xl text-sm font-normal"
-                      >
-                        <option value="all">전체 학급 조회</option>
-                        {uniqueClasses.filter(c => c !== "all").map(c => {
-                          const count = students.filter(s => `${s.grade}학년 ${s.class}반` === c).length;
-                          return (
-                            <option key={c} value={c}>
-                              {c} ({count}명 배정)
-                            </option>
-                          );
-                        })}
-                      </select>
-                    </div>
-
-                    {/* 도우미 역할명별 드롭다운 필터 */}
-                    <div className="space-y-1.5 border-t border-gray-200 dark:border-gray-800 pt-4">
-                      <label className="block text-xs text-text-secondary tracking-wide">역할</label>
-                      <select
-                        value={selectedHelper}
-                        onChange={(e) => {
-                          setSelectedHelper(e.target.value);
-                          setSelectedGradeClass("all");
-                        }}
-                        className="glass-select inp w-full px-3.5 py-3 rounded-2xl text-sm font-normal"
-                      >
-                        <option value="all">전체 도우미 역할 조회</option>
-                        {uniqueHelpers.filter(h => h !== "all").map(h => {
-                          const count = students.filter(s => s.helperName === h).length;
-                          return (
-                            <option key={h} value={h}>
-                              {h} ({count}명 배정)
-                            </option>
-                          );
-                        })}
-                      </select>
-                    </div>
-
-                    <p className="text-xs text-text-secondary font-normal leading-relaxed bg-white/20 dark:bg-black/20 p-3 rounded-2xl">
-                      학급 필터와 역할 필터는 동시에 선택할 수 없습니다. 검색어는 두 필터와 함께 사용 가능합니다.
+                    <h1 className="text-lg font-bold">도우미 명단</h1>
+                    <p className="text-[13px] muted num">
+                      전체 {stats.total}명{stats.edited > 0 && <> · 시간 변경 {stats.edited}명</>}
                     </p>
                   </div>
+                  {isAdmin && (
+                    <div className="flex flex-wrap gap-2">
+                      <button onClick={() => setIsCertOpen(true)} className="btn btn-primary">확인서 출력</button>
+                      <button onClick={() => setIsAddOpen(true)} className="btn">도우미 추가</button>
+                      <label className="btn">
+                        CSV 가져오기
+                        <input type="file" accept=".csv" onChange={handleCsvImport} className="hidden" />
+                      </label>
+                      <button onClick={handleCsvExport} className="btn">CSV 내보내기</button>
+                      <button onClick={() => setIsLogsOpen(true)} className="btn">
+                        변경 이력 <span className="muted num">{editLogs.length}</span>
+                      </button>
+                      <button onClick={handleResetData} className="btn btn-danger">초기화</button>
+                    </div>
+                  )}
                 </div>
 
-                {/* 3-B. 우측 도우미 목록 패널 (lg 해상도에서 8칸 차지) */}
-                <div className="lg:col-span-8">
-                  <div className="glass-card rounded-3xl overflow-hidden shadow-sm">
-                    <div className="px-6 py-5 border-b border-white/25 flex items-center justify-between bg-white/10">
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-sm sm:text-base font-bold text-text-primary">도우미 배정 현황 및 시간 변경</h2>
-                        <span className="px-2.5 py-0.5 rounded-full bg-accent-light text-accent text-xs font-bold border border-accent/20">
-                          {filteredStudents.length}명 조회됨
-                        </span>
-                      </div>
-                      
-                      <span className="text-xs text-text-secondary">
-                        편집 버튼에서 시간 조정 및 사유 작성
-                      </span>
-                    </div>
+                {/* ---------- 필터 ---------- */}
+                <div className="card p-3 flex flex-col sm:flex-row gap-2">
+                  <div className="relative flex-1 min-w-0">
+                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 muted" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                    <input
+                      type="search"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="이름, 영문 이름, 역할로 검색"
+                      className="inp"
+                      style={{ paddingLeft: 34 }}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 sm:flex gap-2">
+                    <div className="sm:w-40"><select value={selectedGradeClass} onChange={(e) => setSelectedGradeClass(e.target.value)} className="inp">
+                      <option value="all">전체 학급</option>
+                      {uniqueClasses.filter(c => c !== "all").map(c => (
+                        <option key={c} value={c}>{c} ({students.filter(s => `${s.grade}학년 ${s.class}반` === c).length})</option>
+                      ))}
+                    </select></div>
+                    <div className="sm:w-48"><select value={selectedHelper} onChange={(e) => setSelectedHelper(e.target.value)} className="inp">
+                      <option value="all">전체 역할</option>
+                      {uniqueHelpers.filter(h => h !== "all").map(h => (
+                        <option key={h} value={h}>{h} ({students.filter(s => s.helperName === h).length})</option>
+                      ))}
+                    </select></div>
+                  </div>
+                  {hasFilter && (
+                    <button
+                      onClick={() => { setSearchQuery(""); setSelectedGradeClass("all"); setSelectedHelper("all"); }}
+                      className="btn btn-ghost"
+                    >
+                      조건 지우기
+                    </button>
+                  )}
+                </div>
 
-                    {filteredStudents.length === 0 ? (
-                      <div className="py-24 text-center">
-                        <p className="text-sm sm:text-base font-normal text-text-primary">선택 조건에 적합한 도우미 학생 명단이 없습니다.</p>
-                        <p className="text-xs sm:text-sm text-text-secondary font-normal mt-1">좌측 필터 패널에서 다른 학급이나 도우미 역할을 지정해 주십시오.</p>
-                      </div>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse table-fixed">
-                          <colgroup>
-                            <col style={{width:'22%'}} />
-                            <col style={{width:'30%'}} />
-                            <col style={{width:'20%'}} />
-                            <col style={{width:'12%'}} />
-                            <col style={{width:'16%'}} />
-                          </colgroup>
+                {/* ---------- 명단 ---------- */}
+                <div className="card overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-2.5 border-b" style={{ borderColor: 'var(--line)' }}>
+                    <span className="text-[13px] muted num">{hasFilter ? `검색 결과 ${filteredStudents.length}명` : `${filteredStudents.length}명`}</span>
+                    <span className="text-[13px] muted hidden sm:inline">이름을 누르면 상세 정보를 보고 수정할 수 있습니다.</span>
+                  </div>
+
+                  {filteredStudents.length === 0 ? (
+                    <div className="py-16 text-center px-4">
+                      <p className="font-medium">{students.length === 0 ? "등록된 도우미가 없습니다." : "조건에 맞는 학생이 없습니다."}</p>
+                      {students.length > 0 && <p className="text-[13px] muted mt-1">검색어나 학급·역할 조건을 바꿔 보세요.</p>}
+                    </div>
+                  ) : (
+                    <>
+                      {/* 태블릿·PC: 표 */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <table className="data-table">
                           <thead>
-                            <tr className="bg-white/10 text-xs text-text-secondary border-b border-white/25">
-                              <th className="py-2 px-2 font-medium">학생</th>
-                              <th className="py-2 px-2 font-medium">역할 및 활동내용</th>
-                              <th className="py-2 px-2 font-medium">활동 기간</th>
-                              <th className="py-2 px-2 text-center font-medium">인정 시간</th>
-                              <th className="py-2 px-2 text-center font-medium"></th>
+                            <tr>
+                              <th className="w-[92px]">학년·반·번호</th>
+                              <th>이름</th>
+                              <th>역할</th>
+                              <th className="hidden lg:table-cell">활동 내용</th>
+                              <th className="w-[120px]">활동 기간</th>
+                              <th className="w-[84px] text-right">인정 시간</th>
+                              <th className={isAdmin ? "w-[132px]" : "w-[76px]"}></th>
                             </tr>
                           </thead>
-                          <tbody className="text-sm">
-                            {filteredStudents.map((student, idx) => {
-                              const isEdited = student.hours !== student.originalHours;
-                              const hasReason = student.reason && student.reason.trim();
-                              const isOdd = idx % 2 === 1;
-
-                              return (
-                                <tr
-                                  key={student.id}
-                                  className={`transition-colors border-b border-white/10 hover:bg-white/10
-                                    ${isEdited ? 'bg-amber-500/[0.07]' : isOdd ? 'bg-black/[0.03] dark:bg-white/[0.03]' : ''}`}
-                                >
-                                  {/* 학생 정보 */}
-                                  <td className="py-3 px-2 whitespace-nowrap">
-                                    <div className="flex flex-col gap-px">
-                                      <span className="text-[11px] text-text-secondary tabular-nums leading-tight">
-                                        {student.grade}학년 {student.class}반 {student.number}번
-                                      </span>
-                                      <span className="text-base font-semibold text-text-primary leading-snug">{student.name}</span>
-                                      {student.neisName && (
-                                        <span className="text-[11px] text-text-secondary font-mono leading-tight">{student.neisName}</span>
-                                      )}
-                                    </div>
-                                  </td>
-
-                                  {/* 역할 및 활동내용 */}
-                                  <td className="py-3 px-2">
-                                    <div className="flex flex-col gap-1">
-                                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-accent-light text-accent text-xs border border-accent/20 whitespace-nowrap w-fit">
-                                        {student.helperName}
-                                      </span>
-                                      {student.activityContent && (
-                                        <span className="text-xs text-text-secondary leading-snug">{student.activityContent}</span>
-                                      )}
-                                    </div>
-                                  </td>
-
-                                  {/* 활동 기간 */}
-                                  <td className="py-3 px-2">
-                                    {(student.activityStartDate || student.activityEndDate) ? (
-                                      <div className="flex flex-col gap-px">
-                                        <span className="text-xs text-text-secondary leading-tight">
-                                          {student.activityStartDate || "??"} ~
-                                        </span>
-                                        <span className="text-xs text-text-secondary leading-tight">
-                                          {student.activityEndDate || "??"}
-                                        </span>
-                                      </div>
-                                    ) : (
-                                      <span className="text-xs text-text-secondary/40 italic">—</span>
-                                    )}
-                                  </td>
-
-                                  {/* 인정 시간 */}
-                                  <td className="py-3 px-2 whitespace-nowrap text-center">
-                                    {isEdited ? (
-                                      <div className="flex flex-col items-center leading-tight">
-                                        <span className="text-[10px] text-text-secondary line-through">{student.originalHours}시간</span>
-                                        <span className="text-sm text-amber-600 dark:text-amber-400">{student.hours}시간</span>
-                                      </div>
-                                    ) : (
-                                      <span className="text-sm text-text-primary">{student.hours}시간</span>
-                                    )}
-                                  </td>
-
-                                  {/* 상세보기 버튼 */}
-                                  <td className="py-3 px-2 text-center whitespace-nowrap">
-                                    <div className="flex items-center justify-center gap-1">
-                                      <button
-                                        onClick={() => openEditModal(student)}
-                                        className="px-2.5 py-1.5 rounded-full text-white text-xs hover:brightness-110 transition-all"
-                                        style={{background:'var(--accent-grad)'}}
-                                      >상세보기</button>
-                                      {isAdmin && (
-                                        <button
-                                          onClick={() => handleDeleteStudent(student.id, student.name)}
-                                          className="px-2 py-1.5 text-red-600 hover:bg-red-600/15 rounded-full transition-all text-xs border border-red-600/20"
-                                        >제외</button>
-                                      )}
-                                    </div>
-                                  </td>
-                                </tr>
-                              );
-                            })}
+                          <tbody>
+                            {filteredStudents.map((s) => (
+                              <tr key={s.id}>
+                                <td className="num muted whitespace-nowrap">{s.grade}-{s.class}-{s.number}</td>
+                                <td>
+                                  <button onClick={() => openEditModal(s)} className="text-left hover:underline underline-offset-2">
+                                    <span className="font-medium">{s.name}</span>
+                                  </button>
+                                  {s.neisName && s.neisName !== s.name && (
+                                    <div className="text-xs muted leading-tight">{s.neisName}</div>
+                                  )}
+                                </td>
+                                <td>
+                                  <span className="whitespace-nowrap">{s.helperName}</span>
+                                  {s.activityContent && <div className="text-xs muted leading-tight lg:hidden">{s.activityContent}</div>}
+                                </td>
+                                <td className="hidden lg:table-cell muted">{s.activityContent}</td>
+                                <td className="num muted whitespace-nowrap">{period(s) || "–"}</td>
+                                <td className="text-right"><Hours s={s} /></td>
+                                <td className="text-right whitespace-nowrap">
+                                  <button onClick={() => openEditModal(s)} className="btn btn-sm">상세</button>
+                                  {isAdmin && (
+                                    <button onClick={() => handleDeleteStudent(s.id, s.name)} className="btn btn-sm btn-ghost btn-danger ml-1">제외</button>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
                           </tbody>
                         </table>
                       </div>
-                    )}
-                    
-                    <div className="bg-white/10 dark:bg-black/15 px-6 py-4.5 border-t border-white/20 dark:border-white/5 text-xs sm:text-sm text-text-secondary flex flex-col sm:flex-row sm:items-center justify-between gap-2 font-normal">
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-accent"></span>
-                        수정 사항은 실시간으로 저장됩니다.
-                      </span>
-                    </div>
-                  </div>
+
+                      {/* 휴대폰: 목록 */}
+                      <ul className="md:hidden">
+                        {filteredStudents.map((s) => (
+                          <li key={s.id} className="border-b last:border-b-0" style={{ borderColor: 'var(--line)' }}>
+                            <button onClick={() => openEditModal(s)} className="w-full text-left px-4 py-3 flex items-start gap-3 active:bg-[var(--surface-2)]">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-baseline gap-2">
+                                  <span className="font-semibold">{s.name}</span>
+                                  <span className="text-xs muted num">{s.grade}-{s.class}-{s.number}</span>
+                                </div>
+                                {s.neisName && s.neisName !== s.name && <div className="text-xs muted truncate">{s.neisName}</div>}
+                                <div className="text-[13px] mt-1">{s.helperName}</div>
+                                {(s.activityContent || period(s)) && (
+                                  <div className="text-xs muted mt-0.5 num">{[s.activityContent, period(s)].filter(Boolean).join(" · ")}</div>
+                                )}
+                              </div>
+                              <div className="text-sm pt-0.5"><Hours s={s} /></div>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
                 </div>
-
-              </div>
-
-            </div>
+              </main>
+            </>
           )}
 
           {isAdmin && isCertOpen && (
@@ -1549,219 +1117,184 @@
             />
           )}
 
-          {/* ----------------- [관리자 게이트 인증 모달] ----------------- */}
+          {/* ---------- 관리자 로그인 ---------- */}
           {isAdminGateOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
-              <div className="glass-card w-full max-w-sm p-6 sm:p-8 rounded-3xl shadow-2xl relative overflow-hidden border border-white/20">
-                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/40 to-transparent"></div>
-                
-                <div className="text-center mb-6">
-                  <h3 className="text-lg font-bold text-text-primary">관리자 인증</h3>
-                  <p className="text-xs text-text-secondary font-normal mt-1">관리자로 등록된 구글 계정으로 로그인하세요.</p>
+            <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) { setIsAdminGateOpen(false); setAdminPasswordError(""); } }}>
+              <div className="modal max-w-[380px]">
+                <div className="modal-head">
+                  <div>
+                    <h3 className="font-bold">관리자 로그인</h3>
+                    <p className="text-[13px] muted mt-0.5">관리자로 등록된 Google 계정으로 로그인하세요.</p>
+                  </div>
                 </div>
+                {adminPasswordError && (
+                  <div className="modal-body">
+                    <p className="text-[13px]" style={{ color: 'var(--danger)' }}>{adminPasswordError}</p>
+                  </div>
+                )}
+                <div className="modal-foot">
+                  <button type="button" onClick={() => { setIsAdminGateOpen(false); setAdminPasswordError(""); }} className="btn">취소</button>
+                  <button type="button" onClick={handleAdminVerify} className="btn btn-primary">Google로 로그인</button>
+                </div>
+              </div>
+            </div>
+          )}
 
-                <div className="space-y-4">
-                  {adminPasswordError && (
-                    <p className="text-xs text-red-600 text-center">{adminPasswordError}</p>
+          {/* ---------- 도우미 추가 ---------- */}
+          {isAdmin && isAddOpen && (
+            <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setIsAddOpen(false); }}>
+              <form onSubmit={handleAddStudent} className="modal max-w-[560px]">
+                <div className="modal-head">
+                  <h3 className="font-bold">도우미 추가</h3>
+                  <button type="button" onClick={() => setIsAddOpen(false)} className="btn btn-sm btn-ghost" style={{ padding: "0 8px" }} aria-label="닫기">✕</button>
+                </div>
+                <div className="modal-body space-y-3">
+                  <div className="grid grid-cols-3 gap-2">
+                    <div><label className="field-label">학년</label><input type="number" min="1" value={newStudent.grade} onChange={(e) => setNewStudent({ ...newStudent, grade: e.target.value })} className="inp" required /></div>
+                    <div><label className="field-label">반</label><input type="number" min="1" value={newStudent.class} onChange={(e) => setNewStudent({ ...newStudent, class: e.target.value })} className="inp" required /></div>
+                    <div><label className="field-label">번호</label><input type="number" min="1" value={newStudent.number} onChange={(e) => setNewStudent({ ...newStudent, number: e.target.value })} className="inp" required /></div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div><label className="field-label">이름</label><input type="text" value={newStudent.name} onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })} className="inp" required /></div>
+                    <div><label className="field-label">나이스 성명 <span className="font-normal">(다를 때만)</span></label><input type="text" value={newStudent.neisName} onChange={(e) => setNewStudent({ ...newStudent, neisName: e.target.value })} className="inp" /></div>
+                  </div>
+                  <div className="grid grid-cols-[1fr_96px] gap-2">
+                    <div>
+                      <label className="field-label">역할</label>
+                      <select value={newStudent.helperName} onChange={(e) => setNewStudent({ ...newStudent, helperName: e.target.value })} className="inp">
+                        {roleOptions.map(r => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                    </div>
+                    <div><label className="field-label">인정 시간</label><input type="number" min="0" value={newStudent.hours} onChange={(e) => setNewStudent({ ...newStudent, hours: e.target.value })} className="inp" required /></div>
+                  </div>
+                  <div><label className="field-label">활동 내용</label><input type="text" value={newStudent.activityContent} onChange={(e) => setNewStudent({ ...newStudent, activityContent: e.target.value })} placeholder="예: 급식실 청결 및 질서 유지 도우미 활동" className="inp" /></div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><label className="field-label">활동 시작일</label><input type="date" value={newStudent.activityStartDate} onChange={(e) => setNewStudent({ ...newStudent, activityStartDate: e.target.value })} className="inp" /></div>
+                    <div><label className="field-label">활동 종료일</label><input type="date" value={newStudent.activityEndDate} onChange={(e) => setNewStudent({ ...newStudent, activityEndDate: e.target.value })} className="inp" /></div>
+                  </div>
+                </div>
+                <div className="modal-foot">
+                  <button type="button" onClick={() => setIsAddOpen(false)} className="btn">취소</button>
+                  <button type="submit" className="btn btn-primary">추가</button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* ---------- 변경 이력 ---------- */}
+          {isAdmin && isLogsOpen && (
+            <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setIsLogsOpen(false); }}>
+              <div className="modal max-w-[720px]">
+                <div className="modal-head">
+                  <div>
+                    <h3 className="font-bold">변경 이력</h3>
+                    <p className="text-[13px] muted mt-0.5 num">{editLogs.length}건</p>
+                  </div>
+                  <button type="button" onClick={() => setIsLogsOpen(false)} className="btn btn-sm btn-ghost" style={{ padding: "0 8px" }} aria-label="닫기">✕</button>
+                </div>
+                <div className="modal-body" style={{ padding: 0 }}>
+                  {editLogs.length === 0 ? (
+                    <p className="px-5 py-10 text-center text-sm muted">변경 이력이 없습니다.</p>
+                  ) : (
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th className="w-10">
+                            <input
+                              type="checkbox"
+                              aria-label="전체 선택"
+                              checked={editLogs.length > 0 && editLogs.every(l => selectedLogs[l.id])}
+                              onChange={(e) => handleAllLogsCheck(e.target.checked)}
+                            />
+                          </th>
+                          <th>학생</th>
+                          <th className="text-right">시간</th>
+                          <th>사유</th>
+                          <th className="hidden sm:table-cell">변경자 · 일시</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {editLogs.map(log => (
+                          <tr key={log.id}>
+                            <td><input type="checkbox" checked={!!selectedLogs[log.id]} onChange={() => handleToggleLogCheck(log.id)} /></td>
+                            <td className="font-medium whitespace-nowrap">{log.studentName}</td>
+                            <td className="text-right num whitespace-nowrap">{log.originalHours} → <strong>{log.newHours}</strong></td>
+                            <td className="muted">{log.reason}</td>
+                            <td className="hidden sm:table-cell muted text-xs num">{log.operator}<br />{log.timestamp}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   )}
-
-                  <div className="flex gap-2.5 pt-2">
+                </div>
+                <div className="modal-foot">
+                  {editLogs.length > 0 && (
                     <button
-                      type="button"
-                      onClick={() => { setIsAdminGateOpen(false); setAdminPasswordError(""); }}
-                      className="flex-1 py-2.5 bg-white/20 hover:bg-white/30 text-text-primary text-xs sm:text-sm font-semibold rounded-full transition-all border border-white/10"
+                      onClick={handleClearSelectedLogs}
+                      disabled={!Object.values(selectedLogs).some(Boolean)}
+                      className="btn btn-danger mr-auto"
                     >
-                      취소
+                      선택 삭제
                     </button>
-                    <button
-                      type="button"
-                      onClick={handleAdminVerify}
-                      className="flex-1 py-2.5 text-white text-xs sm:text-sm font-semibold rounded-full transition-all hover:brightness-110"
-                      style={{background:'var(--accent-grad)'}}
-                    >
-                      Google로 로그인
-                    </button>
-                  </div>
+                  )}
+                  <button onClick={() => setIsLogsOpen(false)} className="btn">닫기</button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* ----------------- [봉사 상세 조절 및 사유 기재 모달] ----------------- */}
+          {/* ---------- 상세 / 수정 ---------- */}
           {isModalOpen && editingStudent && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
-              <div className="glass-card w-full max-w-lg p-6 sm:p-8 rounded-3xl shadow-2xl relative overflow-hidden border border-white/20">
-                
-                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
-
-                <div className="flex justify-between items-start mb-5">
+            <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) closeEdit(); }}>
+              <div className="modal max-w-[520px]">
+                <div className="modal-head">
                   <div>
-                    <h3 className="text-base sm:text-lg font-semibold text-text-primary">상세 정보</h3>
-                    <p className="text-xs text-text-secondary mt-0.5">{editingStudent.helperName} · 기존 {editingStudent.originalHours}시간</p>
+                    <h3 className="font-bold">{editingStudent.name}</h3>
+                    <p className="text-[13px] muted mt-0.5">{editingStudent.helperName} · 처음 배정 {editingStudent.originalHours}시간</p>
                   </div>
-                  <button
-                    onClick={() => { setIsModalOpen(false); setEditingStudent(null); setFeedbackMsg(""); }}
-                    className="w-7 h-7 rounded-full hover:bg-white/20 text-text-secondary hover:text-text-primary text-base flex items-center justify-center transition-all"
-                  >×</button>
+                  <button type="button" onClick={closeEdit} className="btn btn-sm btn-ghost" style={{ padding: "0 8px" }} aria-label="닫기">✕</button>
                 </div>
 
-                <div className="space-y-4">
-                  {/* 학년·반·번호 */}
+                <div className="modal-body space-y-3">
+                  <div className="grid grid-cols-3 gap-2">
+                    <div><label className="field-label">학년</label><input type="number" min="1" max="3" value={editGrade} onChange={(e) => setEditGrade(e.target.value)} className="inp" /></div>
+                    <div><label className="field-label">반</label><input type="number" min="1" value={editClass} onChange={(e) => setEditClass(e.target.value)} className="inp" /></div>
+                    <div><label className="field-label">번호</label><input type="number" min="1" value={editNumber} onChange={(e) => setEditNumber(e.target.value)} className="inp" /></div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div><label className="field-label">이름</label><input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className="inp" /></div>
+                    <div><label className="field-label">나이스 성명</label><input type="text" value={editNeisName} onChange={(e) => setEditNeisName(e.target.value)} className="inp" /></div>
+                  </div>
+                  <div><label className="field-label">활동 내용</label><input type="text" value={editActivityContent} onChange={(e) => setEditActivityContent(e.target.value)} className="inp" /></div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><label className="field-label">활동 시작일</label><input type="date" value={editActivityStartDate} onChange={(e) => setEditActivityStartDate(e.target.value)} className="inp" /></div>
+                    <div><label className="field-label">활동 종료일</label><input type="date" value={editActivityEndDate} onChange={(e) => setEditActivityEndDate(e.target.value)} className="inp" /></div>
+                  </div>
                   <div>
-                    <label className="block text-xs text-text-secondary mb-2">학급 정보</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="relative">
-                        <input
-                          type="number" min="1" max="3"
-                          value={editGrade}
-                          onChange={(e) => setEditGrade(e.target.value)}
-                          className="inp w-full px-3 py-2.5 rounded-xl text-text-primary text-sm text-center outline-none"
-                        />
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-text-secondary pointer-events-none">학년</span>
-                      </div>
-                      <div className="relative">
-                        <input
-                          type="number" min="1"
-                          value={editClass}
-                          onChange={(e) => setEditClass(e.target.value)}
-                          className="inp w-full px-3 py-2.5 rounded-xl text-text-primary text-sm text-center outline-none"
-                        />
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-text-secondary pointer-events-none">반</span>
-                      </div>
-                      <div className="relative">
-                        <input
-                          type="number" min="1"
-                          value={editNumber}
-                          onChange={(e) => setEditNumber(e.target.value)}
-                          className="inp w-full px-3 py-2.5 rounded-xl text-text-primary text-sm text-center outline-none"
-                        />
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-text-secondary pointer-events-none">번</span>
-                      </div>
+                    <label className="field-label">인정 시간</label>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => setEditHours(h => Math.max(0, Number(h) - 1))} className="btn" style={{ width: 38, padding: 0 }} aria-label="1시간 줄이기">−</button>
+                      <input type="number" min="0" value={editHours} onChange={(e) => setEditHours(Math.max(0, Number(e.target.value)))} className="inp text-center num" style={{ width: 72 }} />
+                      <button type="button" onClick={() => setEditHours(h => Number(h) + 1)} className="btn" style={{ width: 38, padding: 0 }} aria-label="1시간 늘리기">+</button>
+                      <span className="text-[13px] muted">시간</span>
                     </div>
                   </div>
-
-                  {/* 한글이름·나이스이름 */}
                   <div>
-                    <label className="block text-xs text-text-secondary mb-2">이름</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          placeholder="한글 이름"
-                          className="inp w-full px-3 py-2.5 rounded-xl text-text-primary text-sm outline-none"
-                        />
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-text-secondary pointer-events-none">한글</span>
-                      </div>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={editNeisName}
-                          onChange={(e) => setEditNeisName(e.target.value)}
-                          placeholder="나이스 성명"
-                          className="inp w-full px-3 py-2.5 rounded-xl text-text-primary text-sm font-mono outline-none"
-                        />
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-text-secondary pointer-events-none">나이스</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 활동 내용 */}
-                  <div>
-                    <label className="block text-xs text-text-secondary mb-2">활동 내용</label>
-                    <input
-                      type="text"
-                      value={editActivityContent}
-                      onChange={(e) => setEditActivityContent(e.target.value)}
-                      placeholder="예: 매일 점심 급식 배식 보조"
-                      className="inp w-full px-4 py-2.5 rounded-xl text-text-primary text-sm outline-none"
-                    />
-                  </div>
-
-                  {/* 활동 기간 */}
-                  <div>
-                    <label className="block text-xs text-text-secondary mb-2">활동 기간</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="relative">
-                        <input
-                          type="date"
-                          value={editActivityStartDate}
-                          onChange={(e) => setEditActivityStartDate(e.target.value)}
-                          className="inp w-full px-3 py-2.5 rounded-xl text-text-primary text-sm outline-none"
-                        />
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-text-secondary pointer-events-none">시작</span>
-                      </div>
-                      <div className="relative">
-                        <input
-                          type="date"
-                          value={editActivityEndDate}
-                          onChange={(e) => setEditActivityEndDate(e.target.value)}
-                          className="inp w-full px-3 py-2.5 rounded-xl text-text-primary text-sm outline-none"
-                        />
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-text-secondary pointer-events-none">종료</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 인정시간 */}
-                  <div>
-                    <label className="block text-xs text-text-secondary mb-2">인정 시간</label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="range" min="0" max="20"
-                        value={editHours}
-                        onChange={(e) => setEditHours(Number(e.target.value))}
-                        className="w-full h-2 bg-white/30 dark:bg-black/40 rounded-lg appearance-none cursor-pointer accent-accent"
-                      />
-                      <div className="inp flex items-center rounded-xl px-3 py-1.5 shrink-0">
-                        <input
-                          type="number"
-                          value={editHours}
-                          onChange={(e) => setEditHours(Math.max(0, Number(e.target.value)))}
-                          className="w-12 bg-transparent text-center text-sm text-text-primary outline-none focus:ring-0"
-                        />
-                        <span className="text-xs text-text-secondary">시간</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 사유 */}
-                  <div>
-                    <label className="block text-xs text-text-secondary mb-2">특이사항 <span className="text-text-secondary/60">(시간 변경 시 필수)</span></label>
-                    <textarea
-                      rows="3"
-                      value={editReason}
-                      onChange={(e) => setEditReason(e.target.value)}
-                      placeholder="예시) 활동 불성실로 인한 시간 단축 등"
-                      className="inp w-full px-4 py-3 rounded-xl text-text-primary text-sm placeholder:text-text-secondary/50 leading-relaxed outline-none"
-                    ></textarea>
-                    {feedbackMsg && (
-                      <p className="text-xs text-red-600 mt-2">{feedbackMsg}</p>
-                    )}
+                    <label className="field-label">
+                      특이사항{Number(editHours) !== editingStudent.hours && <span style={{ color: 'var(--danger)' }}> (시간을 바꾸면 필수)</span>}
+                    </label>
+                    <textarea rows="3" value={editReason} onChange={(e) => setEditReason(e.target.value)} placeholder="예: 활동 불성실로 시간 단축" className="inp"></textarea>
+                    {feedbackMsg && <p className="text-[13px] mt-1.5" style={{ color: 'var(--danger)' }}>{feedbackMsg}</p>}
                   </div>
                 </div>
 
-                <div className="mt-6 flex items-center justify-end gap-2.5">
-                  <button
-                    onClick={() => { setIsModalOpen(false); setEditingStudent(null); setFeedbackMsg(""); }}
-                    className="px-4 py-2.5 bg-white/20 hover:bg-white/30 text-text-primary text-xs sm:text-sm font-semibold rounded-full transition-all border border-white/10"
-                  >
-                    취소
-                  </button>
-                  <button
-                    onClick={handleSaveEdit}
-                    className="px-5 py-2.5 text-white text-xs sm:text-sm font-semibold rounded-full transition-all hover:brightness-110 shadow-md shadow-accent/20"
-                    style={{background:'var(--accent-grad)'}}
-                  >
-                    저장
-                  </button>
+                <div className="modal-foot">
+                  <button onClick={closeEdit} className="btn">취소</button>
+                  <button onClick={handleSaveEdit} className="btn btn-primary">저장</button>
                 </div>
-
               </div>
             </div>
           )}
-
         </div>
       );
     }
