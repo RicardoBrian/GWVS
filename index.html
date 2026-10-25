@@ -25,6 +25,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <link rel="stylesheet" href="certificate.css">
 
   <!-- Tailwind 커스텀 토큰 설정 -->
   <script>
@@ -233,6 +234,9 @@
 <body class="antialiased font-light">
 
   <div id="root"></div>
+  <div id="cert-print-root"></div>
+
+  <script type="text/babel" src="certificate.jsx"></script>
 
   <!-- 비즈니스 로직 및 뷰 컴포넌트 -->
   <script type="text/babel">
@@ -278,6 +282,7 @@
       const [passwordError, setPasswordError] = useState("");
       
       const [isAdminGateOpen, setIsAdminGateOpen] = useState(false);
+      const [isCertOpen, setIsCertOpen] = useState(false);
       const [adminPasswordError, setAdminPasswordError] = useState("");
 
       const [students, setStudents] = useState([]);
@@ -1079,6 +1084,13 @@
 
                     <div className="flex items-center gap-2">
                       <button
+                        onClick={() => setIsCertOpen(true)}
+                        className="px-4 py-2 text-white rounded-full text-xs font-semibold transition-all hover:brightness-110"
+                        style={{background:'var(--accent-grad)'}}
+                      >
+                        확인서 출력
+                      </button>
+                      <button
                         onClick={handleResetData}
                         className="px-4 py-2 bg-red-600/10 hover:bg-red-600 text-red-600 hover:text-white rounded-full text-xs font-semibold transition-all border border-red-600/20"
                       >
@@ -1525,6 +1537,16 @@
               </div>
 
             </div>
+          )}
+
+          {isAdmin && isCertOpen && (
+            <CertificateModal
+              students={students}
+              db={isFirebaseActive && db && !firebaseError ? db : null}
+              settingsDocPath={`artifacts/${appId}/public/data/settings/certificate`}
+              onClose={() => setIsCertOpen(false)}
+              onToast={triggerToast}
+            />
           )}
 
           {/* ----------------- [관리자 게이트 인증 모달] ----------------- */}
