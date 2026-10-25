@@ -606,195 +606,150 @@
 
     return (
       <>
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
-          <div className="glass-card w-full max-w-4xl max-h-[92vh] flex flex-col rounded-3xl shadow-2xl border border-white/20 overflow-hidden">
-            <div className="p-5 sm:p-6 border-b border-white/10 flex items-start justify-between gap-4">
+        <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+          <div className="modal max-w-[960px]">
+            <div className="modal-head">
               <div>
-                <h3 className="text-lg font-bold text-text-primary">봉사활동 확인서 출력</h3>
-                <p className="text-xs text-text-secondary mt-1">
-                  도우미 역할 1개당 확인서 1장이 만들어집니다. 인쇄 창에서 대상을 "PDF로 저장"으로 고르면 PDF 파일로 저장됩니다.
-                </p>
+                <h3 className="font-bold">확인서 출력</h3>
+                <p className="text-[13px] muted mt-0.5">도우미 역할마다 확인서가 1장씩 만들어집니다. 인쇄 창에서 대상을 "PDF로 저장"으로 고르면 PDF로 저장됩니다.</p>
               </div>
-              <button onClick={onClose} className="px-3 py-1.5 rounded-full bg-white/20 hover:bg-white/30 text-xs text-text-primary border border-white/10">
-                닫기
-              </button>
+              <button onClick={onClose} className="btn btn-sm btn-ghost" style={{ padding: "0 8px" }} aria-label="닫기">✕</button>
             </div>
 
-            <div className="p-5 sm:p-6 overflow-y-auto space-y-4">
+            <div className="modal-body space-y-4">
               {!fontOk && (
-                <div className="rounded-xl bg-red-500/10 border border-red-500/30 p-3 text-xs text-red-700 dark:text-red-300">
-                  이 컴퓨터에 맑은 고딕 글꼴이 없어 확인서 글자 폭과 줄바꿈이 원본 양식과 달라집니다. 맑은 고딕이 설치된 Windows PC에서 출력하세요.
+                <div className="rounded-md px-3 py-2.5 text-[13px]" style={{ background: "var(--danger-soft)", color: "var(--danger)" }}>
+                  이 컴퓨터에는 맑은 고딕이 없어서 글자 폭과 줄바꿈이 원본 양식과 달라집니다. 맑은 고딕이 있는 Windows PC에서 출력하세요.
                 </div>
               )}
-              <div className="flex flex-wrap items-end gap-4">
+
+              <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
                 <div>
-                  <label className="block text-[11px] text-text-secondary mb-1">확인 날짜 (모든 확인서 공통)</label>
-                  <input type="date" value={confirmDate} onChange={(e) => setConfirmDate(e.target.value)} className="inp px-3 py-2 text-sm rounded-lg text-text-primary" />
+                  <label className="field-label">확인 날짜</label>
+                  <input type="date" value={confirmDate} onChange={(e) => setConfirmDate(e.target.value)} className="inp" style={{ width: 176 }} />
                 </div>
                 <div>
-                  <span className="block text-[11px] text-text-secondary mb-1">학년</span>
+                  <span className="field-label">학년</span>
                   <div className="flex flex-wrap gap-1.5">
                     {allGrades.map((g) => (
                       <button
                         key={g}
                         onClick={() => toggleGrade(g)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                          grades.has(g) ? "text-white border-transparent" : "bg-white/15 text-text-secondary border-white/20"
-                        }`}
-                        style={grades.has(g) ? { background: "var(--accent-grad)" } : undefined}
+                        aria-pressed={grades.has(g)}
+                        className={`btn ${grades.has(g) ? "btn-primary" : ""}`}
                       >
                         {g === "미지정" ? g : `${g}학년`}
                       </button>
                     ))}
                   </div>
                 </div>
-                <div className="text-xs text-text-secondary pb-2">
-                  선택 {selected.size}개 역할 · {pages.length}쪽{warnCount > 0 && <span className="text-amber-600 dark:text-amber-400"> · 확인할 경고 {warnCount}건</span>}
-                </div>
+                <p className="text-[13px] muted num sm:ml-auto pb-2">
+                  {selected.size}개 역할 · {pages.length}쪽
+                  {warnCount > 0 && <span style={{ color: "var(--warn)" }}> · 확인할 내용 {warnCount}건</span>}
+                </p>
               </div>
 
               {groups.length === 0 && (
-                <p className="text-sm text-text-secondary">{grades.size === 0 ? "학년을 선택하세요." : "선택한 학년에 등록된 도우미가 없습니다."}</p>
+                <p className="py-8 text-center text-sm muted">{grades.size === 0 ? "학년을 하나 이상 선택하세요." : "선택한 학년에 등록된 도우미가 없습니다."}</p>
               )}
 
-              {groups.map((g) => {
-                const st = settings[g.helperName] || {};
-                const on = selected.has(g.helperName);
-                return (
-                  <div key={g.helperName} className={`rounded-2xl border p-4 space-y-3 ${on ? "border-white/30 bg-white/10 dark:bg-black/15" : "border-white/10 opacity-60"}`}>
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <label className="flex items-center gap-2 text-sm font-semibold text-text-primary cursor-pointer">
-                        <input type="checkbox" checked={on} onChange={() => toggle(g.helperName)} />
-                        {g.helperName}
-                        <span className="text-xs font-normal text-text-secondary">{g.students.length}명</span>
-                      </label>
-                      {g.warnings.length > 0 && (
-                        <button
-                          onClick={() => setOpenWarn((p) => ({ ...p, [g.helperName]: !p[g.helperName] }))}
-                          className="text-xs px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30"
-                        >
-                          경고 {g.warnings.length}건 {openWarn[g.helperName] ? "접기" : "보기"}
-                        </button>
-                      )}
-                    </div>
+              <div className="space-y-2">
+                {groups.map((g) => {
+                  const st = settings[g.helperName] || {};
+                  const on = selected.has(g.helperName);
+                  const per = periods[g.helperName] || {};
+                  const edited = per.start || per.end;
+                  return (
+                    <div key={g.helperName} className="rounded-md border" style={{ borderColor: "var(--line)", opacity: on ? 1 : 0.55 }}>
+                      <div className="flex flex-wrap items-center gap-2 px-3 py-2.5" style={{ background: "var(--surface-2)" }}>
+                        <label className="flex items-center gap-2 font-semibold cursor-pointer min-w-0">
+                          <input type="checkbox" checked={on} onChange={() => toggle(g.helperName)} />
+                          <span className="truncate">{g.helperName}</span>
+                        </label>
+                        <span className="text-[13px] muted num">{g.students.length}명</span>
+                        {g.warnings.length > 0 && (
+                          <button
+                            onClick={() => setOpenWarn((p) => ({ ...p, [g.helperName]: !p[g.helperName] }))}
+                            className="badge badge-warn ml-auto cursor-pointer"
+                          >
+                            확인 필요 {g.warnings.length}건 {openWarn[g.helperName] ? "▲" : "▼"}
+                          </button>
+                        )}
+                      </div>
 
-                    {g.warnings.length > 0 && openWarn[g.helperName] && (
-                      <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 p-3 space-y-2 text-xs text-amber-900 dark:text-amber-300">
-                        {g.warnings.map((w, i) => (
-                          <div key={i}>
-                            <div className="font-semibold">{w.title}</div>
-                            <ul className="list-disc pl-5 mt-1 space-y-0.5">
-                              {w.items.map((it, j) => (
-                                <li key={j}>{it}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-                      <div className="sm:col-span-3">
-                        <label className="block text-[11px] text-text-secondary mb-1">확인자 교사</label>
-                        <input
-                          value={st.teacher || ""}
-                          onChange={(e) => update(g.helperName, { teacher: e.target.value })}
-                          placeholder="예: 정한솔"
-                          className="inp w-full px-3 py-2 text-sm rounded-lg text-text-primary"
-                        />
-                      </div>
-                      <div className="sm:col-span-5">
-                        <label className="block text-[11px] text-text-secondary mb-1">활동 내용</label>
-                        <input
-                          value={st.content != null ? st.content : g.defaultContent}
-                          onChange={(e) => update(g.helperName, { content: e.target.value })}
-                          className="inp w-full px-3 py-2 text-sm rounded-lg text-text-primary"
-                        />
-                      </div>
-                      <div className="sm:col-span-2">
-                        <label className="block text-[11px] text-text-secondary mb-1">봉사영역</label>
-                        <select
-                          value={st.area || AREAS[0]}
-                          onChange={(e) => update(g.helperName, { area: e.target.value })}
-                          className="inp w-full px-2 py-2 text-sm rounded-lg text-text-primary"
-                        >
-                          {AREAS.map((a) => (
-                            <option key={a} value={a}>
-                              {a.replace("활동", "")}
-                            </option>
+                      {g.warnings.length > 0 && openWarn[g.helperName] && (
+                        <div className="px-3 py-2.5 space-y-2 text-[13px] border-t" style={{ borderColor: "var(--line)", background: "var(--warn-soft)" }}>
+                          {g.warnings.map((w, i) => (
+                            <div key={i}>
+                              <div className="font-semibold" style={{ color: "var(--warn)" }}>{w.title}</div>
+                              <ul className="list-disc pl-5 mt-0.5">
+                                {w.items.map((it, j) => <li key={j}>{it}</li>)}
+                              </ul>
+                            </div>
                           ))}
-                        </select>
-                      </div>
-                      <div className="sm:col-span-2">
-                        <label className="block text-[11px] text-text-secondary mb-1">단체봉사 구분</label>
-                        <select
-                          value={st.inCurriculum ? "in" : "out"}
-                          onChange={(e) => update(g.helperName, { inCurriculum: e.target.value === "in" })}
-                          className="inp w-full px-2 py-2 text-sm rounded-lg text-text-primary"
-                        >
-                          <option value="out">교육과정 외</option>
-                          <option value="in">교육과정 내</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-end gap-2">
-                      <div>
-                        <label className="block text-[11px] text-text-secondary mb-1">활동 시작일</label>
-                        <input
-                          type="date"
-                          value={(periods[g.helperName] || {}).start || (g.periodStart ? g.periodStart.key : "")}
-                          onChange={(e) => setPeriod(g.helperName, { start: e.target.value })}
-                          className="inp px-3 py-2 text-sm rounded-lg text-text-primary"
-                        />
-                      </div>
-                      <span className="pb-2 text-text-secondary">~</span>
-                      <div>
-                        <label className="block text-[11px] text-text-secondary mb-1">활동 종료일</label>
-                        <input
-                          type="date"
-                          value={(periods[g.helperName] || {}).end || (g.periodEnd ? g.periodEnd.key : "")}
-                          onChange={(e) => setPeriod(g.helperName, { end: e.target.value })}
-                          className="inp px-3 py-2 text-sm rounded-lg text-text-primary"
-                        />
-                      </div>
-                      {periods[g.helperName] && (periods[g.helperName].start || periods[g.helperName].end) ? (
-                        <button
-                          onClick={() => setPeriods((prev) => ({ ...prev, [g.helperName]: {} }))}
-                          className="mb-1 px-2.5 py-1 rounded-full text-[11px] bg-white/15 text-text-secondary border border-white/20"
-                        >
-                          학생 데이터 기준으로 되돌리기
-                        </button>
-                      ) : (
-                        <span className="pb-2 text-[11px] text-text-secondary">학생들의 가장 이른 시작일 ~ 가장 늦은 종료일</span>
+                        </div>
+                      )}
+
+                      {on && (
+                        <div className="p-3 grid grid-cols-2 md:grid-cols-12 gap-2.5 border-t" style={{ borderColor: "var(--line)" }}>
+                          <div className="col-span-2 md:col-span-3">
+                            <label className="field-label">확인자 교사</label>
+                            <input value={st.teacher || ""} onChange={(e) => update(g.helperName, { teacher: e.target.value })} placeholder="이름" className="inp" />
+                          </div>
+                          <div className="col-span-2 md:col-span-5">
+                            <label className="field-label">활동 내용</label>
+                            <input value={st.content != null ? st.content : g.defaultContent} onChange={(e) => update(g.helperName, { content: e.target.value })} className="inp" />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="field-label">봉사영역</label>
+                            <select value={st.area || AREAS[0]} onChange={(e) => update(g.helperName, { area: e.target.value })} className="inp">
+                              {AREAS.map((a) => <option key={a} value={a}>{a.replace("활동", "")}</option>)}
+                            </select>
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="field-label">구분</label>
+                            <select value={st.inCurriculum ? "in" : "out"} onChange={(e) => update(g.helperName, { inCurriculum: e.target.value === "in" })} className="inp">
+                              <option value="out">교육과정 외</option>
+                              <option value="in">교육과정 내</option>
+                            </select>
+                          </div>
+                          <div className="md:col-span-3">
+                            <label className="field-label">활동 시작일</label>
+                            <input type="date" value={per.start || (g.periodStart ? g.periodStart.key : "")} onChange={(e) => setPeriod(g.helperName, { start: e.target.value })} className="inp" />
+                          </div>
+                          <div className="md:col-span-3">
+                            <label className="field-label">활동 종료일</label>
+                            <input type="date" value={per.end || (g.periodEnd ? g.periodEnd.key : "")} onChange={(e) => setPeriod(g.helperName, { end: e.target.value })} className="inp" />
+                          </div>
+                          <div className="col-span-2 md:col-span-6 flex items-end pb-2 text-[13px] muted">
+                            {edited ? (
+                              <button onClick={() => setPeriods((prev) => ({ ...prev, [g.helperName]: {} }))} className="btn btn-sm">
+                                학생 기록 기준으로 되돌리기
+                              </button>
+                            ) : (
+                              "기간은 학생 기록에서 가장 이른 시작일과 가장 늦은 종료일입니다."
+                            )}
+                          </div>
+                        </div>
                       )}
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
 
               {previewing && pages.length > 0 && (
-                <div className="cert-preview rounded-2xl border border-white/20 bg-neutral-300/60 p-4 overflow-x-auto">
-                  {pages.map((p, i) => (
-                    <CertificateSheet key={i} page={p} />
-                  ))}
+                <div className="cert-preview rounded-md p-4 overflow-x-auto" style={{ background: "var(--surface-2)", border: "1px solid var(--line)" }}>
+                  {pages.map((p, i) => <CertificateSheet key={i} page={p} />)}
                 </div>
               )}
             </div>
 
-            <div className="p-4 sm:p-5 border-t border-white/10 flex flex-wrap justify-end gap-2.5">
-              <button
-                onClick={() => setPreviewing((v) => !v)}
-                className="px-4 py-2.5 bg-white/20 hover:bg-white/30 text-text-primary text-sm font-semibold rounded-full border border-white/10"
-              >
+            <div className="modal-foot">
+              <button onClick={() => setPreviewing((v) => !v)} className="btn mr-auto">
                 {previewing ? "미리보기 닫기" : "미리보기"}
               </button>
-              <button
-                onClick={handlePrint}
-                className="px-5 py-2.5 text-white text-sm font-semibold rounded-full hover:brightness-110"
-                style={{ background: "var(--accent-grad)" }}
-              >
-                PDF 저장 / 인쇄
-              </button>
+              <button onClick={onClose} className="btn">닫기</button>
+              <button onClick={handlePrint} className="btn btn-primary">PDF 저장 / 인쇄</button>
             </div>
           </div>
         </div>

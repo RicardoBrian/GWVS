@@ -21,7 +21,10 @@
 .cert-preview .cert-sheet {
   zoom: 0.75;
   margin: 0 auto 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.18);
+}
+@media (max-width: 639px) {
+  .cert-preview .cert-sheet { zoom: 0.42; }
 }
 
 @media print {
