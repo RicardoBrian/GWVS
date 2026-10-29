@@ -763,6 +763,7 @@
   }
 
   window.CertificateModal = CertificateModal;
+  window.hasMalgun = hasMalgun;
   window.CertificateSheet = CertificateSheet;
   window.buildCertGroups = buildCertGroups;
   window.buildCertPages = buildPages;
