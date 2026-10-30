@@ -61,9 +61,24 @@
     const assigns = useCollection(PATHS.students, sortByStudent, term);
     const logs = useCollection(isAdmin ? PATHS.logs : null, (l) => [...l].sort((a, b) => String(b.id).localeCompare(String(a.id), undefined, { numeric: true })), term);
     const roleList = roles || [];
-    const list = assigns || [];
+    const allList = assigns || [];
     const myRoleKeys = useMemo(() => new Set(roleList.filter((r) => r.teacherUid && r.teacherUid === uid).map((r) => r.key)), [roleList, uid]);
-    const canEdit = (roleKey) => !readOnly && (isAdmin || myRoleKeys.has(roleKey));
+    // 보는 범위: 관리자는 전체, 담임은 우리 반, 역할 담당 교사는 내 담당 역할(둘 다면 전환)
+    const scopes = isAdmin ? [] : [homeroom && "class", myRoleKeys.size > 0 && "roles"].filter(Boolean);
+    const [scope, setScope] = useState(null);
+    const curScope = isAdmin ? "all" : scopes.includes(scope) ? scope : scopes[0] || "none";
+    const list = useMemo(() => {
+      if (curScope === "all") return allList;
+      if (curScope === "class") return allList.filter((a) => a.grade === homeroom.grade && a.class === homeroom.klass);
+      if (curScope === "roles") return allList.filter((a) => myRoleKeys.has(a.roleKey));
+      return [];
+    }, [curScope, allList, homeroom, myRoleKeys]);
+    const visibleRoles = isAdmin ? roleList
+      : curScope === "roles" ? roleList.filter((r) => myRoleKeys.has(r.key))
+      : roleList.filter((r) => list.some((a) => a.roleKey === r.key));
+    // 고칠 수 있는 학생: 관리자는 전부, 역할 담당 교사는 자기 역할 학생, 담임은 자기 반 학생(어느 역할이든)
+    const isMyClass = (a) => !!homeroom && a.grade === homeroom.grade && a.class === homeroom.klass;
+    const canEdit = (a) => !readOnly && (isAdmin || myRoleKeys.has(a.roleKey) || isMyClass(a));
 
     const [sel, setSel] = useState(null); // 역할 key, null이면 전체
     const [q, setQ] = useState("");
@@ -77,18 +92,19 @@
     const [checkOpen, setCheckOpen] = useState(false);
     const wide = useMedia("(min-width: 1280px)");
 
-    const role = roleList.find((r) => r.key === sel) || null;
+    const role = visibleRoles.find((r) => r.key === sel) || null;
+    const selKey = role ? role.key : null;
     const roleByKey = useMemo(() => Object.fromEntries(roleList.map((r) => [r.key, r])), [roleList]);
     const countBy = useMemo(() => {
       const m = {};
       list.forEach((a) => { m[a.roleKey] = (m[a.roleKey] || 0) + 1; });
       return m;
     }, [list]);
-    const issues = useMemo(() => (isAdmin ? checkAssignments(list, roster || [], roleList) : []), [isAdmin, list, roster, roleList]);
+    const issues = useMemo(() => (isAdmin ? checkAssignments(allList, roster || [], roleList) : []), [isAdmin, allList, roster, roleList]);
     const issueIds = useMemo(() => new Set(issues.map((i) => i.a.id)), [issues]);
 
     const shown = list.filter((a) => {
-      if (sel && a.roleKey !== sel) return false;
+      if (selKey && a.roleKey !== selKey) return false;
       if (grade !== "all" && a.grade !== +grade) return false;
       if (klass !== "all" && a.class !== +klass) return false;
       const t = normName(q);
@@ -99,10 +115,10 @@
     // 고른 학년에 실제로 배정 학생이 있는 반(담임 학급은 늘 보이게)
     const classesIn = useMemo(() => {
       if (grade === "all") return [];
-      const set = new Set(list.filter((a) => a.grade === +grade && (!sel || a.roleKey === sel)).map((a) => a.class));
-      if (homeroom && homeroom.grade === +grade) set.add(homeroom.klass);
+      const set = new Set(list.filter((a) => a.grade === +grade && (!selKey || a.roleKey === selKey)).map((a) => a.class));
+      if (isAdmin && homeroom && homeroom.grade === +grade) set.add(homeroom.klass);
       return [...set].sort((a, b) => a - b);
-    }, [list, grade, sel, homeroom]);
+    }, [list, grade, selKey, homeroom, isAdmin]);
     const openLogs = (logs || []).filter((l) => !l.checkedBy).length;
 
     const exportCsv = () => {
@@ -119,12 +135,12 @@
 
     const roleNav = (
       <nav className="panel card roster-nav" aria-label="역할">
-        <button className={`roster-nav-item ${!sel ? "on" : ""}`} onClick={() => setSel(null)}>
+        <button className={`roster-nav-item ${!selKey ? "on" : ""}`} onClick={() => setSel(null)}>
           <span>전체</span><span className="num">{list.length}</span>
         </button>
         <div className="section-label" style={{ padding: "0.75rem 0.75rem 0.25rem" }}>역할</div>
-        {roleList.map((r) => (
-          <button key={r.key} className={`roster-nav-item role-item ${sel === r.key ? "on" : ""}`} onClick={() => setSel(r.key)}>
+        {visibleRoles.map((r) => (
+          <button key={r.key} className={`roster-nav-item role-item ${selKey === r.key ? "on" : ""}`} onClick={() => setSel(r.key)}>
             <span className="min-w-0">
               <span className="block truncate">{r.name}</span>
               <span className="block truncate role-teacher">{r.teacherName || "담당 교사 없음"}{myRoleKeys.has(r.key) && " · 내 담당"}</span>
@@ -132,7 +148,7 @@
             <span className="num">{countBy[r.key] || 0}</span>
           </button>
         ))}
-        {!roleList.length && <p className="faint" style={{ fontSize: "0.8125rem", padding: "0.5rem 0.75rem" }}>{roles === null ? "불러오는 중…" : "역할이 없습니다."}</p>}
+        {!visibleRoles.length && <p className="faint" style={{ fontSize: "0.8125rem", padding: "0.5rem 0.75rem" }}>{roles === null ? "불러오는 중…" : "역할이 없습니다."}</p>}
         {isAdmin && !readOnly && (
           <div style={{ padding: "0.5rem 0.25rem 0.25rem" }}>
             <IconBtn icon="plus" label="역할 추가" small onClick={() => setRoleEdit("new")} />
@@ -145,12 +161,16 @@
       <>
         <PageHead
           title="교육과정 외 봉사"
-          sub={`${termLabel(term)} · 역할 ${roleList.length}개 · 배정 ${list.length}명${edited ? ` · 시간 변경 ${edited}명` : ""}`}
+          sub={`${termLabel(term)} · ${curScope === "class" ? `${classLabel(homeroom.grade, homeroom.klass)} 학생` : curScope === "roles" ? "내 담당 역할 학생" : `역할 ${roleList.length}개`} ${list.length}명${edited ? ` · 시간 변경 ${edited}명` : ""}`}
           actions={<>
-            {!wide && (
-              <select className="inp" style={{ width: "11rem" }} value={sel || ""} onChange={(e) => setSel(e.target.value || null)} aria-label="역할">
+            {scopes.length > 1 && (
+              <Seg value={curScope} onChange={(v) => { setScope(v); setSel(null); setGrade("all"); setKlass("all"); }}
+                options={[["class", "우리 반"], ["roles", "담당 역할"]]} />
+            )}
+            {!wide && visibleRoles.length > 0 && (
+              <select className="inp" style={{ width: "11rem" }} value={selKey || ""} onChange={(e) => setSel(e.target.value || null)} aria-label="역할">
                 <option value="">전체 역할</option>
-                {roleList.map((r) => <option key={r.key} value={r.key}>{r.name}</option>)}
+                {visibleRoles.map((r) => <option key={r.key} value={r.key}>{r.name}</option>)}
               </select>
             )}
             {!wide && isAdmin && !readOnly && <IconBtn icon="plus" label="역할 추가" onClick={() => setRoleEdit("new")} />}
@@ -181,18 +201,20 @@
                   <Icon name="search" size={15} />
                   <input type="search" className="inp" value={q} onChange={(e) => setQ(e.target.value)} placeholder="이름·역할로 검색" />
                 </div>
-                <Seg value={grade} onChange={(v) => { setGrade(v); setKlass("all"); }} options={[["all", "전체"], ...GRADES.map((g) => [String(g), `${g}학년`])]} />
-                <select className="inp" style={{ width: "7.5rem" }} value={klass} disabled={grade === "all"} onChange={(e) => setKlass(e.target.value)} aria-label="반"
+                {curScope !== "class" && <Seg value={grade} onChange={(v) => { setGrade(v); setKlass("all"); }} options={[["all", "전체"], ...GRADES.map((g) => [String(g), `${g}학년`])]} />}
+                {curScope !== "class" && <select className="inp" style={{ width: "7.5rem" }} value={klass} disabled={grade === "all"} onChange={(e) => setKlass(e.target.value)} aria-label="반"
                   title={grade === "all" ? "학년을 먼저 고르세요" : undefined}>
                   <option value="all">{grade === "all" ? "반" : "전체 반"}</option>
                   {classesIn.map((k) => <option key={k} value={k}>{k}반</option>)}
-                </select>
-                {homeroom && !(grade === String(homeroom.grade) && klass === String(homeroom.klass)) && (
+                </select>}
+                {isAdmin && homeroom && !(grade === String(homeroom.grade) && klass === String(homeroom.klass)) && (
                   <button type="button" className="btn btn-sm" onClick={() => { setGrade(String(homeroom.grade)); setKlass(String(homeroom.klass)); }}>우리 반</button>
                 )}
                 <span className="muted num ml-auto" style={{ fontSize: "0.8125rem" }}>{shown.length}명</span>
               </div>
-              {assigns === null ? <Empty title="불러오는 중…" /> : shown.length === 0 ? (
+              {curScope === "none" ? (
+                <Empty title="볼 학생이 없습니다." sub="담임 학급이나 담당 역할이 있는 선생님만 학생을 볼 수 있습니다. 담당 역할이 필요하면 관리자에게 알려 주세요." />
+              ) : assigns === null ? <Empty title="불러오는 중…" /> : shown.length === 0 ? (
                 <Empty title={list.length ? "조건에 맞는 학생이 없습니다." : "배정된 학생이 없습니다."}
                   sub={isAdmin && !readOnly ? (role ? "＋를 눌러 전교생 명단에서 학생을 배정하세요." : "역할을 고른 뒤 학생을 배정하세요.") : ""} />
               ) : (
@@ -201,7 +223,7 @@
                     <tr>
                       <th style={{ width: "5.5rem" }}>학년·반·번호</th>
                       <th>이름</th>
-                      {!sel && <th>역할</th>}
+                      {!selKey && <th>역할</th>}
                       <th className="col-wide">활동 기간</th>
                       <th style={{ width: "6rem", textAlign: "right" }}>인정 시간</th>
                       <th className="col-xwide">특이사항</th>
@@ -210,7 +232,7 @@
                   <tbody>
                     {shown.map((a) => {
                       const r = roleByKey[a.roleKey];
-                      const editable = canEdit(a.roleKey);
+                      const editable = canEdit(a);
                       return (
                         <tr key={a.id} className="row-open" tabIndex={0} onClick={() => setEditing(a)} onKeyDown={(e) => e.key === "Enter" && setEditing(a)}>
                           <td className="num muted whitespace-nowrap">{a.grade}-{a.class}-{a.number}</td>
@@ -219,7 +241,7 @@
                             {issueIds.has(a.id) && <span className="badge badge-warn ml-1">점검</span>}
                             {editable && !isAdmin && <span className="badge badge-accent ml-1">수정 가능</span>}
                           </td>
-                          {!sel && <td className="whitespace-nowrap">{r ? r.name : <span className="faint">{a.helperName || "역할 없음"}</span>}</td>}
+                          {!selKey && <td className="whitespace-nowrap">{r ? r.name : <span className="faint">{a.helperName || "역할 없음"}</span>}</td>}
                           <td className="col-wide num muted whitespace-nowrap">{periodText(periodOf(r, a.grade))}</td>
                           <td style={{ textAlign: "right" }}><Hours a={a} /></td>
                           <td className="col-xwide muted">{a.reason}</td>
@@ -235,7 +257,7 @@
 
         {editing && (
           <AssignEditor a={list.find((x) => x.id === editing.id) || editing} role={roleByKey[editing.roleKey]} roles={roleList}
-            canEdit={canEdit(editing.roleKey)} isAdmin={isAdmin} operator={operator} term={term} onClose={() => setEditing(null)} />
+            canEdit={canEdit(editing)} isAdmin={isAdmin} operator={operator} term={term} onClose={() => setEditing(null)} />
         )}
         {roleEdit && (
           <RoleEditor role={roleEdit === "new" ? null : roleEdit} term={term} teachers={teachers || []} count={roleEdit !== "new" ? countBy[roleEdit.key] || 0 : 0}
@@ -533,7 +555,7 @@
               <textarea rows="2" className="inp" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="예: 3월 결석이 많아 2시간 단축" />
             </div>
           ) : (
-            <p className="field-hint">이 역할의 담당 교사만 고칠 수 있습니다.</p>
+            <p className="field-hint">이 역할의 담당 교사나 이 학생의 담임만 고칠 수 있습니다.</p>
           )}
         </div>
       </Modal>
