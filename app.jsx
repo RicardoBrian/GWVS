@@ -1,8 +1,8 @@
 // 앱 틀: 로그인 상태 · 역할 · 메뉴(사이드바/상단 바/하단 탭바) · 화면 전환(#주소)
 (function () {
   const { useState, useEffect } = React;
-  const { db, auth, PATHS, classLabel, useCollection, Icon, IconBtn, Toast,
-    LoginScreen, StampModal, ApplyScreen, TeachersPage, HelpersPage, RosterPage, AttendancePage, EventsPage } = window.GW;
+  const { db, auth, PATHS, classLabel, termLabel, useCollection, Icon, IconBtn, Toast, Empty,
+    TermSetup, TermSwitcher, ArchiveBanner, LoginScreen, StampModal, ApplyScreen, TeachersPage, HelpersPage, RosterPage, AttendancePage, EventsPage } = window.GW;
 
   const parseHash = () => {
     const [sec, a, b] = decodeURIComponent(location.hash.replace(/^#/, "")).split("/");
@@ -32,6 +32,7 @@
     const [user, setUser] = useState(undefined);   // undefined: 확인 중, null: 로그아웃
     const [isAdmin, setIsAdmin] = useState(null);
     const [teacher, setTeacher] = useState(undefined);
+    const [termInfo, setTermInfo] = useState(undefined); // undefined: 확인 중, null: 아직 학기 설정 없음
     const [route, setRoute] = useState(parseHash);
     const theme = useTheme();
 
@@ -57,6 +58,14 @@
     }), []);
 
     useEffect(() => {
+      if (!user) { setTermInfo(undefined); return; }
+      return db.doc(PATHS.term).onSnapshot(
+        (snap) => setTermInfo(snap.exists && snap.data().current ? snap.data() : null),
+        (err) => { console.error("학기 정보 수신 실패:", err); setTermInfo(null); }
+      );
+    }, [user]);
+
+    useEffect(() => {
       if (!user) return;
       return db.collection("teachers").doc(user.uid).onSnapshot(
         (snap) => setTeacher(snap.exists ? { id: snap.id, ...snap.data() } : null),
@@ -67,20 +76,28 @@
     let body;
     if (user === undefined) body = <Splash />;
     else if (user === null) body = <LoginScreen />;
-    else if (isAdmin === null || teacher === undefined) body = <Splash />;
-    else if (!isAdmin && !(teacher && teacher.status === "approved")) body = <ApplyScreen user={user} teacher={teacher} />;
-    else body = <Portal user={user} isAdmin={isAdmin} teacher={teacher} route={route} theme={theme} />;
+    else if (isAdmin === null || teacher === undefined || termInfo === undefined) body = <Splash />;
+    else if (!isAdmin && !(teacher && teacher.status === "approved")) body = <ApplyScreen user={user} teacher={teacher} term={termInfo && termInfo.current} />;
+    else body = <Portal user={user} isAdmin={isAdmin} teacher={teacher} termInfo={termInfo} route={route} theme={theme} />;
 
     return <>{body}<Toast /></>;
   }
 
-  function Portal({ user, isAdmin, teacher, route, theme }) {
+  function Portal({ user, isAdmin, teacher, termInfo, route, theme }) {
     const [isDark, setIsDark] = theme;
+    const current = termInfo ? termInfo.current : null;
+    const [viewTerm, setViewTerm] = useState(current);
+    // 학기 설정 화면은 옮기기를 마치고 "시작하기"를 누를 때까지 그대로 둔다(설정이 먼저 저장돼도 닫히지 않게).
+    const [setupOpen, setSetupOpen] = useState(!current);
+    // 새 학기가 시작되면 지금 학기로 돌아온다.
+    useEffect(() => { setViewTerm(current); }, [current]);
+    const term = viewTerm || current;
+    const readOnly = !!term && term !== current;
     const approved = teacher && teacher.status === "approved";
     const homeroom = approved && teacher.homeroom && teacher.grade && teacher.klass ? { grade: teacher.grade, klass: teacher.klass } : null;
     const canClass = isAdmin || !!homeroom;
-    const roster = useCollection(canClass ? PATHS.roster : null);
-    const events = useCollection(canClass ? PATHS.events : null, byDateDesc);
+    const roster = useCollection(canClass && term ? PATHS.roster : null, null, term);
+    const events = useCollection(canClass && term ? PATHS.events : null, byDateDesc, term);
     const teachers = useCollection(isAdmin ? "teachers" : null);
     const pending = (teachers || []).filter((t) => t.status === "pending").length;
     const me = (teacher && teacher.name) || user.displayName || user.email;
@@ -102,12 +119,16 @@
       history.replaceState(null, "", location.pathname);
     };
 
+    const tp = { term, readOnly };
     let page;
-    if (sec === "helpers") page = <HelpersPage isAdmin={isAdmin} operator={`${me} (${roleText})`} />;
-    else if (sec === "attendance") page = <AttendancePage isAdmin={isAdmin} homeroom={homeroom} me={me} myStamp={(teacher && teacher.stamp) || ""} roster={roster} events={events} route={{ eventId: route.a, cls: route.b }} go={go} />;
-    else if (sec === "roster") page = <RosterPage key={isAdmin ? "a" : route.a} isAdmin={isAdmin} homeroom={homeroom} roster={roster} route={{ cls: route.a }} go={go} />;
-    else if (sec === "events") page = <EventsPage roster={roster} events={events} teachers={teachers} route={{ eventId: route.a }} go={go} />;
-    else if (sec === "teachers") page = <TeachersPage teachers={teachers} />;
+    if (!current || setupOpen) page = isAdmin
+      ? <TermSetup onDone={() => setSetupOpen(false)} />
+      : <div className="card"><Empty title="학기 설정을 기다리는 중입니다." sub="관리자가 학기를 설정하면 쓸 수 있습니다." /></div>;
+    else if (sec === "helpers") page = <HelpersPage {...tp} isAdmin={isAdmin} me={me} uid={user.uid} operator={`${me} (${roleText})`} roster={roster} teachers={teachers} />;
+    else if (sec === "attendance") page = <AttendancePage {...tp} isAdmin={isAdmin} homeroom={homeroom} me={me} myStamp={(teacher && teacher.stamp) || ""} roster={roster} events={events} route={{ eventId: route.a, cls: route.b }} go={go} />;
+    else if (sec === "roster") page = <RosterPage {...tp} key={(isAdmin ? "a" : route.a) + term} isAdmin={isAdmin} homeroom={homeroom} roster={roster} route={{ cls: route.a }} go={go} />;
+    else if (sec === "events") page = <EventsPage {...tp} roster={roster} events={events} teachers={teachers} route={{ eventId: route.a }} go={go} />;
+    else if (sec === "teachers") page = <TeachersPage {...tp} teachers={teachers} />;
 
     const brand = (
       <div className="brand">
@@ -123,6 +144,7 @@
       <div>
         <nav className="sidebar" aria-label="메뉴">
           {brand}
+          {current && <TermSwitcher info={termInfo} view={term} onView={setViewTerm} isAdmin={isAdmin} />}
           <div className="side-menu">
             {groups.map((gname) => (
               <div key={gname}>
@@ -158,7 +180,11 @@
         </header>
 
         <main className="main">
-          <div className="page">{page}</div>
+          <div className="page">
+            {current && <div className="term-mobile"><TermSwitcher info={termInfo} view={term} onView={setViewTerm} isAdmin={isAdmin} /></div>}
+            {readOnly && <ArchiveBanner term={term} current={current} onBack={() => setViewTerm(current)} />}
+            {page}
+          </div>
         </main>
 
         {stampOpen && teacher && <StampModal uid={teacher.id} name={me} stamp={teacher.stamp || ""} onClose={() => setStampOpen(false)} />}

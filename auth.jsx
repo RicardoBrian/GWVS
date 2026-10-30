@@ -1,7 +1,7 @@
 // 로그인 · 가입 신청 · 승인 대기 · 교사 관리(관리자)
 (function () {
   const { useState, useMemo } = React;
-  const { db, auth, FieldValue, CONTACT, toInt, classLabel, fmtTime, toast,
+  const { db, auth, FieldValue, CONTACT, PATHS, toInt, classLabel, fmtTime, toast, useCollection,
     Icon, IconBtn, Modal, Inspector, PageHead, Empty, Seg, GradeClassSelect } = window.GW;
 
   const GoogleMark = () => (
@@ -12,6 +12,27 @@
       <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z" />
     </svg>
   );
+
+  const sortRoles = (list) => [...list].sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || String(a.name).localeCompare(String(b.name), "ko"));
+
+  // 담당 역할 고르기(여러 개). roles: 지금 학기 역할 목록
+  function RolePicker({ roles, value, onChange, owners }) {
+    if (!roles || !roles.length) return <p className="field-hint" style={{ marginTop: 0 }}>{roles === null ? "불러오는 중…" : "아직 등록된 역할이 없습니다."}</p>;
+    return (
+      <div className="chips">
+        {roles.map((r) => {
+          const on = value.includes(r.key);
+          const other = owners && owners[r.key];
+          return (
+            <button key={r.key} type="button" className="btn btn-sm" aria-pressed={on} title={other ? `지금 담당: ${other}` : undefined}
+              onClick={() => onChange(on ? value.filter((k) => k !== r.key) : [...value, r.key])}>
+              {r.name}{other && <span style={{ opacity: 0.7, fontWeight: 500 }}> · {other}</span>}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
 
   function AuthShell({ children, sub }) {
     return (
@@ -65,7 +86,9 @@
   }
 
   // 가입 신청 / 승인 대기 / 거절. teacher: teachers/{uid} 문서(없으면 null)
-  function ApplyScreen({ user, teacher }) {
+  function ApplyScreen({ user, teacher, term }) {
+    const roles = useCollection(term ? PATHS.roles : null, sortRoles, term);
+    const [myRoles, setMyRoles] = useState(teacher?.roles || []);
     const [editing, setEditing] = useState(!teacher);
     const [name, setName] = useState(teacher?.name || user.displayName || "");
     const [homeroom, setHomeroom] = useState(teacher ? !!teacher.homeroom : true);
@@ -84,6 +107,7 @@
           name: name.trim(),
           email: user.email,
           homeroom,
+          roles: myRoles,
           status: "pending",
           updatedAt: FieldValue.serverTimestamp(),
         };
@@ -113,6 +137,7 @@
           <div className="notice" style={{ fontSize: "0.875rem" }}>
             <div><span className="muted">이름</span> <strong>{teacher.name}</strong></div>
             <div><span className="muted">담임</span> <strong>{teacher.homeroom ? classLabel(teacher.grade, teacher.klass) : "비담임"}</strong></div>
+            {teacher.roles && teacher.roles.length > 0 && <div><span className="muted">담당 역할</span> <strong>{teacher.roles.length}개</strong></div>}
           </div>
           <Contact>{rejected ? "신청 내용을 고쳐 다시 신청하거나" : "승인이 늦어지면"}</Contact>
           <div className="flex justify-center gap-2 mt-4">
@@ -142,6 +167,10 @@
               <GradeClassSelect grade={grade} klass={klass} onChange={(g, k) => { setGrade(g); setKlass(k); setError(""); }} />
             </div>
           )}
+          <div>
+            <span className="field-label">담당 역할 <span className="faint" style={{ fontWeight: 400 }}>(교육과정 외 봉사, 없으면 비워 두세요)</span></span>
+            <RolePicker roles={roles} value={myRoles} onChange={setMyRoles} />
+          </div>
           {error && <p className="field-error" style={{ marginTop: 0 }}>{error}</p>}
           <button type="submit" disabled={busy} className="btn btn-primary btn-block">{teacher ? "다시 신청" : "가입 신청"}</button>
         </form>
@@ -254,7 +283,9 @@
     rejected: ["거절", "badge-danger"],
   };
 
-  function TeachersPage({ teachers }) {
+  function TeachersPage({ teachers, term, readOnly }) {
+    const roles = useCollection(PATHS.roles, sortRoles, term);
+    const roleNames = (t) => (roles || []).filter((r) => r.teacherUid === t.id).map((r) => r.name);
     const [filter, setFilter] = useState("pending");
     const [selId, setSelId] = useState(null);
     const list = teachers || [];
@@ -294,6 +325,7 @@
                   <tr>
                     <th>이름</th>
                     <th>담임 학급</th>
+                    <th className="col-wide">담당 역할</th>
                     <th className="col-wide">이메일</th>
                     <th>상태</th>
                     <th className="col-wide">도장</th>
@@ -309,6 +341,7 @@
                         {t.homeroom ? classLabel(t.grade, t.klass) : <span className="faint">비담임</span>}
                         {t.homeroom && t.status === "approved" && dupClass.has(`${t.grade}-${t.klass}`) && <span className="badge badge-warn ml-1">중복</span>}
                       </td>
+                      <td className="col-wide">{roleNames(t).join(", ") || (t.status === "pending" && (t.roles || []).length ? <span className="faint">신청 {(t.roles || []).length}개</span> : <span className="faint">–</span>)}</td>
                       <td className="col-wide muted">{t.email}</td>
                       <td><span className={`badge ${STATUS[t.status]?.[1] || ""}`}>{STATUS[t.status]?.[0] || t.status}</span></td>
                       <td className="col-wide">{t.stamp ? <img src={t.stamp} alt="도장" style={{ height: "1.6rem" }} /> : <span className="faint">–</span>}</td>
@@ -319,13 +352,21 @@
               </table>
             )}
           </div>
-          <TeacherEditor key={sel ? sel.id : "none"} t={sel} onClose={() => setSelId(null)} />
+          <TeacherEditor key={sel ? sel.id : "none"} t={sel} roles={roles} term={term} readOnly={readOnly} onClose={() => setSelId(null)} />
         </div>
       </>
     );
   }
 
-  function TeacherEditor({ t, onClose }) {
+  function TeacherEditor({ t, roles, term, readOnly, onClose }) {
+    const roleList = roles || [];
+    // 지금 맡은 역할 + (승인 전이면) 신청한 역할
+    const [myRoles, setMyRoles] = useState(() => {
+      const own = roleList.filter((r) => t && r.teacherUid === t.id).map((r) => r.key);
+      const asked = t && t.status !== "approved" ? (t.roles || []) : [];
+      return [...new Set([...own, ...asked])].filter((k) => roleList.some((r) => r.key === k));
+    });
+    const owners = Object.fromEntries(roleList.filter((r) => r.teacherUid && t && r.teacherUid !== t.id).map((r) => [r.key, r.teacherName]));
     const [name, setName] = useState(t?.name || "");
     const [homeroom, setHomeroom] = useState(!!t?.homeroom);
     const [grade, setGrade] = useState(t?.grade || null);
@@ -338,15 +379,29 @@
       if (homeroom && (!grade || !klass)) return toast("담임 학급을 고르세요.", "danger");
       setBusy(true);
       try {
-        await db.collection("teachers").doc(t.id).set({
+        const taken = myRoles.filter((k) => owners[k]);
+        if (status === "approved" && taken.length && !window.confirm(`${taken.map((k) => `${roleList.find((r) => r.key === k).name}(지금 ${owners[k]})`).join(", ")}의 담당 교사를 ${name.trim()} 선생님으로 바꿉니다. 계속할까요?`)) { setBusy(false); return; }
+        const batch = db.batch();
+        batch.set(db.collection("teachers").doc(t.id), {
           name: name.trim(),
           homeroom,
           grade: homeroom ? grade : FieldValue.delete(),
           klass: homeroom ? klass : FieldValue.delete(),
+          roles: myRoles,
           status,
           updatedAt: FieldValue.serverTimestamp(),
           ...(stamp !== (t.stamp || "") ? { stamp: stamp || FieldValue.delete(), stampUpdatedAt: FieldValue.serverTimestamp() } : {}),
         }, { merge: true });
+        // 역할 담당 교사(역할당 1명)는 역할 문서에 적는다. 승인할 때만 넘겨주고, 거절하면 이 교사가 맡던 역할을 비운다.
+        if (!readOnly) {
+          roleList.forEach((r) => {
+            const want = status === "approved" && myRoles.includes(r.key);
+            const ref = db.collection(PATHS.roles).doc(r.id);
+            if (want && (r.teacherUid !== t.id || r.teacherName !== name.trim())) batch.update(ref, { teacherUid: t.id, teacherName: name.trim() });
+            else if (!want && r.teacherUid === t.id) batch.update(ref, { teacherUid: "", teacherName: "" });
+          });
+        }
+        await batch.commit();
         toast(status === "approved" ? `${name} 선생님을 승인했습니다.` : status === "rejected" ? "거절했습니다." : "저장했습니다.");
       } catch (err) {
         console.error(err);
@@ -356,7 +411,10 @@
     };
     const remove = async () => {
       if (!window.confirm(`${t.name} 선생님의 가입 정보를 지울까요? 다시 로그인하면 새로 신청하게 됩니다.`)) return;
-      await db.collection("teachers").doc(t.id).delete();
+      const batch = db.batch();
+      batch.delete(db.collection("teachers").doc(t.id));
+      if (!readOnly) roleList.filter((r) => r.teacherUid === t.id).forEach((r) => batch.update(db.collection(PATHS.roles).doc(r.id), { teacherUid: "", teacherName: "" }));
+      await batch.commit();
       toast("지웠습니다.");
       onClose();
     };
@@ -404,7 +462,11 @@
                 <GradeClassSelect grade={grade} klass={klass} onChange={(g, k) => { setGrade(g); setKlass(k); }} />
               </div>
             )}
-            {homeroom && (
+            <div>
+              <span className="field-label">담당 역할</span>
+              <RolePicker roles={roles} value={myRoles} onChange={setMyRoles} owners={owners} />
+            </div>
+            {(
               <div>
                 <span className="field-label">도장</span>
                 <StampField stamp={stamp} name={name} onChange={setStamp} />
