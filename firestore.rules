@@ -102,14 +102,15 @@ service cloud.firestore {
         allow delete: if isAdmin() && isCurrentOrLegacy();
       }
 
-      // 교육과정 외: 역할에 배정된 학생. 배정·삭제는 관리자, 인정 시간은 담당 교사도 고친다(사유 필수).
+      // 교육과정 외: 역할에 배정된 학생. 배정·삭제는 관리자, 인정 시간은 역할 담당 교사와 그 학생의 담임도 고친다(사유 필수).
       match /students/{id} {
         allow read: if canRead();
         allow create: if isAdmin() && writesCurrent();
         allow update: if writesCurrent() && (
           isAdmin()
           || (resource.data.get('term', '') == request.resource.data.term
-              && isRoleTeacher(resource.data.term, resource.data.roleKey)
+              && (isRoleTeacher(resource.data.term, resource.data.roleKey)
+                  || isHomeroom(resource.data.get('grade', 0), resource.data.get('class', 0)))
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['hours', 'reason', 'updatedAt', 'updatedBy'])
               && request.resource.data.hours is int && request.resource.data.hours >= 0
               && request.resource.data.reason is string && request.resource.data.reason.size() > 0));
