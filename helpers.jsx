@@ -55,10 +55,12 @@
     const open = (s) => { setAdding(false); setSelId(s.id); };
     const closeEditor = () => { setSelId(null); setAdding(false); };
 
-    const saveLog = (studentName, originalHours, newHours, reason) => {
+    const saveLog = (s, originalHours, newHours, reason) => {
       const id = `log_${Date.now()}`;
       return db.collection(PATHS.logs).doc(id).set({
-        id, timestamp: new Date().toLocaleString("ko-KR"), studentName, originalHours, newHours, reason, operator,
+        id, timestamp: new Date().toLocaleString("ko-KR"),
+        studentId: s.id, studentName: s.name, neisName: s.neisName || "", grade: s.grade, class: s.class, number: s.number,
+        originalHours, newHours, reason, operator,
       });
     };
 
@@ -157,7 +159,7 @@
               <MoreMenu items={[
                 { label: "CSV 가져오기 (전체 교체)", file: ".csv", onChange: importCsv },
                 { label: "CSV 내보내기", onClick: exportCsv },
-                { label: `변경 이력 (${(logs || []).length})`, onClick: () => setLogsOpen(true) },
+                { label: `변경 이력 (미확인 ${(logs || []).filter((l) => !l.checkedBy).length})`, onClick: () => setLogsOpen(true) },
                 "-",
                 { label: "전체 초기화", danger: true, onClick: resetAll },
               ]} />
@@ -252,7 +254,7 @@
           />
         </div>
 
-        {isAdmin && logsOpen && <LogsModal logs={logs || []} onClose={() => setLogsOpen(false)} />}
+        {isAdmin && logsOpen && <LogsModal logs={logs || []} students={list} reviewer={operator} onClose={() => setLogsOpen(false)} />}
         {isAdmin && certOpen && (
           <CertificateModal students={list} db={db} settingsDocPath={PATHS.certSettings} onClose={() => setCertOpen(false)} onToast={toast} />
         )}
@@ -293,7 +295,7 @@
         } else {
           await db.collection(PATHS.students).doc(student.id).update(data);
           if (data.hours !== student.hours || data.reason !== (student.reason || "")) {
-            await onSaveLog(student.name, student.hours, data.hours, data.reason);
+            await onSaveLog({ ...student, ...data }, student.hours, data.hours, data.reason);
           }
           toast("저장했습니다.");
           onClose();
@@ -371,19 +373,36 @@
     );
   }
 
-  function LogsModal({ logs, onClose }) {
+  // 나이스 성명(영문 이름 등)이 한글 이름과 다르면 "나이스 성명(한글 이름)"으로 보인다.
+  const displayName = (s) => {
+    const neis = (s.neisName || "").trim();
+    return neis && neis !== s.name ? `${neis}(${s.name})` : s.name;
+  };
+
+  // 이력은 지우지 않고 관리자가 확인 표시만 한다.
+  function LogsModal({ logs, students, reviewer, onClose }) {
+    // 예전 이력에는 학년·반이 없어서 지금 명단에서 찾아 채운다(같은 이름이 둘 이상이면 비워 둔다).
+    const who = (l) => {
+      if (l.grade) return { name: displayName({ name: l.studentName, neisName: l.neisName }), cls: `${l.grade}학년 ${l.class}반${l.number ? ` ${l.number}번` : ""}` };
+      const byId = l.studentId && students.find((s) => s.id === l.studentId);
+      const byName = students.filter((s) => s.name === l.studentName);
+      const s = byId || (byName.length === 1 ? byName[0] : null);
+      return s ? { name: displayName(s), cls: `${s.grade}학년 ${s.class}반 ${s.number}번` } : { name: l.studentName, cls: "" };
+    };
     const [checked, setChecked] = useState({});
-    const ids = Object.keys(checked).filter((k) => checked[k]);
-    const removeSelected = async () => {
-      if (!ids.length || !window.confirm(`선택한 이력 ${ids.length}건을 삭제할까요?`)) return;
-      await commitInChunks(ids.map((id) => (b) => b.delete(db.collection(PATHS.logs).doc(id))));
+    const open = logs.filter((l) => !l.checkedBy);
+    const ids = Object.keys(checked).filter((k) => checked[k] && open.some((l) => l.id === k));
+    const confirmSelected = async () => {
+      if (!ids.length) return;
+      const at = new Date().toLocaleString("ko-KR");
+      await commitInChunks(ids.map((id) => (b) => b.update(db.collection(PATHS.logs).doc(id), { checkedBy: reviewer, checkedAt: at })));
       setChecked({});
-      toast("이력을 삭제했습니다.");
+      toast(`${ids.length}건을 확인했습니다.`);
     };
     return (
-      <Modal title="변경 이력" sub={`${logs.length}건`} onClose={onClose} width={760}
+      <Modal title="변경 이력" sub={`${logs.length}건 · 미확인 ${open.length}건`} onClose={onClose} width={860}
         footer={<>
-          {logs.length > 0 && <button onClick={removeSelected} disabled={!ids.length} className="btn btn-danger mr-auto">선택 삭제</button>}
+          {open.length > 0 && <button onClick={confirmSelected} disabled={!ids.length} className="btn btn-primary mr-auto">{ids.length ? `선택한 ${ids.length}건 관리자 확인` : "관리자 확인"}</button>}
           <button onClick={onClose} className="btn">닫기</button>
         </>}>
         {logs.length === 0 ? <Empty title="변경 이력이 없습니다." /> : (
@@ -391,21 +410,30 @@
             <table className="data-table">
               <thead>
                 <tr>
-                  <th style={{ width: "2.5rem" }}><input type="checkbox" aria-label="전체 선택" checked={logs.every((l) => checked[l.id])} onChange={(e) => setChecked(e.target.checked ? Object.fromEntries(logs.map((l) => [l.id, true])) : {})} /></th>
+                  <th style={{ width: "2.5rem" }}>{open.length > 0 && <input type="checkbox" aria-label="미확인 전체 선택" checked={open.every((l) => checked[l.id])} onChange={(e) => setChecked(e.target.checked ? Object.fromEntries(open.map((l) => [l.id, true])) : {})} />}</th>
                   <th>학생</th>
                   <th style={{ textAlign: "right" }}>시간</th>
                   <th>사유</th>
                   <th className="hidden sm:table-cell">변경자 · 일시</th>
+                  <th>관리자 확인</th>
                 </tr>
               </thead>
               <tbody>
                 {logs.map((l) => (
                   <tr key={l.id}>
-                    <td><input type="checkbox" checked={!!checked[l.id]} onChange={() => setChecked((p) => ({ ...p, [l.id]: !p[l.id] }))} /></td>
-                    <td className="font-semibold whitespace-nowrap">{l.studentName}</td>
+                    <td>{!l.checkedBy && <input type="checkbox" checked={!!checked[l.id]} onChange={() => setChecked((p) => ({ ...p, [l.id]: !p[l.id] }))} aria-label="확인할 이력 선택" />}</td>
+                    <td className="whitespace-nowrap">
+                      <div className="font-semibold">{who(l).name}</div>
+                      {who(l).cls && <div className="text-xs muted num">{who(l).cls}</div>}
+                    </td>
                     <td className="num whitespace-nowrap" style={{ textAlign: "right" }}>{l.originalHours} → <strong>{l.newHours}</strong></td>
                     <td className="muted">{l.reason}</td>
                     <td className="hidden sm:table-cell muted text-xs num">{l.operator}<br />{l.timestamp}</td>
+                    <td className="whitespace-nowrap">
+                      {l.checkedBy
+                        ? <><span className="badge badge-ok">확인</span><div className="text-xs muted num" style={{ marginTop: 2 }}>{l.checkedBy}<br />{l.checkedAt}</div></>
+                        : <span className="badge badge-warn">미확인</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody>
