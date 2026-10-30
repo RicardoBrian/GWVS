@@ -34,8 +34,10 @@
       const r = byKey.get(studentKey(a.grade, a.class, a.number));
       const same = byName.get(normName(a.neisName)) || [];
       if (r && normName(r.name) === normName(a.neisName)) {
-        const kr = r.koreanName || r.name;
-        if (normName(kr) !== normName(a.name)) issues.push({ a, type: "한글 이름 다름", text: `명단의 한글 이름은 ${kr}입니다.`, fix: r });
+        // 명단에 한글 이름이 적혀 있을 때만 비교한다(비어 있으면 도우미 쪽 한글 이름을 그대로 둔다).
+        const kr = (r.koreanName || "").trim();
+        const mine = normName(a.name) === normName(a.neisName) ? "" : a.name;
+        if (kr && normName(kr) !== normName(mine)) issues.push({ a, type: "한글 이름 다름", text: mine ? `명단에는 ${kr}, 여기에는 ${mine}` : `명단에는 한글 이름 ${kr}이 있습니다.`, fix: r });
       } else if (same.length === 1) {
         const m = same[0];
         issues.push({ a, type: "학적 다름", text: `명단에서는 ${m.grade}-${m.klass}-${m.number}입니다.`, fix: m });
@@ -532,7 +534,9 @@
           const ref = db.collection(PATHS.students).doc(i.a.id);
           if (i.dup) return b.delete(ref);
           const r = i.fix;
-          b.update(ref, { grade: r.grade, class: r.klass, number: r.number, rosterKey: studentKey(r.grade, r.klass, r.number), neisName: r.name, name: r.koreanName || r.name });
+          // 명단에 한글 이름이 없으면 원래 적혀 있던 한글 이름을 지킨다.
+          const korean = (r.koreanName || "").trim() || (normName(i.a.neisName) === normName(r.name) ? i.a.name : "") || r.name;
+          b.update(ref, { grade: r.grade, class: r.klass, number: r.number, rosterKey: studentKey(r.grade, r.klass, r.number), neisName: r.name, name: korean });
         }));
         toast(`${list.length}건을 고쳤습니다.`);
       } catch (err) {
@@ -547,13 +551,13 @@
         {!rosterCount && <div className="notice notice-warn" style={{ marginBottom: "0.75rem" }}>전교생 명단이 없어 학적·이름은 점검하지 못했습니다.</div>}
         {issues.length === 0 ? <Empty title="문제가 없습니다." sub="모든 배정 학생이 전교생 명단과 일치합니다." /> : (
           <div style={{ margin: "0 -1.375rem -1.125rem" }}>
-            <table className="data-table">
-              <thead><tr><th>학생</th><th>점검</th><th>내용</th><th aria-label="고치기" /></tr></thead>
+            <table className="data-table" style={{ tableLayout: "fixed" }}>
+              <thead><tr><th style={{ width: "36%" }}>학생</th><th style={{ width: "8.5rem" }}>점검</th><th>내용</th><th style={{ width: "3.75rem" }} aria-label="고치기" /></tr></thead>
               <tbody>
                 {issues.map((i, n) => (
                   <tr key={n}>
-                    <td className="whitespace-nowrap"><span className="num muted">{i.a.grade}-{i.a.class}-{i.a.number}</span> <strong>{displayName(i.a.neisName, i.a.name)}</strong><div className="text-xs faint">{i.a.helperName}</div></td>
-                    <td><span className={`badge ${i.type === "명단에 없음" || i.type === "역할 없음" ? "badge-danger" : "badge-warn"}`}>{i.type}</span></td>
+                    <td><span className="num muted">{i.a.grade}-{i.a.class}-{i.a.number}</span> <strong>{displayName(i.a.neisName, i.a.name)}</strong><div className="text-xs faint">{i.a.helperName}</div></td>
+                    <td className="whitespace-nowrap"><span className={`badge ${i.type === "명단에 없음" || i.type === "역할 없음" ? "badge-danger" : "badge-warn"}`}>{i.type}</span></td>
                     <td className="muted" style={{ fontSize: "0.85rem" }}>{i.text}</td>
                     <td style={{ textAlign: "right" }}>{(i.fix || i.dup) && <IconBtn icon={i.dup ? "trash" : "ok"} label={i.dup ? "중복 지우기" : "명단대로 고치기"} small tipLeft disabled={busy} onClick={() => apply([i])} />}</td>
                   </tr>
