@@ -68,8 +68,39 @@
   // 명단 붙여넣기·CSV 읽기
   // 나이스 학생 명부를 엑셀에서 복사해 붙여넣거나 CSV로 저장한 파일을 받는다.
   // 머리줄(번호·성명)이 있으면 그 열을 쓰고, 없으면 "숫자 칸 = 번호, 그다음 글자 칸 = 이름"으로 읽는다.
+  // 한글 확인서의 명단 표를 통째로 복사해 붙인 글(칸마다 한 줄)도 받는다.
   // ============================================================
+
+  // 한글 확인서 명단 표: 칸이 "연번, 학년, 반, 번호, 성명, 인정시간" 6칸씩 이어진다.
+  // 왼쪽·오른쪽 두 줄이 번갈아 나오고 빈 칸과 "이하 빈칸" 글자가 끼어 있어, 이 모양이 맞는 곳만 골라 읽는다.
+  // 긴 영문 이름이 칸 안에서 두 줄로 나뉜 경우와 인정시간 칸이 빈 경우도 받는다.
+  function parseCertCells(cells) {
+    const t = cells.map((c) => String(c ?? "").trim()).filter(Boolean);
+    const isInt = (v) => /^\d+$/.test(v);
+    const startsRecord = (j) => j + 4 < t.length
+      && isInt(t[j]) && isInt(t[j + 1]) && isInt(t[j + 2]) && isInt(t[j + 3]) && !isInt(t[j + 4])
+      && +t[j + 1] >= 1 && +t[j + 1] <= 6 && +t[j + 2] >= 1 && +t[j + 3] >= 1;
+    const out = [];
+    for (let i = 0; i < t.length;) {
+      if (!startsRecord(i)) { i++; continue; }
+      const [, g, c, n] = t.slice(i, i + 4);
+      let j = i + 4;
+      const parts = [];
+      while (j < t.length && !isInt(t[j]) && t[j].length > 1 && parts.length < 3) parts.push(t[j++]);
+      // 다음 칸이 같은 반의 새 학생 줄로 시작하면 인정시간 칸이 빈 것이다.
+      let hours = null;
+      if (j < t.length && isInt(t[j]) && !(startsRecord(j) && t[j + 1] === g && t[j + 2] === c)) hours = +t[j++];
+      out.push({ grade: +g, klass: +c, number: +n, name: parts.join(" "), hours });
+      i = j;
+    }
+    return out.sort(byGradeClassNo);
+  }
+
   function parseRoster(text) {
+    if (/연번|인정\s*시간/.test(text)) {
+      const cert = parseCertCells(String(text).split(/[\r\n\t]+/));
+      if (cert.length) return { rows: cert, hasClassCols: true };
+    }
     const rows = Papa.parse(String(text || "").trim(), { skipEmptyLines: true }).data
       .map((r) => r.map((c) => String(c ?? "").trim()));
     const isNum = (v) => /^\d+$/.test(v);
@@ -106,7 +137,30 @@
       }
       if (number && name) out.push({ grade, klass, number, name });
     });
+    if (!out.length) {
+      const cert = parseCertCells(String(text).split(/[\r\n\t]+/));
+      if (cert.length) return { rows: cert, hasClassCols: true };
+    }
     return { rows: out, hasClassCols: out.some((r) => r.grade && r.klass) };
+  }
+
+  // 파일 여러 개(CSV·한글)를 읽어 한 미리보기로 합친다.
+  async function readRosterFiles(files) {
+    const rows = [];
+    const failed = [];
+    for (const file of files) {
+      try {
+        const parsed = /\.hwpx?$/i.test(file.name)
+          ? { rows: parseCertCells(await window.GWHwp.readHwpTokens(file)) }
+          : parseRoster(await readTextFile(file));
+        if (!parsed.rows.length) failed.push(`${file.name}: 번호·이름을 찾지 못했습니다.`);
+        rows.push(...parsed.rows);
+      } catch (err) {
+        console.error(file.name, err);
+        failed.push(`${file.name}: ${err.message || "읽지 못했습니다."}`);
+      }
+    }
+    return { rows, hasClassCols: rows.some((r) => r.grade && r.klass), failed };
   }
 
   async function replaceClassRoster(roster, grade, klass, rows) {
@@ -148,9 +202,12 @@
       setPreview({ ...parsed, source });
     };
     const onFile = async (e) => {
-      const file = e.target.files[0];
+      const files = [...e.target.files];
       e.target.value = "";
-      if (file) openPreview(await readTextFile(file), file.name);
+      if (!files.length) return;
+      const parsed = await readRosterFiles(files);
+      if (!parsed.rows.length) return toast(parsed.failed[0] || "번호와 이름을 찾지 못했습니다.", "danger");
+      setPreview({ ...parsed, source: files.length > 1 ? `파일 ${files.length}개` : files[0].name });
     };
 
     const addOne = async (e) => {
@@ -224,15 +281,15 @@
             <div className="card card-pad">
               <div className="card-title" style={{ marginBottom: "0.75rem" }}>명단 올리기</div>
               <textarea className="inp" rows="6" value={paste} onChange={(e) => setPaste(e.target.value)}
-                placeholder={"나이스 학생 명부(엑셀)에서 번호·성명 열을 복사해 붙여넣으세요.\n\n1\t김하늘\n2\t이도윤"} />
+                placeholder={"나이스 학생 명부(엑셀)에서 번호·성명 열을 복사해 붙여넣으세요.\n한글 확인서의 명단 표를 통째로 복사해 붙여도 됩니다.\n\n1\t김하늘\n2\t이도윤"} />
               <div className="flex gap-2 mt-2">
                 <button className="btn btn-primary" disabled={!paste.trim()} onClick={() => openPreview(paste, "붙여넣기")}>확인</button>
                 <label className="btn">
-                  <Icon name="upload" size={16} />CSV 파일
-                  <input type="file" accept=".csv,.txt" className="hidden" onChange={onFile} />
+                  <Icon name="upload" size={16} />파일 올리기
+                  <input type="file" accept=".hwp,.hwpx,.csv,.txt" multiple={isAdmin} className="hidden" onChange={onFile} />
                 </label>
               </div>
-              <p className="field-hint">올리면 {g && k ? classLabel(g, k) : "이 학급"} 명단이 통째로 바뀝니다. 미리보기에서 확인한 뒤 저장됩니다.</p>
+              <p className="field-hint">한글 확인서(.hwp·.hwpx)나 CSV 파일을 올릴 수 있습니다{isAdmin ? ". 여러 반 파일을 한꺼번에 골라도 됩니다" : ""}. 올리면 {g && k ? classLabel(g, k) : "이 학급"} 명단이 통째로 바뀝니다. 미리보기에서 확인한 뒤 저장됩니다.</p>
             </div>
             <form className="card card-pad" onSubmit={addOne}>
               <div className="card-title" style={{ marginBottom: "0.75rem" }}>한 명 추가 (전입 등)</div>
@@ -307,6 +364,7 @@
         </>}>
         <div className="fields">
           {multi && <Seg value={mode} onChange={setMode} options={[["file", "파일의 학년·반대로 저장"], ["this", `${classLabel(grade, klass)}에만 저장`]]} />}
+          {preview.failed && preview.failed.length > 0 && <div className="notice notice-danger">{preview.failed.map((f) => <div key={f}>{f}</div>)}</div>}
           {skipped > 0 && <div className="notice notice-warn">다른 학급으로 적힌 {skipped}줄은 빼고 저장합니다.</div>}
           {problems.length > 0 && <div className="notice notice-danger">{problems.map((p) => <div key={p}>{p}</div>)}</div>}
           {groups.map((gr) => (
