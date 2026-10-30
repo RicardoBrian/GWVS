@@ -124,7 +124,7 @@
     if (!current || setupOpen) page = isAdmin
       ? <TermSetup onDone={() => setSetupOpen(false)} />
       : <div className="card"><Empty title="학기 설정을 기다리는 중입니다." sub="관리자가 학기를 설정하면 쓸 수 있습니다." /></div>;
-    else if (sec === "helpers") page = <HelpersPage {...tp} isAdmin={isAdmin} me={me} uid={user.uid} operator={`${me} (${roleText})`} roster={roster} teachers={teachers} />;
+    else if (sec === "helpers") page = <HelpersPage {...tp} isAdmin={isAdmin} me={me} uid={user.uid} operator={`${me} (${roleText})`} roster={roster} teachers={teachers} homeroom={homeroom} />;
     else if (sec === "attendance") page = <AttendancePage {...tp} isAdmin={isAdmin} homeroom={homeroom} me={me} myStamp={(teacher && teacher.stamp) || ""} roster={roster} events={events} route={{ eventId: route.a, cls: route.b }} go={go} />;
     else if (sec === "roster") page = <RosterPage {...tp} key={(isAdmin ? "a" : route.a) + term} isAdmin={isAdmin} homeroom={homeroom} roster={roster} route={{ cls: route.a }} go={go} />;
     else if (sec === "events") page = <EventsPage {...tp} roster={roster} events={events} teachers={teachers} route={{ eventId: route.a }} go={go} />;

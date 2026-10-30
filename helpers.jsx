@@ -56,7 +56,7 @@
     return issues;
   }
 
-  function HelpersPage({ isAdmin, me, uid, operator, term, readOnly, roster, teachers }) {
+  function HelpersPage({ isAdmin, me, uid, operator, term, readOnly, roster, teachers, homeroom }) {
     const roles = useCollection(PATHS.roles, sortRoles, term);
     const assigns = useCollection(PATHS.students, sortByStudent, term);
     const logs = useCollection(isAdmin ? PATHS.logs : null, (l) => [...l].sort((a, b) => String(b.id).localeCompare(String(a.id), undefined, { numeric: true })), term);
@@ -68,6 +68,7 @@
     const [sel, setSel] = useState(null); // 역할 key, null이면 전체
     const [q, setQ] = useState("");
     const [grade, setGrade] = useState("all");
+    const [klass, setKlass] = useState("all");
     const [editing, setEditing] = useState(null);
     const [roleEdit, setRoleEdit] = useState(null); // null | "new" | role
     const [assignOpen, setAssignOpen] = useState(false);
@@ -89,11 +90,19 @@
     const shown = list.filter((a) => {
       if (sel && a.roleKey !== sel) return false;
       if (grade !== "all" && a.grade !== +grade) return false;
+      if (klass !== "all" && a.class !== +klass) return false;
       const t = normName(q);
       if (t && ![a.name, a.neisName, (roleByKey[a.roleKey] || {}).name].some((v) => normName(v).includes(t))) return false;
       return true;
     });
     const edited = list.filter((a) => a.hours !== a.originalHours).length;
+    // 고른 학년에 실제로 배정 학생이 있는 반(담임 학급은 늘 보이게)
+    const classesIn = useMemo(() => {
+      if (grade === "all") return [];
+      const set = new Set(list.filter((a) => a.grade === +grade && (!sel || a.roleKey === sel)).map((a) => a.class));
+      if (homeroom && homeroom.grade === +grade) set.add(homeroom.klass);
+      return [...set].sort((a, b) => a - b);
+    }, [list, grade, sel, homeroom]);
     const openLogs = (logs || []).filter((l) => !l.checkedBy).length;
 
     const exportCsv = () => {
@@ -172,7 +181,15 @@
                   <Icon name="search" size={15} />
                   <input type="search" className="inp" value={q} onChange={(e) => setQ(e.target.value)} placeholder="이름·역할로 검색" />
                 </div>
-                <Seg value={grade} onChange={setGrade} options={[["all", "전체"], ...GRADES.map((g) => [String(g), `${g}학년`])]} />
+                <Seg value={grade} onChange={(v) => { setGrade(v); setKlass("all"); }} options={[["all", "전체"], ...GRADES.map((g) => [String(g), `${g}학년`])]} />
+                <select className="inp" style={{ width: "7.5rem" }} value={klass} disabled={grade === "all"} onChange={(e) => setKlass(e.target.value)} aria-label="반"
+                  title={grade === "all" ? "학년을 먼저 고르세요" : undefined}>
+                  <option value="all">{grade === "all" ? "반" : "전체 반"}</option>
+                  {classesIn.map((k) => <option key={k} value={k}>{k}반</option>)}
+                </select>
+                {homeroom && !(grade === String(homeroom.grade) && klass === String(homeroom.klass)) && (
+                  <button type="button" className="btn btn-sm" onClick={() => { setGrade(String(homeroom.grade)); setKlass(String(homeroom.klass)); }}>우리 반</button>
+                )}
                 <span className="muted num ml-auto" style={{ fontSize: "0.8125rem" }}>{shown.length}명</span>
               </div>
               {assigns === null ? <Empty title="불러오는 중…" /> : shown.length === 0 ? (
