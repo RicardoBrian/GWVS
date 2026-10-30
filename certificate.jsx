@@ -283,6 +283,8 @@
       inCurriculum: !!setting.inCurriculum,
       content: setting.content != null ? setting.content : group.defaultContent,
       teacher: setting.teacher || "",
+      title: setting.title || "교사",
+      stamp: setting.stamp || "",
       confirm: parseYMD(confirmDate),
     };
     return paginate(rows).map((p) => ({ ...p, info, key: group.helperName }));
@@ -471,7 +473,17 @@
                   {fmtConfirm(info.confirm)}
                 </P>
                 <P fs={10} ls={180} bold last={false}>
-                  {` 확  인  자 : 교사　 ${spaced(info.teacher)}  (인)`}
+                  {` 확  인  자 : ${info.title}　 ${spaced(info.teacher)}  `}
+                  {/* 도장 이미지는 (인) 위에 겹쳐 찍는다. 줄 높이에 영향을 주지 않게 absolute로 둔다. */}
+                  <span style={{ position: "relative", display: "inline-block" }}>
+                    (인)
+                    {info.stamp && (
+                      <img src={info.stamp} alt="" style={{
+                        position: "absolute", left: "50%", top: "50%", height: "40pt", width: "auto",
+                        maxWidth: "60pt", transform: "translate(-50%, -50%)", mixBlendMode: "multiply", pointerEvents: "none",
+                      }} />
+                    )}
+                  </span>
                 </P>
                 <P fs={10} ls={130} bold last={false}>{""}</P>
                 <P fs={12} ls={180} bold align="justify" indent={130.51} last={false}>
@@ -745,11 +757,8 @@
             </div>
 
             <div className="modal-foot">
-              <button onClick={() => setPreviewing((v) => !v)} className="btn mr-auto">
-                {previewing ? "미리보기 닫기" : "미리보기"}
-              </button>
-              <button onClick={onClose} className="btn">닫기</button>
-              <button onClick={handlePrint} className="btn btn-primary">PDF 저장 / 인쇄</button>
+              <window.GW.IconBtn icon={previewing ? "eyeOff" : "eye"} label={previewing ? "미리보기 닫기" : "미리보기"} onClick={() => setPreviewing((v) => !v)} className="mr-auto" />
+              <window.GW.IconBtn icon="printer" label="PDF 저장 / 인쇄" primary onClick={handlePrint} />
             </div>
           </div>
         </div>

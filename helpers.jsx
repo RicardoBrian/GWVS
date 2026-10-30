@@ -2,7 +2,7 @@
 (function () {
   const { useState, useMemo, useEffect } = React;
   const { db, PATHS, toInt, commitInChunks, downloadCsv, readTextFile, toast,
-    useCollection, useWide, Icon, Modal, Inspector, PageHead, Empty, MoreMenu } = window.GW;
+    useCollection, useWide, Icon, IconBtn, Modal, Inspector, PageHead, Empty, MoreMenu } = window.GW;
 
   const ROLE_PRESETS = ["급식 도우미", "학급 분리수거도우미", "특별실 분리수거 도우미", "분리수거장 도우미", "기자재 관리도우미"];
   const sortStudents = (list) => [...list].sort((a, b) => (a.grade - b.grade) || (a.class - b.class) || (a.number - b.number));
@@ -154,8 +154,8 @@
           sub={`도우미 ${list.length}명${edited ? ` · 시간 변경 ${edited}명` : ""}`}
           actions={isAdmin && (
             <>
-              <button onClick={() => setCertOpen(true)} className="btn btn-primary"><Icon name="printer" size={16} />확인서 출력</button>
-              <button onClick={() => { setSelId(null); setAdding(true); }} className="btn"><Icon name="plus" size={16} />도우미 추가</button>
+              <IconBtn icon="printer" label="확인서 출력" primary onClick={() => setCertOpen(true)} />
+              <IconBtn icon="plus" label="도우미 추가" onClick={() => { setSelId(null); setAdding(true); }} />
               <MoreMenu items={[
                 { label: "CSV 가져오기 (전체 교체)", file: ".csv", onChange: importCsv },
                 { label: "CSV 내보내기", onClick: exportCsv },
@@ -182,7 +182,7 @@
                 <option value="all">전체 역할</option>
                 {roles.map((r) => <option key={r} value={r}>{r}</option>)}
               </select>
-              {hasFilter && <button onClick={() => { setQ(""); setCls("all"); setRole("all"); }} className="btn btn-ghost btn-sm">조건 지우기</button>}
+              {hasFilter && <IconBtn icon="close" label="조건 지우기" small ghost onClick={() => { setQ(""); setCls("all"); setRole("all"); }} />}
               <span className="muted num ml-auto" style={{ fontSize: "0.8125rem" }}>{hasFilter ? `검색 결과 ${filtered.length}명` : `${filtered.length}명`}</span>
             </div>
 
@@ -323,9 +323,8 @@
         placeholder={placeholder}
         footer={
           <>
-            {!isNew && isAdmin && <button onClick={remove} className="btn btn-ghost btn-danger mr-auto">제외</button>}
-            <button onClick={onClose} className="btn">{isNew ? "닫기" : "취소"}</button>
-            <button onClick={save} disabled={busy} className="btn btn-primary">{isNew ? "추가" : "저장"}</button>
+            {!isNew && isAdmin && <IconBtn icon="trash" label="명단에서 제외" ghost danger className="mr-auto" onClick={remove} />}
+            <IconBtn icon={isNew ? "plus" : "ok"} label={isNew ? "추가" : "저장"} primary tipLeft disabled={busy} onClick={save} />
           </>
         }
       >
@@ -402,8 +401,7 @@
     return (
       <Modal title="변경 이력" sub={`${logs.length}건 · 미확인 ${open.length}건`} onClose={onClose} width={860}
         footer={<>
-          {open.length > 0 && <button onClick={confirmSelected} disabled={!ids.length} className="btn btn-primary mr-auto">{ids.length ? `선택한 ${ids.length}건 관리자 확인` : "관리자 확인"}</button>}
-          <button onClick={onClose} className="btn">닫기</button>
+          {open.length > 0 && <IconBtn icon="ok" label={ids.length ? `선택한 ${ids.length}건 관리자 확인` : "확인할 이력을 고르세요"} primary tipLeft disabled={!ids.length} onClick={confirmSelected} />}
         </>}>
         {logs.length === 0 ? <Empty title="변경 이력이 없습니다." /> : (
           <div style={{ margin: "-1.125rem -1.375rem" }}>

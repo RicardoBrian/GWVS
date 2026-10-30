@@ -169,6 +169,16 @@
     plus: <path d="M12 5v14M5 12h14" />,
     upload: <><path d="M12 16V4M7 9l5-5 5 5" /><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" /></>,
     download: <><path d="M12 4v12M7 11l5 5 5-5" /><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" /></>,
+    ok: <path d="M5 12.5l4.5 4.5L19 7.5" />,
+    trash: <><path d="M4 7h16M10 11v6M14 11v6" /><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" /></>,
+    edit: <><path d="M4 20h4L19 9l-4-4L4 16v4z" /><path d="M13.5 6.5l4 4" /></>,
+    eye: <><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></>,
+    eyeOff: <><path d="M3 3l18 18" /><path d="M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3 3.9M6.6 6.6A17 17 0 0 0 2 12s3.5 7 10 7a9.7 9.7 0 0 0 4.4-1" /><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" /></>,
+    lock: <><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></>,
+    unlock: <><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 7.5-2" /></>,
+    reset: <><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></>,
+    ban: <><circle cx="12" cy="12" r="9" /><path d="M5.6 5.6l12.8 12.8" /></>,
+    stamp: <><path d="M9 3h6l-1 7h-4L9 3z" /><path d="M5 14a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3H5v-3zM4 21h16" /></>,
   };
   const Icon = ({ name, size = 18 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -177,6 +187,16 @@
   );
 
   // ---------- 화면 부품 ----------
+  // 글자 없이 그림만 있는 버튼. label은 마우스를 올리면 뜨는 설명이자 화면 읽기 프로그램용 이름이다.
+  function IconBtn({ icon, label, primary, danger, ghost, small, className = "", tipLeft, ...rest }) {
+    const cls = ["btn", "btn-icon", primary && "btn-primary", danger && "btn-danger", ghost && "btn-ghost", small && "btn-sm", className].filter(Boolean).join(" ");
+    return (
+      <button type="button" className={cls} aria-label={label} data-tip={label} data-tip-left={tipLeft ? "" : undefined} {...rest}>
+        <Icon name={icon} size={small ? 15 : 18} />
+      </button>
+    );
+  }
+
   function Modal({ title, sub, onClose, children, footer, width = 560 }) {
     useEffect(() => {
       const onKey = (e) => e.key === "Escape" && onClose && onClose();
@@ -320,6 +340,6 @@
     toInt, classKey, classLabel, rosterId, attendanceId, byGradeClassNo, todayKey, fmtDate, fmtPeriods, fmtTime,
     readTextFile, downloadCsv, commitInChunks, toast,
     useMedia, useWide, useCollection,
-    Icon, Toast, Modal, Inspector, PageHead, Empty, Stat, MoreMenu, Seg, GradeClassSelect,
+    Icon, IconBtn, Toast, Modal, Inspector, PageHead, Empty, Stat, MoreMenu, Seg, GradeClassSelect,
   };
 })();

@@ -39,6 +39,7 @@ service cloud.firestore {
     }
 
     // 교사 가입 신청: 본인은 "승인 대기" 상태로만 쓰고 고칠 수 있다. 승인·거절은 관리자만.
+    // 도장(stamp)은 본인이 언제든 바꿀 수 있다(다른 칸은 그대로일 때만).
     match /teachers/{uid} {
       function validApplication() {
         let d = request.resource.data;
@@ -47,12 +48,17 @@ service cloud.firestore {
           && d.name is string && d.name.size() > 0 && d.name.size() <= 30
           && d.homeroom is bool
           && (d.homeroom == false || (d.grade is int && d.klass is int))
-          && d.keys().hasOnly(['name', 'email', 'homeroom', 'grade', 'klass', 'status', 'createdAt', 'updatedAt']);
+          && d.keys().hasOnly(['name', 'email', 'homeroom', 'grade', 'klass', 'status', 'createdAt', 'updatedAt', 'stamp', 'stampUpdatedAt']);
+      }
+      function stampOnly() {
+        let d = request.resource.data;
+        return d.diff(resource.data).affectedKeys().hasOnly(['stamp', 'stampUpdatedAt'])
+          && (!('stamp' in d) || (d.stamp is string && d.stamp.size() < 200000 && d.stamp.matches('^data:image/png;base64,.*')));
       }
       allow get: if signedIn() && (request.auth.uid == uid || isAdmin());
       allow list: if isAdmin();
       allow create: if signedIn() && request.auth.uid == uid && validApplication();
-      allow update: if isAdmin() || (signedIn() && request.auth.uid == uid && validApplication());
+      allow update: if isAdmin() || (signedIn() && request.auth.uid == uid && (validApplication() || stampOnly()));
       allow delete: if isAdmin();
     }
 
