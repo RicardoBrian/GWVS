@@ -24,11 +24,14 @@
 
   const APP_ID = "volunteer-portal-gwvs";
   const DATA = `artifacts/${APP_ID}/public/data`;
+  // 모든 기록에는 학기(term, 예: "2026-2")가 붙는다. 화면은 고른 학기만 보여 주고, 지금 학기만 고칠 수 있다.
   const PATHS = {
-    students: `${DATA}/students`,      // 교육과정 외: 도우미 명단
+    term: `${DATA}/settings/term`,     // { current: "2026-2", terms: [...] }
+    roles: `${DATA}/roles`,            // 교육과정 외: 역할 (문서 ID = 학기_역할키)
+    students: `${DATA}/students`,      // 교육과정 외: 역할에 배정된 학생
     logs: `${DATA}/logs`,              // 교육과정 외: 인정 시간 변경 이력
     certSettings: `${DATA}/settings/certificate`,
-    roster: `${DATA}/roster`,          // 전교생 명단 (문서 ID = 학년-반-번호)
+    roster: `${DATA}/roster`,          // 전교생 명단 (문서 ID = 학기_학년-반-번호)
     events: `${DATA}/events`,          // 교육과정 내 활동
     attendance: `${DATA}/attendance`,  // 활동별·학급별 불참 학생 (문서 ID = 활동ID_학년-반)
   };
@@ -45,7 +48,31 @@
   };
   const classKey = (g, k) => `${g}-${k}`;
   const classLabel = (g, k) => `${g}학년 ${k}반`;
-  const rosterId = (g, k, n) => `${g}-${k}-${n}`;
+  const rosterId = (term, g, k, n) => `${term}_${g}-${k}-${n}`;
+  const studentKey = (g, k, n) => `${g}-${k}-${n}`;
+  // 이름은 띄어쓰기·대소문자를 무시하고 비교한다.
+  const normName = (v) => String(v || "").replace(/\s+/g, "").toUpperCase();
+  // 나이스 성명과 한글 이름이 다르면 "나이스 성명(한글 이름)"
+  const displayName = (neis, korean) => {
+    const n = String(neis || "").trim();
+    const k = String(korean || "").trim();
+    if (!n) return k;
+    return k && normName(k) !== normName(n) ? `${n}(${k})` : n;
+  };
+  // 학기: 3~8월은 1학기, 9~2월은 2학기(1·2월은 전 학년도)
+  const guessTerm = (d = new Date()) => {
+    const m = d.getMonth() + 1;
+    return m >= 3 && m <= 8 ? `${d.getFullYear()}-1` : `${m <= 2 ? d.getFullYear() - 1 : d.getFullYear()}-2`;
+  };
+  const termLabel = (t) => {
+    const m = String(t || "").match(/^(\d{4})-(\d)$/);
+    return m ? `${m[1]}학년도 ${m[2]}학기` : String(t || "");
+  };
+  const nextTerm = (t) => {
+    const m = String(t || "").match(/^(\d{4})-(\d)$/);
+    if (!m) return guessTerm();
+    return m[2] === "1" ? `${m[1]}-2` : `${+m[1] + 1}-1`;
+  };
   const attendanceId = (eventId, g, k) => `${eventId}_${g}-${k}`;
   const byGradeClassNo = (a, b) =>
     (a.grade - b.grade) || ((a.klass ?? a.class) - (b.klass ?? b.class)) || (a.number - b.number);
@@ -139,15 +166,18 @@
   const useWide = () => useMedia("(min-width: 1280px)");
 
   // 컬렉션을 실시간으로 받는다. path가 비어 있으면 받지 않는다.
-  function useCollection(path, map) {
+  // term을 주면 그 학기 기록만 받는다.
+  function useCollection(path, map, term) {
     const [items, setItems] = useState(null);
     useEffect(() => {
       if (!path) { setItems(null); return; }
-      return db.collection(path).onSnapshot(
+      setItems(null);
+      const ref = term ? db.collection(path).where("term", "==", term) : db.collection(path);
+      return ref.onSnapshot(
         (snap) => setItems(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
         (err) => { console.error(path, err); setItems([]); }
       );
-    }, [path]);
+    }, [path, term]);
     return items && map ? map(items) : items;
   }
 
@@ -178,6 +208,8 @@
     unlock: <><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 7.5-2" /></>,
     reset: <><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></>,
     ban: <><circle cx="12" cy="12" r="9" /><path d="M5.6 5.6l12.8 12.8" /></>,
+    alert: <><path d="M12 3l10 18H2L12 3z" /><path d="M12 10v5M12 18h.01" /></>,
+    calendarPlus: <><rect x="3" y="4" width="18" height="17" rx="3" /><path d="M8 2v4M16 2v4M3 10h18M12 13v5M9.5 15.5h5" /></>,
     stamp: <><path d="M9 3h6l-1 7h-4L9 3z" /><path d="M5 14a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3H5v-3zM4 21h16" /></>,
   };
   const Icon = ({ name, size = 18 }) => (
@@ -313,7 +345,7 @@
     return (
       <div className="seg" role="tablist">
         {options.map(([v, label]) => (
-          <button key={v} role="tab" aria-selected={value === v} className={value === v ? "on" : ""} onClick={() => onChange(v)}>{label}</button>
+          <button key={v} type="button" role="tab" aria-selected={value === v} className={value === v ? "on" : ""} onClick={() => onChange(v)}>{label}</button>
         ))}
       </div>
     );
@@ -337,7 +369,7 @@
 
   window.GW = {
     db, auth, FieldValue, CONTACT, PATHS, AREAS, GRADES, PERIODS, MAX_CLASS,
-    toInt, classKey, classLabel, rosterId, attendanceId, byGradeClassNo, todayKey, fmtDate, fmtPeriods, fmtTime,
+    toInt, classKey, classLabel, rosterId, studentKey, normName, displayName, guessTerm, termLabel, nextTerm, attendanceId, byGradeClassNo, todayKey, fmtDate, fmtPeriods, fmtTime,
     readTextFile, downloadCsv, commitInChunks, toast,
     useMedia, useWide, useCollection,
     Icon, IconBtn, Toast, Modal, Inspector, PageHead, Empty, Stat, MoreMenu, Seg, GradeClassSelect,

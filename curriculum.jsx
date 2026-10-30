@@ -3,7 +3,7 @@
 (function () {
   const { useState, useMemo, useEffect, useRef } = React;
   const { db, FieldValue, PATHS, AREAS, GRADES, PERIODS, toInt, classKey, classLabel, rosterId, attendanceId,
-    byGradeClassNo, todayKey, fmtDate, fmtPeriods, fmtTime, readTextFile, downloadCsv, commitInChunks, toast,
+    byGradeClassNo, normName, displayName, todayKey, fmtDate, fmtPeriods, fmtTime, readTextFile, downloadCsv, commitInChunks, toast,
     useWide, useMedia, useCollection, Icon, IconBtn, Modal, Inspector, PageHead, Empty, Stat, MoreMenu, Seg, GradeClassSelect } = window.GW;
 
   const eventGrades = (e) => (e.grades && e.grades.length ? e.grades : GRADES);
@@ -80,21 +80,22 @@
     for (let i = 0; i < Math.min(rows.length, 8); i++) {
       const r = rows[i].map((c) => c.replace(/\s/g, ""));
       const num = r.findIndex((c) => c === "번호" || c === "출석번호" || c === "번");
-      const name = r.findIndex((c) => /^(성명|이름|학생명|한글성명|학생성명)$/.test(c));
+      const name = r.findIndex((c) => /^(성명|나이스성명|이름|학생명|학생성명)(\(나이스\))?$/.test(c));
       if (num >= 0 && name >= 0) {
-        col = { num, name, grade: r.findIndex((c) => c === "학년"), klass: r.findIndex((c) => c === "반" || c === "학급") };
+        col = { num, name, grade: r.findIndex((c) => c === "학년"), klass: r.findIndex((c) => c === "반" || c === "학급"), korean: r.findIndex((c) => /^한글(이름|성명)/.test(c)) };
         start = i + 1;
         break;
       }
     }
     const out = [];
     rows.slice(start).forEach((r) => {
-      let number, name, grade = null, klass = null;
+      let number, name, grade = null, klass = null, koreanName = "";
       if (col) {
         number = toInt(r[col.num]);
         name = (r[col.name] || "").trim();
         if (col.grade >= 0) grade = toInt(r[col.grade]);
         if (col.klass >= 0) klass = toInt(r[col.klass]);
+        if (col.korean >= 0) koreanName = (r[col.korean] || "").trim();
       } else {
         const cells = r.filter((c) => c !== "");
         if (cells.length >= 4 && isNum(cells[0]) && isNum(cells[1]) && isNum(cells[2]) && !isNum(cells[3])) {
@@ -106,7 +107,7 @@
           name = (cells.slice(ni + 1).find((c) => !isNum(c) && !/^[남여]$/.test(c)) || "").trim();
         }
       }
-      if (number && name) out.push({ grade, klass, number, name });
+      if (number && name) out.push({ grade, klass, number, name, koreanName });
     });
     return { rows: out, hasClassCols: out.some((r) => r.grade && r.klass) };
   }
@@ -130,19 +131,19 @@
   // 양식: 학년·반·번호·성명. 지금 명단이 있으면 그대로 채우고, 없으면 번호만 채운 빈 줄을 준다.
   function downloadRosterTemplate(grade, klass, students) {
     const rows = students.length
-      ? students.map((s) => [grade, klass, s.number, s.name])
-      : Array.from({ length: 30 }, (_, i) => [grade, klass, i + 1, ""]);
-    downloadCsv(`학급명단_${grade}-${klass}.csv`, ["학년", "반", "번호", "성명"], rows);
+      ? students.map((s) => [grade, klass, s.number, s.name, s.koreanName || ""])
+      : Array.from({ length: 30 }, (_, i) => [grade, klass, i + 1, "", ""]);
+    downloadCsv(`학급명단_${grade}-${klass}.csv`, ["학년", "반", "번호", "성명(나이스)", "한글 이름"], rows);
   }
 
-  async function replaceClassRoster(roster, grade, klass, rows) {
+  async function replaceClassRoster(term, roster, grade, klass, rows) {
     const col = db.collection(PATHS.roster);
-    const keep = new Set(rows.map((r) => rosterId(grade, klass, r.number)));
+    const keep = new Set(rows.map((r) => rosterId(term, grade, klass, r.number)));
     const old = roster.filter((s) => s.grade === grade && s.klass === klass && !keep.has(s.id));
     await commitInChunks([
       ...old.map((s) => (b) => b.delete(col.doc(s.id))),
-      ...rows.map((r) => (b) => b.set(col.doc(rosterId(grade, klass, r.number)), {
-        grade, klass, number: r.number, name: r.name, updatedAt: FieldValue.serverTimestamp(),
+      ...rows.map((r) => (b) => b.set(col.doc(rosterId(term, grade, klass, r.number)), {
+        term, grade, klass, number: r.number, name: r.name, koreanName: r.koreanName || "", updatedAt: FieldValue.serverTimestamp(),
       })),
     ]);
   }
@@ -150,7 +151,7 @@
   // ============================================================
   // 학급 명단
   // ============================================================
-  function RosterPage({ isAdmin, homeroom, roster, route, go }) {
+  function RosterPage({ isAdmin, homeroom, roster, route, go, term, readOnly }) {
     const initial = route.cls ? route.cls.split("-").map(Number) : homeroom ? [homeroom.grade, homeroom.klass] : [];
     const [grade, setGrade] = useState(initial[0] || (roster && roster[0] ? roster[0].grade : 1));
     const [klass, setKlass] = useState(initial[1] || (roster && roster[0] ? roster[0].klass : 1));
@@ -192,12 +193,16 @@
             <GradeClassSelect grade={grade} klass={klass} classes={allClasses} onChange={(ng, nk) => ng && nk ? pick(ng, nk) : (setGrade(ng), setKlass(nk))} />
           </div>
         )}
-        <IconBtn icon="download" label="CSV 양식 내려받기" onClick={() => downloadRosterTemplate(g, k, students)} />
-        <label className="btn btn-icon" aria-label="CSV 올리기" data-tip="CSV 올리기">
-          <Icon name="upload" />
-          <input type="file" accept=".csv,text/csv" multiple={isAdmin} className="hidden" onChange={onFile} />
-        </label>
-        <IconBtn icon="plus" label="학생 추가" primary tipLeft onClick={() => setAdding((v) => !v)} />
+        <IconBtn icon="download" label="CSV 양식 내려받기" tipLeft={readOnly} onClick={() => downloadRosterTemplate(g, k, students)} />
+        {!readOnly && (
+          <>
+            <label className="btn btn-icon" aria-label="CSV 올리기" data-tip="CSV 올리기">
+              <Icon name="upload" />
+              <input type="file" accept=".csv,text/csv" multiple={isAdmin} className="hidden" onChange={onFile} />
+            </label>
+            <IconBtn icon="plus" label="학생 추가" primary tipLeft onClick={() => setAdding((v) => !v)} />
+          </>
+        )}
       </>
     );
 
@@ -239,7 +244,7 @@
               {lastEdit && <span className="faint num ml-auto" style={{ fontSize: "0.78rem" }}>최근 수정 {fmtTime(lastEdit)}</span>}
             </div>
 
-            {adding && <RosterAddRow grade={g} klass={k} students={students} onClose={() => setAdding(false)} />}
+            {adding && !readOnly && <RosterAddRow term={term} grade={g} klass={k} students={students} onClose={() => setAdding(false)} />}
 
             {roster === null ? <Empty title="불러오는 중…" /> : students.length === 0 ? (
               <Empty title="등록된 학생이 없습니다." sub="CSV 양식을 내려받아 번호·성명을 채운 뒤 올리세요." />
@@ -247,15 +252,16 @@
               <div className="roster-tables" style={{ gridTemplateColumns: `repeat(${chunks.length}, minmax(0, 1fr))` }}>
                 {chunks.map((chunk, ci) => (
                   <table key={ci} className="data-table roster-table">
-                    <thead><tr><th style={{ width: "4rem" }}>번호</th><th>성명</th><th style={{ width: "4.5rem" }} aria-label="관리" /></tr></thead>
+                    <thead><tr><th style={{ width: "4rem" }}>번호</th><th>성명(나이스)</th><th>한글 이름</th><th style={{ width: "4.5rem" }} aria-label="관리" /></tr></thead>
                     <tbody>
                       {chunk.map((s) => (
-                        <tr key={s.id} className="row-open" tabIndex={0} onClick={() => setEditing(s)} onKeyDown={(e) => e.key === "Enter" && setEditing(s)}>
+                        <tr key={s.id} className={readOnly ? "" : "row-open"} tabIndex={readOnly ? undefined : 0} onClick={() => !readOnly && setEditing(s)} onKeyDown={(e) => !readOnly && e.key === "Enter" && setEditing(s)}>
                           <td className="num muted">{s.number}</td>
                           <td className="font-semibold">{s.name}</td>
+                          <td className="muted">{s.koreanName && normName(s.koreanName) !== normName(s.name) ? s.koreanName : ""}</td>
                           <td className="row-actions" onClick={(e) => e.stopPropagation()}>
-                            <IconBtn icon="edit" label="고치기" small ghost onClick={() => setEditing(s)} />
-                            <IconBtn icon="trash" label="명단에서 빼기" small ghost danger tipLeft onClick={() => removeStudent(s)} />
+                            {!readOnly && <IconBtn icon="edit" label="고치기" small ghost onClick={() => setEditing(s)} />}
+                            {!readOnly && <IconBtn icon="trash" label="명단에서 빼기" small ghost danger tipLeft onClick={() => removeStudent(s)} />}
                           </td>
                         </tr>
                       ))}
@@ -268,10 +274,10 @@
         </div>
 
         {preview && (
-          <RosterPreview preview={preview} isAdmin={isAdmin} grade={g} klass={k} roster={list}
+          <RosterPreview preview={preview} term={term} isAdmin={isAdmin} grade={g} klass={k} roster={list}
             onClose={() => setPreview(null)} onSaved={() => setPreview(null)} />
         )}
-        {editing && <RosterEdit s={editing} students={students} onClose={() => setEditing(null)} />}
+        {editing && <RosterEdit term={term} s={editing} students={students} onClose={() => setEditing(null)} />}
       </>
     );
   }
@@ -283,10 +289,11 @@
   }
 
   // 표 위에 펼쳐지는 한 줄 추가 칸(전입 등)
-  function RosterAddRow({ grade, klass, students, onClose }) {
+  function RosterAddRow({ term, grade, klass, students, onClose }) {
     const next = students.reduce((m, s) => Math.max(m, s.number), 0) + 1;
     const [no, setNo] = useState(String(next));
     const [name, setName] = useState("");
+    const [korean, setKorean] = useState("");
     const ref = useRef(null);
     useEffect(() => { ref.current && ref.current.focus(); }, []);
     const add = async (e) => {
@@ -294,23 +301,25 @@
       const n = toInt(no);
       if (!n || !name.trim()) return toast("번호와 성명을 입력하세요.", "danger");
       if (students.some((s) => s.number === n)) return toast(`${n}번은 이미 있습니다.`, "danger");
-      await db.collection(PATHS.roster).doc(rosterId(grade, klass, n)).set({ grade, klass, number: n, name: name.trim(), updatedAt: FieldValue.serverTimestamp() });
+      await db.collection(PATHS.roster).doc(rosterId(term, grade, klass, n)).set({ term, grade, klass, number: n, name: name.trim(), koreanName: korean.trim(), updatedAt: FieldValue.serverTimestamp() });
       toast(`${n}번 ${name.trim()} 학생을 추가했습니다.`);
       setNo(String(n + 1));
       setName("");
+      setKorean("");
       ref.current && ref.current.focus();
     };
     return (
       <form className="roster-add" onSubmit={add}>
         <input className="inp num" type="number" min="1" value={no} onChange={(e) => setNo(e.target.value)} aria-label="번호" placeholder="번호" />
-        <input ref={ref} className="inp" value={name} onChange={(e) => setName(e.target.value)} aria-label="성명" placeholder="성명" />
+        <input ref={ref} className="inp" value={name} onChange={(e) => setName(e.target.value)} aria-label="성명(나이스)" placeholder="성명(나이스)" />
+        <input className="inp" value={korean} onChange={(e) => setKorean(e.target.value)} aria-label="한글 이름" placeholder="한글 이름(선택)" />
         <button type="submit" className="btn btn-icon btn-primary" aria-label="추가" data-tip="추가"><Icon name="ok" /></button>
         <IconBtn icon="close" label="닫기" ghost tipLeft onClick={onClose} />
       </form>
     );
   }
 
-  function RosterPreview({ preview, isAdmin, grade, klass, roster, onClose, onSaved }) {
+  function RosterPreview({ preview, term, isAdmin, grade, klass, roster, onClose, onSaved }) {
     // 학년·반 열이 있는 파일을 관리자가 올리면 파일에 적힌 학급마다 저장할 수 있다.
     const multi = isAdmin && preview.hasClassCols;
     const [mode, setMode] = useState(multi ? "file" : "this");
@@ -344,7 +353,7 @@
       if (existing && !window.confirm(`${groups.length}개 학급의 기존 명단 ${existing}명을 이 ${total}명으로 바꿉니다. 계속할까요?`)) return;
       setBusy(true);
       try {
-        for (const gr of groups) await replaceClassRoster(roster, gr.grade, gr.klass, gr.rows);
+        for (const gr of groups) await replaceClassRoster(term, roster, gr.grade, gr.klass, gr.rows);
         toast(`${groups.length > 1 ? `${groups.length}개 학급 ` : ""}${total}명을 저장했습니다.`);
         onSaved();
       } catch (err) {
@@ -370,7 +379,7 @@
               </div>
               <div className="roster-preview">
                 {gr.rows.map((r, i) => (
-                  <div key={i}><span className="num faint">{r.number}</span><span>{r.name}</span></div>
+                  <div key={i}><span className="num faint">{r.number}</span><span>{displayName(r.name, r.koreanName)}</span></div>
                 ))}
               </div>
             </div>
@@ -380,9 +389,10 @@
     );
   }
 
-  function RosterEdit({ s, students, onClose }) {
+  function RosterEdit({ term, s, students, onClose }) {
     const [no, setNo] = useState(String(s.number));
     const [name, setName] = useState(s.name);
+    const [korean, setKorean] = useState(s.koreanName || "");
     const [busy, setBusy] = useState(false);
     const save = async () => {
       const n = toInt(no);
@@ -390,9 +400,9 @@
       if (n !== s.number && students.some((x) => x.number === n)) return toast(`${n}번은 이미 있습니다.`, "danger");
       setBusy(true);
       const col = db.collection(PATHS.roster);
-      const data = { grade: s.grade, klass: s.klass, number: n, name: name.trim(), updatedAt: FieldValue.serverTimestamp() };
+      const data = { term, grade: s.grade, klass: s.klass, number: n, name: name.trim(), koreanName: korean.trim(), updatedAt: FieldValue.serverTimestamp() };
       if (n === s.number) await col.doc(s.id).set(data);
-      else await commitInChunks([(b) => b.delete(col.doc(s.id)), (b) => b.set(col.doc(rosterId(s.grade, s.klass, n)), data)]);
+      else await commitInChunks([(b) => b.delete(col.doc(s.id)), (b) => b.set(col.doc(rosterId(term, s.grade, s.klass, n)), data)]);
       toast("저장했습니다.");
       onClose();
     };
@@ -404,8 +414,9 @@
         </>}>
         <div className="grid gap-2" style={{ gridTemplateColumns: "5rem 1fr" }}>
           <div><label className="field-label">번호</label><input className="inp num" type="number" min="1" value={no} onChange={(e) => setNo(e.target.value)} /></div>
-          <div><label className="field-label">성명</label><input className="inp" value={name} onChange={(e) => setName(e.target.value)} /></div>
+          <div><label className="field-label">성명(나이스)</label><input className="inp" value={name} onChange={(e) => setName(e.target.value)} /></div>
         </div>
+        <div style={{ marginTop: "0.6rem" }}><label className="field-label">한글 이름 <span className="faint" style={{ fontWeight: 400 }}>(나이스 성명과 다를 때)</span></label><input className="inp" value={korean} onChange={(e) => setKorean(e.target.value)} /></div>
         <p className="field-hint">번호를 바꾸면 아직 마감되지 않은 활동의 이 학생 불참 표시는 지워집니다.</p>
       </Modal>
     );
@@ -421,7 +432,7 @@
     return (past[0] || list[list.length - 1]).id; // list는 최근 날짜가 위
   }
 
-  function AttendancePage({ isAdmin, homeroom, me, myStamp, roster, events, route, go }) {
+  function AttendancePage({ isAdmin, homeroom, me, myStamp, roster, events, route, go, term, readOnly }) {
     const fromRoute = route.cls ? route.cls.split("-").map(Number) : null;
     const g = fromRoute ? fromRoute[0] : homeroom ? homeroom.grade : null;
     const k = fromRoute ? fromRoute[1] : homeroom ? homeroom.klass : null;
@@ -476,7 +487,7 @@
       try {
         const ids = new Set(students.map((s) => s.id));
         await db.collection(PATHS.attendance).doc(attendanceId(ev.id, g, k)).set({
-          eventId: ev.id, grade: g, klass: k,
+          eventId: ev.id, term, grade: g, klass: k,
           absent: [...draft].filter((id) => ids.has(id)),
           confirmed: true, confirmedBy: me, confirmedAt: FieldValue.serverTimestamp(),
         });
@@ -505,7 +516,7 @@
     if (events !== null && !evs.length) return <>{head}<div className="card"><Empty title="등록된 활동이 없습니다." sub="담당 선생님이 활동(날짜·교시)을 등록하면 여기에 나옵니다." /></div></>;
 
     const off = students.filter((s) => draft.has(s.id)).length;
-    const locked = !!(ev && ev.finalized);
+    const locked = !!(ev && ev.finalized) || readOnly;
     const eventPicker = (
       <div className="event-list">
         {evs.map((e) => {
@@ -571,6 +582,7 @@
                             <button key={s.id} className={`tile ${isOff ? "absent" : ""}`} aria-pressed={isOff} disabled={locked} onClick={() => toggle(s.id)}>
                               <span className="no">{s.number}번</span>
                               <span className="nm">{s.name}</span>
+                              {s.koreanName && normName(s.koreanName) !== normName(s.name) && <span className="kr">{s.koreanName}</span>}
                               {isOff && <span className="st">불참</span>}
                             </button>
                           );
@@ -608,19 +620,19 @@
   // ============================================================
   // 활동 관리 · 현황판 (관리자)
   // ============================================================
-  function EventsPage({ roster, events, teachers, route, go }) {
+  function EventsPage({ roster, events, teachers, route, go, term, readOnly }) {
     const ev = route.eventId ? (events || []).find((e) => e.id === route.eventId) : null;
     if (route.eventId && events !== null && !ev) {
       return <><PageHead title="활동 · 현황판" back={() => go("#events")} /><div className="card"><Empty title="활동을 찾을 수 없습니다." /></div></>;
     }
-    if (ev) return <EventDetail ev={ev} roster={roster || []} teachers={teachers || []} go={go} />;
-    return <EventList events={events} go={go} />;
+    if (ev) return <EventDetail ev={ev} roster={roster || []} teachers={teachers || []} go={go} readOnly={readOnly} />;
+    return <EventList events={events} go={go} term={term} readOnly={readOnly} />;
   }
 
-  function EventList({ events, go }) {
+  function EventList({ events, go, term, readOnly }) {
     const [editing, setEditing] = useState(null); // null | "new" | event
     const wide = useWide();
-    const all = useCollection(PATHS.attendance);
+    const all = useCollection(PATHS.attendance, null, term);
     const confirmedBy = useMemo(() => {
       const m = {};
       (all || []).forEach((a) => { if (a.confirmed) m[a.eventId] = (m[a.eventId] || 0) + 1; });
@@ -641,7 +653,7 @@
     return (
       <>
         <PageHead title="활동 · 현황판" sub={`교육과정 내 봉사활동 ${list.length}건`}
-          actions={<IconBtn icon="plus" label="활동 추가" primary tipLeft onClick={() => setEditing("new")} />} />
+          actions={!readOnly && <IconBtn icon="plus" label="활동 추가" primary tipLeft onClick={() => setEditing("new")} />} />
         <div className="split">
           <div className="card" style={{ overflow: "hidden" }}>
             {events === null ? <Empty title="불러오는 중…" /> : list.length === 0 ? (
@@ -675,7 +687,7 @@
               </table>
             )}
           </div>
-          <EventForm key={editing && editing !== "new" ? editing.id : String(editing)} ev={editing === "new" ? null : editing}
+          <EventForm key={editing && editing !== "new" ? editing.id : String(editing)} term={term} ev={editing === "new" ? null : editing}
             open={!!editing} onClose={() => setEditing(null)} placeholder={wide ? guide : null}
             onSaved={(id) => { setEditing(null); if (id) go(`#events/${id}`); }} />
         </div>
@@ -683,7 +695,7 @@
     );
   }
 
-  function EventForm({ ev, open, onClose, onSaved, placeholder, modal }) {
+  function EventForm({ ev, term, open, onClose, onSaved, placeholder, modal }) {
     const [f, setF] = useState(() => ev ? { ...ev, grades: eventGrades(ev) } : {
       title: "", date: todayKey(), periodStart: 5, periodEnd: 6, hours: 1, area: AREAS[1], content: "", grades: [...GRADES],
     });
@@ -709,7 +721,7 @@
           onSaved(null);
         } else {
           const ref = db.collection(PATHS.events).doc();
-          await ref.set({ ...data, finalized: false, createdAt: FieldValue.serverTimestamp() });
+          await ref.set({ ...data, term, finalized: false, createdAt: FieldValue.serverTimestamp() });
           toast("활동을 추가했습니다.");
           onSaved(ref.id);
         }
@@ -761,7 +773,7 @@
     );
   }
 
-  function EventDetail({ ev, roster, teachers, go }) {
+  function EventDetail({ ev, roster, teachers, go, readOnly }) {
     const attByKey = useAttendanceFor(ev.id);
     const teacherByClass = useMemo(() => {
       const m = {};
@@ -786,7 +798,7 @@
       if (left.length && !window.confirm(`아직 확인하지 않은 학급 ${left.length}개가 있습니다(${left.map((r) => `${r.grade}-${r.klass}`).join(", ")}).\n이 학급은 지금 명단 그대로 전원 참여로 마감됩니다. 계속할까요?`)) return;
       if (!left.length && !window.confirm("마감하면 지금 명단과 출결이 확인서용으로 고정되고, 담임은 더 이상 고칠 수 없습니다. 마감할까요?")) return;
       setBusy(true);
-      const strip = (s) => ({ number: s.number, name: s.name });
+      const strip = (s) => ({ number: s.number, name: s.name, koreanName: s.koreanName || "" });
       const snapshot = Object.fromEntries(results.map((r) => [r.key, {
         grade: r.grade, klass: r.klass, teacher: r.teacher, confirmed: r.confirmed, confirmedBy: r.confirmedBy || "",
         participants: r.participants.map(strip), absent: r.absent.map(strip),
@@ -817,9 +829,9 @@
       results.forEach((r) => {
         [...r.participants.map((s) => [s, true]), ...r.absent.map((s) => [s, false])]
           .sort((a, b) => a[0].number - b[0].number)
-          .forEach(([s, on]) => rows.push([r.grade, r.klass, s.number, s.name, on ? "참여" : "불참", on ? ev.hours : 0, ev.title, ev.date, fmtPeriods(ev), ev.area, ev.content]));
+          .forEach(([s, on]) => rows.push([r.grade, r.klass, s.number, s.name, s.koreanName || "", on ? "참여" : "불참", on ? ev.hours : 0, ev.title, ev.date, fmtPeriods(ev), ev.area, ev.content]));
       });
-      downloadCsv(`교육과정내봉사_${ev.date}_${ev.title}.csv`, ["학년", "반", "번호", "이름", "참여", "인정시간", "활동", "날짜", "교시", "봉사영역", "활동내용"], rows);
+      downloadCsv(`교육과정내봉사_${ev.date}_${ev.title}.csv`, ["학년", "반", "번호", "성명(나이스)", "한글 이름", "참여", "인정시간", "활동", "날짜", "교시", "봉사영역", "활동내용"], rows);
       toast("CSV 파일을 내려받았습니다.");
     };
 
@@ -845,14 +857,14 @@
           sub={`${fmtDate(ev.date, true)} · ${fmtPeriods(ev)} · ${ev.hours}시간 · ${ev.area}`}
           actions={<>
             <IconBtn icon="printer" label="확인서 출력" primary onClick={() => setCertOpen(true)} />
-            {ev.finalized
+            {!readOnly && (ev.finalized
               ? <IconBtn icon="unlock" label="마감 풀기" onClick={unfinalize} />
-              : <IconBtn icon="lock" label="마감" disabled={busy} onClick={finalize} />}
+              : <IconBtn icon="lock" label="마감" disabled={busy} onClick={finalize} />)}
             <MoreMenu items={[
-              { label: "활동 수정", onClick: () => setEditing(true) },
+              !readOnly && { label: "활동 수정", onClick: () => setEditing(true) },
               { label: "학생별 CSV 내보내기", onClick: exportCsv },
-              "-",
-              { label: "활동 삭제", danger: true, onClick: remove },
+              !readOnly && "-",
+              !readOnly && { label: "활동 삭제", danger: true, onClick: remove },
             ]} />
           </>} />
 
@@ -896,7 +908,7 @@
           <div className="side stack">{absentList}</div>
         </div>
 
-        {editing && <EventForm ev={ev} open onClose={() => setEditing(false)} onSaved={() => setEditing(false)} modal />}
+        {editing && <EventForm ev={ev} term={ev.term} open onClose={() => setEditing(false)} onSaved={() => setEditing(false)} modal />}
         {certOpen && <CurriculumCertModal event={ev} results={results} onClose={() => setCertOpen(false)} />}
       </>
     );

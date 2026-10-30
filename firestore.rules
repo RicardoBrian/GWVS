@@ -48,7 +48,8 @@ service cloud.firestore {
           && d.name is string && d.name.size() > 0 && d.name.size() <= 30
           && d.homeroom is bool
           && (d.homeroom == false || (d.grade is int && d.klass is int))
-          && d.keys().hasOnly(['name', 'email', 'homeroom', 'grade', 'klass', 'status', 'createdAt', 'updatedAt', 'stamp', 'stampUpdatedAt']);
+          && (!('roles' in d) || (d.roles is list && d.roles.size() <= 20))
+          && d.keys().hasOnly(['name', 'email', 'homeroom', 'grade', 'klass', 'roles', 'status', 'createdAt', 'updatedAt', 'stamp', 'stampUpdatedAt']);
       }
       function stampOnly() {
         let d = request.resource.data;
@@ -63,49 +64,97 @@ service cloud.firestore {
     }
 
     match /artifacts/{appId}/public/data {
-
-      // 교육과정 외: 도우미 명단. 승인된 교사는 시간·내용 수정, 추가·삭제는 관리자.
-      match /students/{id} {
-        allow read, update: if canRead();
-        allow create, delete: if isAdmin();
+      // 모든 기록에는 학기(term)가 붙고, 지금 학기(settings/term.current) 기록만 쓰거나 지울 수 있다.
+      // 지난 학기는 보관(읽기 전용)이다. 학기가 없는 예전 기록은 관리자가 옮길 때만 고치거나 지운다.
+      function currentTerm() {
+        return get(/databases/$(database)/documents/artifacts/$(appId)/public/data/settings/term).data.current;
       }
-      match /logs/{id} {
-        allow read, create: if canRead();
-        allow update, delete: if isAdmin();
+      function writesCurrent() {
+        return request.resource.data.term == currentTerm();
+      }
+      function isCurrentOrLegacy() {
+        return !('term' in resource.data) || resource.data.term == currentTerm();
+      }
+      function rolePath(term, key) {
+        return /databases/$(database)/documents/artifacts/$(appId)/public/data/roles/$(term + '_' + key);
+      }
+      // 이 역할의 담당 교사인가
+      function isRoleTeacher(term, key) {
+        return isApproved() && exists(rolePath(term, key)) && get(rolePath(term, key)).data.get('teacherUid', '') == request.auth.uid;
+      }
+
+      match /settings/term {
+        allow read: if signedIn();
+        allow write: if isAdmin()
+          && request.resource.data.current is string
+          && request.resource.data.current.matches('^[0-9]{4}-[12]$');
       }
       match /settings/{id} {
         allow read: if canRead();
-        allow write: if isAdmin();
+        allow write: if isAdmin() && id != 'term';
+      }
+
+      // 교육과정 외: 역할(학년별 기간·담당 교사). 가입 신청 화면에서 고를 수 있게 로그인만 하면 읽을 수 있다.
+      match /roles/{id} {
+        allow read: if signedIn();
+        allow create, update: if isAdmin() && writesCurrent()
+          && id == request.resource.data.term + '_' + request.resource.data.key;
+        allow delete: if isAdmin() && isCurrentOrLegacy();
+      }
+
+      // 교육과정 외: 역할에 배정된 학생. 배정·삭제는 관리자, 인정 시간은 담당 교사도 고친다(사유 필수).
+      match /students/{id} {
+        allow read: if canRead();
+        allow create: if isAdmin() && writesCurrent();
+        allow update: if writesCurrent() && (
+          isAdmin()
+          || (resource.data.get('term', '') == request.resource.data.term
+              && isRoleTeacher(resource.data.term, resource.data.roleKey)
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['hours', 'reason', 'updatedAt', 'updatedBy'])
+              && request.resource.data.hours is int && request.resource.data.hours >= 0
+              && request.resource.data.reason is string && request.resource.data.reason.size() > 0));
+        allow delete: if isAdmin() && isCurrentOrLegacy();
+      }
+      match /logs/{id} {
+        allow read: if canRead();
+        allow create: if canRead() && writesCurrent();
+        allow update: if isAdmin() && writesCurrent();
+        allow delete: if isAdmin() && isCurrentOrLegacy();
       }
 
       // 교육과정 내: 활동은 관리자만 만든다.
       match /events/{id} {
         allow read: if canRead();
-        allow write: if isAdmin();
+        allow create, update: if isAdmin() && writesCurrent();
+        allow delete: if isAdmin() && isCurrentOrLegacy();
       }
 
-      // 전교생 명단: 문서 ID = 학년-반-번호. 담임은 자기 반 학생만 쓰고 지운다.
+      // 전교생 명단: 문서 ID = 학기_학년-반-번호. 담임은 자기 반 학생만 쓰고 지운다.
       match /roster/{id} {
         allow read: if canRead();
-        allow create, update: if canClass(request.resource.data.grade, request.resource.data.klass)
+        allow create, update: if writesCurrent()
+          && canClass(request.resource.data.grade, request.resource.data.klass)
           && request.resource.data.number is int
-          && id == string(request.resource.data.grade) + '-' + string(request.resource.data.klass) + '-' + string(request.resource.data.number)
+          && id == request.resource.data.term + '_' + string(request.resource.data.grade) + '-' + string(request.resource.data.klass) + '-' + string(request.resource.data.number)
           && (resource == null || canClass(resource.data.grade, resource.data.klass));
-        allow delete: if canClass(resource.data.grade, resource.data.klass);
+        allow delete: if isCurrentOrLegacy() && canClass(resource.data.grade, resource.data.klass);
       }
 
       // 활동별·학급별 불참 학생: 문서 ID = 활동ID_학년-반. 담임은 자기 반, 마감 전에만.
       match /attendance/{id} {
         function eventOpen(eid) {
           let path = /databases/$(database)/documents/artifacts/$(appId)/public/data/events/$(eid);
-          return exists(path) && get(path).data.get('finalized', false) != true;
+          return exists(path) && get(path).data.get('finalized', false) != true
+            && get(path).data.get('term', '') == currentTerm();
         }
         allow read: if canRead();
-        allow create, update: if canClass(request.resource.data.grade, request.resource.data.klass)
+        allow create, update: if writesCurrent()
+          && canClass(request.resource.data.grade, request.resource.data.klass)
           && id == request.resource.data.eventId + '_' + string(request.resource.data.grade) + '-' + string(request.resource.data.klass)
           && (resource == null || canClass(resource.data.grade, resource.data.klass))
-          && eventOpen(request.resource.data.eventId);
-        allow delete: if isAdmin();
+          && (eventOpen(request.resource.data.eventId)
+              || (isAdmin() && resource != null && !('term' in resource.data)));
+        allow delete: if isAdmin() && isCurrentOrLegacy();
       }
     }
 
