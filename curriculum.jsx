@@ -4,7 +4,7 @@
   const { useState, useMemo, useEffect, useRef } = React;
   const { db, FieldValue, PATHS, AREAS, GRADES, PERIODS, toInt, classKey, classLabel, rosterId, attendanceId,
     byGradeClassNo, todayKey, fmtDate, fmtPeriods, fmtTime, readTextFile, downloadCsv, commitInChunks, toast,
-    useWide, useCollection, Icon, Modal, Inspector, PageHead, Empty, Stat, MoreMenu, Seg, GradeClassSelect } = window.GW;
+    useWide, useMedia, useCollection, Icon, IconBtn, Modal, Inspector, PageHead, Empty, Stat, MoreMenu, Seg, GradeClassSelect } = window.GW;
 
   const eventGrades = (e) => (e.grades && e.grades.length ? e.grades : GRADES);
   const eventLine = (e) => [fmtDate(e.date), fmtPeriods(e), `${e.hours}시간`].filter(Boolean).join(" · ");
@@ -27,6 +27,7 @@
       return Object.values(event.snapshot).map((r) => ({
         ...r,
         key: classKey(r.grade, r.klass),
+        stamp: (teacherByClass[classKey(r.grade, r.klass)] || {}).stamp || "",
         participants: (r.participants || []).map((s) => ({ ...s, grade: r.grade, klass: r.klass })),
         absent: (r.absent || []).map((s) => ({ ...s, grade: r.grade, klass: r.klass })),
         hasRoster: true,
@@ -41,7 +42,8 @@
       const off = new Set(att ? att.absent || [] : []);
       return {
         key, grade, klass,
-        teacher: teacherByClass[key] || "",
+        teacher: (teacherByClass[key] || {}).name || "",
+        stamp: (teacherByClass[key] || {}).stamp || "",
         confirmed: !!(att && att.confirmed),
         confirmedBy: att ? att.confirmedBy || "" : "",
         confirmedAt: att ? att.confirmedAt : null,
@@ -65,42 +67,11 @@
   }
 
   // ============================================================
-  // 명단 붙여넣기·CSV 읽기
-  // 나이스 학생 명부를 엑셀에서 복사해 붙여넣거나 CSV로 저장한 파일을 받는다.
+  // 명단 CSV 읽기
   // 머리줄(번호·성명)이 있으면 그 열을 쓰고, 없으면 "숫자 칸 = 번호, 그다음 글자 칸 = 이름"으로 읽는다.
-  // 한글 확인서의 명단 표를 통째로 복사해 붙인 글(칸마다 한 줄)도 받는다.
+  // 학년·반 열이 있으면 학급별로 나눠 저장할 수 있다.
   // ============================================================
-
-  // 한글 확인서 명단 표: 칸이 "연번, 학년, 반, 번호, 성명, 인정시간" 6칸씩 이어진다.
-  // 왼쪽·오른쪽 두 줄이 번갈아 나오고 빈 칸과 "이하 빈칸" 글자가 끼어 있어, 이 모양이 맞는 곳만 골라 읽는다.
-  // 긴 영문 이름이 칸 안에서 두 줄로 나뉜 경우와 인정시간 칸이 빈 경우도 받는다.
-  function parseCertCells(cells) {
-    const t = cells.map((c) => String(c ?? "").trim()).filter(Boolean);
-    const isInt = (v) => /^\d+$/.test(v);
-    const startsRecord = (j) => j + 4 < t.length
-      && isInt(t[j]) && isInt(t[j + 1]) && isInt(t[j + 2]) && isInt(t[j + 3]) && !isInt(t[j + 4])
-      && +t[j + 1] >= 1 && +t[j + 1] <= 6 && +t[j + 2] >= 1 && +t[j + 3] >= 1;
-    const out = [];
-    for (let i = 0; i < t.length;) {
-      if (!startsRecord(i)) { i++; continue; }
-      const [, g, c, n] = t.slice(i, i + 4);
-      let j = i + 4;
-      const parts = [];
-      while (j < t.length && !isInt(t[j]) && t[j].length > 1 && parts.length < 3) parts.push(t[j++]);
-      // 다음 칸이 같은 반의 새 학생 줄로 시작하면 인정시간 칸이 빈 것이다.
-      let hours = null;
-      if (j < t.length && isInt(t[j]) && !(startsRecord(j) && t[j + 1] === g && t[j + 2] === c)) hours = +t[j++];
-      out.push({ grade: +g, klass: +c, number: +n, name: parts.join(" "), hours });
-      i = j;
-    }
-    return out.sort(byGradeClassNo);
-  }
-
   function parseRoster(text) {
-    if (/연번|인정\s*시간/.test(text)) {
-      const cert = parseCertCells(String(text).split(/[\r\n\t]+/));
-      if (cert.length) return { rows: cert, hasClassCols: true };
-    }
     const rows = Papa.parse(String(text || "").trim(), { skipEmptyLines: true }).data
       .map((r) => r.map((c) => String(c ?? "").trim()));
     const isNum = (v) => /^\d+$/.test(v);
@@ -137,30 +108,31 @@
       }
       if (number && name) out.push({ grade, klass, number, name });
     });
-    if (!out.length) {
-      const cert = parseCertCells(String(text).split(/[\r\n\t]+/));
-      if (cert.length) return { rows: cert, hasClassCols: true };
-    }
     return { rows: out, hasClassCols: out.some((r) => r.grade && r.klass) };
   }
 
-  // 파일 여러 개(CSV·한글)를 읽어 한 미리보기로 합친다.
   async function readRosterFiles(files) {
     const rows = [];
     const failed = [];
     for (const file of files) {
       try {
-        const parsed = /\.hwpx?$/i.test(file.name)
-          ? { rows: parseCertCells(await window.GWHwp.readHwpTokens(file)) }
-          : parseRoster(await readTextFile(file));
-        if (!parsed.rows.length) failed.push(`${file.name}: 번호·이름을 찾지 못했습니다.`);
+        const parsed = parseRoster(await readTextFile(file));
+        if (!parsed.rows.length) failed.push(`${file.name}: 번호·성명을 찾지 못했습니다.`);
         rows.push(...parsed.rows);
       } catch (err) {
         console.error(file.name, err);
-        failed.push(`${file.name}: ${err.message || "읽지 못했습니다."}`);
+        failed.push(`${file.name}: 읽지 못했습니다.`);
       }
     }
     return { rows, hasClassCols: rows.some((r) => r.grade && r.klass), failed };
+  }
+
+  // 양식: 학년·반·번호·성명. 지금 명단이 있으면 그대로 채우고, 없으면 번호만 채운 빈 줄을 준다.
+  function downloadRosterTemplate(grade, klass, students) {
+    const rows = students.length
+      ? students.map((s) => [grade, klass, s.number, s.name])
+      : Array.from({ length: 30 }, (_, i) => [grade, klass, i + 1, ""]);
+    downloadCsv(`학급명단_${grade}-${klass}.csv`, ["학년", "반", "번호", "성명"], rows);
   }
 
   async function replaceClassRoster(roster, grade, klass, rows) {
@@ -182,132 +154,159 @@
     const initial = route.cls ? route.cls.split("-").map(Number) : homeroom ? [homeroom.grade, homeroom.klass] : [];
     const [grade, setGrade] = useState(initial[0] || (roster && roster[0] ? roster[0].grade : 1));
     const [klass, setKlass] = useState(initial[1] || (roster && roster[0] ? roster[0].klass : 1));
-    const [paste, setPaste] = useState("");
     const [preview, setPreview] = useState(null);
     const [editing, setEditing] = useState(null);
-    const [addNo, setAddNo] = useState("");
-    const [addName, setAddName] = useState("");
+    const [adding, setAdding] = useState(false);
     const list = roster || [];
     const locked = !isAdmin;
     const g = locked ? homeroom.grade : grade;
     const k = locked ? homeroom.klass : klass;
     const students = useMemo(() => list.filter((s) => s.grade === g && s.klass === k).sort(byGradeClassNo), [list, g, k]);
     const allClasses = useMemo(() => classesOf(list), [list]);
+    const wide = useMedia("(min-width: 1280px)");
+    const xwide = useMedia("(min-width: 1600px)");
+    const phone = !useMedia("(min-width: 760px)");
+    const lastEdit = students.reduce((m, s) => (s.updatedAt && (!m || s.updatedAt.toMillis() > m.toMillis()) ? s.updatedAt : m), null);
 
-    const pick = (ng, nk) => { setGrade(ng); setKlass(nk); go(`#roster/${ng}-${nk}`); };
+    const pick = (ng, nk) => { setGrade(ng); setKlass(nk); setAdding(false); go(`#roster/${ng}-${nk}`); };
 
-    const openPreview = (text, source) => {
-      const parsed = parseRoster(text);
-      if (!parsed.rows.length) return toast("번호와 이름을 찾지 못했습니다. 번호·이름 열을 함께 복사했는지 확인하세요.", "danger");
-      setPreview({ ...parsed, source });
-    };
     const onFile = async (e) => {
       const files = [...e.target.files];
       e.target.value = "";
       if (!files.length) return;
       const parsed = await readRosterFiles(files);
-      if (!parsed.rows.length) return toast(parsed.failed[0] || "번호와 이름을 찾지 못했습니다.", "danger");
+      if (!parsed.rows.length) return toast(parsed.failed[0] || "번호·성명을 찾지 못했습니다. 양식을 내려받아 확인하세요.", "danger");
       setPreview({ ...parsed, source: files.length > 1 ? `파일 ${files.length}개` : files[0].name });
     };
 
-    const addOne = async (e) => {
-      e.preventDefault();
-      const n = toInt(addNo);
-      if (!n || !addName.trim()) return toast("번호와 이름을 입력하세요.", "danger");
-      if (students.some((s) => s.number === n)) return toast(`${n}번은 이미 있습니다.`, "danger");
-      await db.collection(PATHS.roster).doc(rosterId(g, k, n)).set({ grade: g, klass: k, number: n, name: addName.trim(), updatedAt: FieldValue.serverTimestamp() });
-      setAddNo("");
-      setAddName("");
-      toast(`${n}번 ${addName.trim()} 학생을 추가했습니다.`);
-    };
-
+    // 화면이 넓으면 명단을 여러 단으로 나눠 보여 준다(종이 명렬표처럼).
+    const cols = phone ? 1 : xwide ? 3 : wide && !isAdmin ? 3 : 2;
+    const per = Math.max(1, Math.ceil(students.length / cols));
+    const chunks = Array.from({ length: Math.ceil(students.length / per) }, (_, i) => students.slice(i * per, (i + 1) * per));
     const byGrade = GRADES.map((gr) => [gr, allClasses.filter((c) => c.grade === gr)]).filter(([, cs]) => cs.length);
+
+    const actions = (
+      <>
+        {isAdmin && (
+          <div className="wide-hide" style={{ width: "12rem" }}>
+            <GradeClassSelect grade={grade} klass={klass} classes={allClasses} onChange={(ng, nk) => ng && nk ? pick(ng, nk) : (setGrade(ng), setKlass(nk))} />
+          </div>
+        )}
+        <IconBtn icon="download" label="CSV 양식 내려받기" onClick={() => downloadRosterTemplate(g, k, students)} />
+        <label className="btn btn-icon" aria-label="CSV 올리기" data-tip="CSV 올리기">
+          <Icon name="upload" />
+          <input type="file" accept=".csv,text/csv" multiple={isAdmin} className="hidden" onChange={onFile} />
+        </label>
+        <IconBtn icon="plus" label="학생 추가" primary tipLeft onClick={() => setAdding((v) => !v)} />
+      </>
+    );
+
+    const nav = isAdmin && (
+      <nav className="panel card roster-nav" aria-label="학급">
+        <div className="roster-nav-head">
+          <span className="section-label">전교생</span>
+          <span className="num muted">{list.length}명</span>
+        </div>
+        {byGrade.map(([gr, cs]) => (
+          <div key={gr}>
+            <div className="section-label" style={{ padding: "0.75rem 0.75rem 0.25rem" }}>{gr}학년</div>
+            {cs.map((c) => {
+              const n = list.filter((s) => s.grade === c.grade && s.klass === c.klass).length;
+              const on = c.grade === g && c.klass === k;
+              return (
+                <button key={c.klass} className={`roster-nav-item ${on ? "on" : ""}`} aria-current={on ? "true" : undefined} onClick={() => pick(c.grade, c.klass)}>
+                  <span>{c.grade}학년 {c.klass}반</span>
+                  <span className="num">{n}</span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
+        {!byGrade.length && <p className="faint" style={{ fontSize: "0.8125rem", padding: "0.75rem" }}>아직 올린 명단이 없습니다.</p>}
+      </nav>
+    );
 
     return (
       <>
-        <PageHead
-          title="학급 명단"
-          sub={locked ? `${classLabel(g, k)} · ${students.length}명` : `전교생 ${list.length}명 · ${allClasses.length}개 학급`}
-          actions={isAdmin && (
-            <div style={{ width: "13rem" }}>
-              <GradeClassSelect grade={grade} klass={klass} classes={allClasses} onChange={(ng, nk) => ng && nk ? pick(ng, nk) : (setGrade(ng), setKlass(nk))} />
-            </div>
-          )}
-        />
+        <PageHead title="학급 명단" sub={isAdmin ? `전교생 ${list.length}명 · ${allClasses.length}개 학급` : classLabel(g, k)} actions={actions} />
 
-        {isAdmin && byGrade.length > 0 && (
-          <div className="card card-pad" style={{ marginBottom: "1.125rem" }}>
-            <div className="grid gap-3">
-              {byGrade.map(([gr, cs]) => (
-                <div key={gr} className="flex flex-wrap items-center gap-2">
-                  <span className="section-label" style={{ width: "2.75rem" }}>{gr}학년</span>
-                  {cs.map((c) => {
-                    const n = list.filter((s) => s.grade === c.grade && s.klass === c.klass).length;
-                    const on = c.grade === g && c.klass === k;
-                    return (
-                      <button key={c.klass} onClick={() => pick(c.grade, c.klass)} className="btn btn-sm" aria-pressed={on}>
-                        {c.klass}반 <span className="num" style={{ opacity: 0.7 }}>{n}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="split">
+        <div className={isAdmin ? "split split-left" : ""}>
+          {nav}
           <div className="card" style={{ overflow: "hidden" }}>
             <div className="card-head">
               <span className="card-title">{g && k ? classLabel(g, k) : "학급을 고르세요"}</span>
-              <span className="muted num" style={{ fontSize: "0.8125rem" }}>{students.length}명</span>
-              <span className="faint ml-auto hidden sm:inline" style={{ fontSize: "0.8rem" }}>줄을 누르면 고치거나 뺄 수 있습니다.</span>
+              <span className="badge num">{students.length}명</span>
+              {lastEdit && <span className="faint num ml-auto" style={{ fontSize: "0.78rem" }}>최근 수정 {fmtTime(lastEdit)}</span>}
             </div>
+
+            {adding && <RosterAddRow grade={g} klass={k} students={students} onClose={() => setAdding(false)} />}
+
             {roster === null ? <Empty title="불러오는 중…" /> : students.length === 0 ? (
-              <Empty title="아직 명단이 없습니다." sub="나이스 학생 명부에서 번호·이름 열을 복사해 붙여넣거나 CSV 파일을 올리세요." />
+              <Empty title="등록된 학생이 없습니다." sub="CSV 양식을 내려받아 번호·성명을 채운 뒤 올리세요." />
             ) : (
-              <div className="roster-cols">
-                {students.map((s) => (
-                  <button key={s.id} className="roster-row row-open" onClick={() => setEditing(s)}>
-                    <span className="num faint" style={{ width: "2rem" }}>{s.number}</span>
-                    <span className="font-semibold">{s.name}</span>
-                  </button>
+              <div className="roster-tables" style={{ gridTemplateColumns: `repeat(${chunks.length}, minmax(0, 1fr))` }}>
+                {chunks.map((chunk, ci) => (
+                  <table key={ci} className="data-table roster-table">
+                    <thead><tr><th style={{ width: "4rem" }}>번호</th><th>성명</th><th style={{ width: "4.5rem" }} aria-label="관리" /></tr></thead>
+                    <tbody>
+                      {chunk.map((s) => (
+                        <tr key={s.id} className="row-open" tabIndex={0} onClick={() => setEditing(s)} onKeyDown={(e) => e.key === "Enter" && setEditing(s)}>
+                          <td className="num muted">{s.number}</td>
+                          <td className="font-semibold">{s.name}</td>
+                          <td className="row-actions" onClick={(e) => e.stopPropagation()}>
+                            <IconBtn icon="edit" label="고치기" small ghost onClick={() => setEditing(s)} />
+                            <IconBtn icon="trash" label="명단에서 빼기" small ghost danger tipLeft onClick={() => removeStudent(s)} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 ))}
               </div>
             )}
-          </div>
-
-          <div className="side stack">
-            <div className="card card-pad">
-              <div className="card-title" style={{ marginBottom: "0.75rem" }}>명단 올리기</div>
-              <textarea className="inp" rows="6" value={paste} onChange={(e) => setPaste(e.target.value)}
-                placeholder={"나이스 학생 명부(엑셀)에서 번호·성명 열을 복사해 붙여넣으세요.\n한글 확인서의 명단 표를 통째로 복사해 붙여도 됩니다.\n\n1\t김하늘\n2\t이도윤"} />
-              <div className="flex gap-2 mt-2">
-                <button className="btn btn-primary" disabled={!paste.trim()} onClick={() => openPreview(paste, "붙여넣기")}>확인</button>
-                <label className="btn">
-                  <Icon name="upload" size={16} />파일 올리기
-                  <input type="file" accept=".hwp,.hwpx,.csv,.txt" multiple={isAdmin} className="hidden" onChange={onFile} />
-                </label>
-              </div>
-              <p className="field-hint">한글 확인서(.hwp·.hwpx)나 CSV 파일을 올릴 수 있습니다{isAdmin ? ". 여러 반 파일을 한꺼번에 골라도 됩니다" : ""}. 올리면 {g && k ? classLabel(g, k) : "이 학급"} 명단이 통째로 바뀝니다. 미리보기에서 확인한 뒤 저장됩니다.</p>
-            </div>
-            <form className="card card-pad" onSubmit={addOne}>
-              <div className="card-title" style={{ marginBottom: "0.75rem" }}>한 명 추가 (전입 등)</div>
-              <div className="grid gap-2" style={{ gridTemplateColumns: "5rem 1fr auto" }}>
-                <input className="inp num" type="number" min="1" placeholder="번호" value={addNo} onChange={(e) => setAddNo(e.target.value)} aria-label="번호" />
-                <input className="inp" placeholder="이름" value={addName} onChange={(e) => setAddName(e.target.value)} aria-label="이름" />
-                <button className="btn" type="submit" disabled={!g || !k}>추가</button>
-              </div>
-            </form>
           </div>
         </div>
 
         {preview && (
           <RosterPreview preview={preview} isAdmin={isAdmin} grade={g} klass={k} roster={list}
-            onClose={() => setPreview(null)} onSaved={() => { setPreview(null); setPaste(""); }} />
+            onClose={() => setPreview(null)} onSaved={() => setPreview(null)} />
         )}
         {editing && <RosterEdit s={editing} students={students} onClose={() => setEditing(null)} />}
       </>
+    );
+  }
+
+  async function removeStudent(s) {
+    if (!window.confirm(`${s.number}번 ${s.name} 학생을 명단에서 뺄까요? (전출 등)`)) return;
+    await db.collection(PATHS.roster).doc(s.id).delete();
+    toast("명단에서 뺐습니다.");
+  }
+
+  // 표 위에 펼쳐지는 한 줄 추가 칸(전입 등)
+  function RosterAddRow({ grade, klass, students, onClose }) {
+    const next = students.reduce((m, s) => Math.max(m, s.number), 0) + 1;
+    const [no, setNo] = useState(String(next));
+    const [name, setName] = useState("");
+    const ref = useRef(null);
+    useEffect(() => { ref.current && ref.current.focus(); }, []);
+    const add = async (e) => {
+      e.preventDefault();
+      const n = toInt(no);
+      if (!n || !name.trim()) return toast("번호와 성명을 입력하세요.", "danger");
+      if (students.some((s) => s.number === n)) return toast(`${n}번은 이미 있습니다.`, "danger");
+      await db.collection(PATHS.roster).doc(rosterId(grade, klass, n)).set({ grade, klass, number: n, name: name.trim(), updatedAt: FieldValue.serverTimestamp() });
+      toast(`${n}번 ${name.trim()} 학생을 추가했습니다.`);
+      setNo(String(n + 1));
+      setName("");
+      ref.current && ref.current.focus();
+    };
+    return (
+      <form className="roster-add" onSubmit={add}>
+        <input className="inp num" type="number" min="1" value={no} onChange={(e) => setNo(e.target.value)} aria-label="번호" placeholder="번호" />
+        <input ref={ref} className="inp" value={name} onChange={(e) => setName(e.target.value)} aria-label="성명" placeholder="성명" />
+        <button type="submit" className="btn btn-icon btn-primary" aria-label="추가" data-tip="추가"><Icon name="ok" /></button>
+        <IconBtn icon="close" label="닫기" ghost tipLeft onClick={onClose} />
+      </form>
     );
   }
 
@@ -337,6 +336,7 @@
     });
     const skipped = groups[0] && groups[0].skipped;
     const total = groups.reduce((n, gr) => n + gr.rows.length, 0);
+    const saveLabel = mode === "file" ? `${groups.length}개 학급 ${total}명 저장` : `${classLabel(grade, klass)}에 ${total}명 저장`;
 
     const save = async () => {
       if (problems.length) return;
@@ -355,24 +355,22 @@
     };
 
     return (
-      <Modal title="명단 미리보기" sub={`${preview.source} · ${preview.rows.length}줄을 읽었습니다.`} onClose={onClose} width={640}
-        footer={<>
-          <button onClick={onClose} className="btn">취소</button>
-          <button onClick={save} disabled={busy || !total || problems.length > 0} className="btn btn-primary">
-            {mode === "file" ? `${groups.length}개 학급 저장` : `${classLabel(grade, klass)}에 ${total}명 저장`}
-          </button>
-        </>}>
+      <Modal title="명단 미리보기" sub={`${preview.source} · ${saveLabel}`} onClose={onClose} width={720}
+        footer={<IconBtn icon="ok" label={saveLabel} primary tipLeft disabled={busy || !total || problems.length > 0} onClick={save} />}>
         <div className="fields">
-          {multi && <Seg value={mode} onChange={setMode} options={[["file", "파일의 학년·반대로 저장"], ["this", `${classLabel(grade, klass)}에만 저장`]]} />}
+          {multi && <Seg value={mode} onChange={setMode} options={[["file", "파일의 학년·반대로"], ["this", `${classLabel(grade, klass)}에만`]]} />}
           {preview.failed && preview.failed.length > 0 && <div className="notice notice-danger">{preview.failed.map((f) => <div key={f}>{f}</div>)}</div>}
           {skipped > 0 && <div className="notice notice-warn">다른 학급으로 적힌 {skipped}줄은 빼고 저장합니다.</div>}
           {problems.length > 0 && <div className="notice notice-danger">{problems.map((p) => <div key={p}>{p}</div>)}</div>}
           {groups.map((gr) => (
             <div key={classKey(gr.grade, gr.klass)}>
-              {groups.length > 1 && <div className="section-label" style={{ marginBottom: "0.35rem" }}>{classLabel(gr.grade, gr.klass)} · {gr.rows.length}명</div>}
-              <div className="roster-cols" style={{ background: "var(--fill)", borderRadius: 12 }}>
+              <div className="flex items-center gap-2" style={{ marginBottom: "0.35rem" }}>
+                <span className="font-semibold" style={{ fontSize: "0.875rem" }}>{classLabel(gr.grade, gr.klass)}</span>
+                <span className="badge num">{gr.rows.length}명</span>
+              </div>
+              <div className="roster-preview">
                 {gr.rows.map((r, i) => (
-                  <div key={i} className="roster-row"><span className="num faint" style={{ width: "2rem" }}>{r.number}</span><span>{r.name}</span></div>
+                  <div key={i}><span className="num faint">{r.number}</span><span>{r.name}</span></div>
                 ))}
               </div>
             </div>
@@ -388,7 +386,7 @@
     const [busy, setBusy] = useState(false);
     const save = async () => {
       const n = toInt(no);
-      if (!n || !name.trim()) return toast("번호와 이름을 입력하세요.", "danger");
+      if (!n || !name.trim()) return toast("번호와 성명을 입력하세요.", "danger");
       if (n !== s.number && students.some((x) => x.number === n)) return toast(`${n}번은 이미 있습니다.`, "danger");
       setBusy(true);
       const col = db.collection(PATHS.roster);
@@ -398,22 +396,15 @@
       toast("저장했습니다.");
       onClose();
     };
-    const remove = async () => {
-      if (!window.confirm(`${s.number}번 ${s.name} 학생을 명단에서 뺄까요? (전출 등)`)) return;
-      await db.collection(PATHS.roster).doc(s.id).delete();
-      toast("명단에서 뺐습니다.");
-      onClose();
-    };
     return (
       <Modal title={`${s.number}번 ${s.name}`} sub={classLabel(s.grade, s.klass)} onClose={onClose} width={420}
         footer={<>
-          <button onClick={remove} className="btn btn-ghost btn-danger mr-auto">명단에서 빼기</button>
-          <button onClick={onClose} className="btn">취소</button>
-          <button onClick={save} disabled={busy} className="btn btn-primary">저장</button>
+          <IconBtn icon="trash" label="명단에서 빼기" ghost danger className="mr-auto" onClick={async () => { await removeStudent(s); onClose(); }} />
+          <IconBtn icon="ok" label="저장" primary tipLeft disabled={busy} onClick={save} />
         </>}>
         <div className="grid gap-2" style={{ gridTemplateColumns: "5rem 1fr" }}>
           <div><label className="field-label">번호</label><input className="inp num" type="number" min="1" value={no} onChange={(e) => setNo(e.target.value)} /></div>
-          <div><label className="field-label">이름</label><input className="inp" value={name} onChange={(e) => setName(e.target.value)} /></div>
+          <div><label className="field-label">성명</label><input className="inp" value={name} onChange={(e) => setName(e.target.value)} /></div>
         </div>
         <p className="field-hint">번호를 바꾸면 아직 마감되지 않은 활동의 이 학생 불참 표시는 지워집니다.</p>
       </Modal>
@@ -430,7 +421,7 @@
     return (past[0] || list[list.length - 1]).id; // list는 최근 날짜가 위
   }
 
-  function AttendancePage({ isAdmin, homeroom, me, roster, events, route, go }) {
+  function AttendancePage({ isAdmin, homeroom, me, myStamp, roster, events, route, go }) {
     const fromRoute = route.cls ? route.cls.split("-").map(Number) : null;
     const g = fromRoute ? fromRoute[0] : homeroom ? homeroom.grade : null;
     const k = fromRoute ? fromRoute[1] : homeroom ? homeroom.klass : null;
@@ -499,7 +490,7 @@
 
     const head = (
       <PageHead
-        title="교육과정 내 출결"
+        title="교육과정 내 봉사"
         sub={g && k ? `${classLabel(g, k)} · ${students.length}명` : "학급을 고르세요"}
         actions={isAdmin && (
           <div style={{ width: "13rem" }}>
@@ -591,12 +582,11 @@
                         참여 <strong>{students.length - off}</strong> · 불참 <strong style={{ color: off ? "var(--danger)" : undefined }}>{off}</strong>
                         {att && att.confirmed && <span className="faint" style={{ marginLeft: 8, fontSize: "0.8rem" }}>{att.confirmedBy} {fmtTime(att.confirmedAt)}</span>}
                       </div>
-                      {!locked && off > 0 && <button className="btn" onClick={() => setDraft(new Set())}>모두 참여로</button>}
-                      {att && att.confirmed && !dirty && <button className="btn" onClick={() => setCertOpen(true)}><Icon name="printer" size={16} />확인서</button>}
+                      {!locked && off > 0 && <IconBtn icon="reset" label="모두 참여로" onClick={() => setDraft(new Set())} />}
+                      {att && att.confirmed && !dirty && <IconBtn icon="printer" label="확인서" onClick={() => setCertOpen(true)} />}
                       {!locked && (
-                        <button className="btn btn-primary" disabled={busy || (att && att.confirmed && !dirty)} onClick={save}>
-                          {att && att.confirmed ? (dirty ? "변경 저장" : "확인 완료됨") : off ? `불참 ${off}명으로 확인 완료` : "전원 참여로 확인 완료"}
-                        </button>
+                        <IconBtn icon="ok" primary tipLeft disabled={busy || (att && att.confirmed && !dirty)} onClick={save}
+                          label={att && att.confirmed ? (dirty ? "변경 저장" : "확인 완료됨") : off ? `불참 ${off}명으로 확인 완료` : "전원 참여로 확인 완료"} />
                       )}
                     </div>
                   </>
@@ -607,7 +597,7 @@
         </div>
         {certOpen && ev && (
           <CurriculumCertModal event={ev}
-            results={classResults(ev, list, att ? { [classKey(g, k)]: att } : {}, { [classKey(g, k)]: homeroom && homeroom.grade === g && homeroom.klass === k ? me : "" })
+            results={classResults(ev, list, att ? { [classKey(g, k)]: att } : {}, { [classKey(g, k)]: homeroom && homeroom.grade === g && homeroom.klass === k ? { name: me, stamp: myStamp } : {} })
               .filter((r) => r.grade === g && r.klass === k)}
             onClose={() => setCertOpen(false)} />
         )}
@@ -621,7 +611,7 @@
   function EventsPage({ roster, events, teachers, route, go }) {
     const ev = route.eventId ? (events || []).find((e) => e.id === route.eventId) : null;
     if (route.eventId && events !== null && !ev) {
-      return <><PageHead title="교육과정 내 봉사" back={() => go("#events")} /><div className="card"><Empty title="활동을 찾을 수 없습니다." /></div></>;
+      return <><PageHead title="활동 · 현황판" back={() => go("#events")} /><div className="card"><Empty title="활동을 찾을 수 없습니다." /></div></>;
     }
     if (ev) return <EventDetail ev={ev} roster={roster || []} teachers={teachers || []} go={go} />;
     return <EventList events={events} go={go} />;
@@ -642,7 +632,7 @@
         <div className="card-title" style={{ marginBottom: "0.5rem" }}>진행 순서</div>
         <ol className="muted" style={{ fontSize: "0.875rem", paddingLeft: "1.1rem", margin: 0, listStyle: "decimal", display: "grid", gap: "0.35rem" }}>
           <li>활동을 추가합니다(날짜·교시·인정 시간·내용).</li>
-          <li>담임 선생님이 출결 화면에서 그 교시에 없던 학생만 불참으로 바꾸고 확인 완료를 누릅니다.</li>
+          <li>담임 선생님이 "교육과정 내 봉사" 화면에서 그 교시에 없던 학생만 불참으로 바꾸고 확인 완료를 누릅니다.</li>
           <li>활동을 눌러 현황판에서 학급별 확인 여부를 봅니다.</li>
           <li>모두 확인되면 마감하고 학급별 확인서를 출력합니다.</li>
         </ol>
@@ -650,8 +640,8 @@
     );
     return (
       <>
-        <PageHead title="교육과정 내 봉사" sub={`활동 ${list.length}건`}
-          actions={<button className="btn btn-primary" onClick={() => setEditing("new")}><Icon name="plus" size={16} />활동 추가</button>} />
+        <PageHead title="활동 · 현황판" sub={`교육과정 내 봉사활동 ${list.length}건`}
+          actions={<IconBtn icon="plus" label="활동 추가" primary tipLeft onClick={() => setEditing("new")} />} />
         <div className="split">
           <div className="card" style={{ overflow: "hidden" }}>
             {events === null ? <Empty title="불러오는 중…" /> : list.length === 0 ? (
@@ -733,7 +723,7 @@
     return (
       <Inspector open={open} modal={modal} title={ev ? "활동 수정" : "활동 추가"} sub={ev && ev.finalized ? "마감된 활동입니다. 고친 내용은 확인서에 바로 반영됩니다." : ""}
         onClose={onClose} placeholder={placeholder}
-        footer={<><button className="btn" onClick={onClose}>취소</button><button className="btn btn-primary" disabled={busy} onClick={save}>{ev ? "저장" : "추가"}</button></>}>
+        footer={<IconBtn icon="ok" label={ev ? "저장" : "추가"} primary tipLeft disabled={busy} onClick={save} />}>
         <div className="fields">
           <div><label className="field-label">활동 이름</label><input className="inp" value={f.title} onChange={(e) => set({ title: e.target.value })} placeholder="예: 학교 주변 환경 정화" /></div>
           <div><label className="field-label">날짜</label><input type="date" className="inp" value={f.date} onChange={(e) => set({ date: e.target.value })} /></div>
@@ -777,7 +767,7 @@
       const m = {};
       teachers.filter((t) => t.status === "approved" && t.homeroom).forEach((t) => {
         const k = classKey(t.grade, t.klass);
-        m[k] = m[k] ? `${m[k]}·${t.name}` : t.name;
+        m[k] = m[k] ? { name: `${m[k].name}·${t.name}`, stamp: m[k].stamp || t.stamp || "" } : { name: t.name, stamp: t.stamp || "" };
       });
       return m;
     }, [teachers]);
@@ -854,10 +844,10 @@
         <PageHead back={() => go("#events")} title={ev.title}
           sub={`${fmtDate(ev.date, true)} · ${fmtPeriods(ev)} · ${ev.hours}시간 · ${ev.area}`}
           actions={<>
-            <button className="btn btn-primary" onClick={() => setCertOpen(true)}><Icon name="printer" size={16} />확인서 출력</button>
+            <IconBtn icon="printer" label="확인서 출력" primary onClick={() => setCertOpen(true)} />
             {ev.finalized
-              ? <button className="btn" onClick={unfinalize}>마감 풀기</button>
-              : <button className="btn" disabled={busy} onClick={finalize}>마감</button>}
+              ? <IconBtn icon="unlock" label="마감 풀기" onClick={unfinalize} />
+              : <IconBtn icon="lock" label="마감" disabled={busy} onClick={finalize} />}
             <MoreMenu items={[
               { label: "활동 수정", onClick: () => setEditing(true) },
               { label: "학생별 CSV 내보내기", onClick: exportCsv },
@@ -920,6 +910,7 @@
     const [excluded, setExcluded] = useState(() => new Set(results.filter((r) => !r.participants.length).map((r) => r.key)));
     const [names, setNames] = useState({});
     const [previewing, setPreviewing] = useState(results.length === 1);
+    const [useStamp, setUseStamp] = useState(true);
     const fontOk = useMemo(() => (window.hasMalgun ? window.hasMalgun() : true), []);
     const teacherOf = (r) => (names[r.key] != null ? names[r.key] : r.teacher);
     const chosen = results.filter((r) => !excluded.has(r.key));
@@ -930,10 +921,10 @@
         students: r.participants.map((s) => ({ grade: r.grade, class: r.klass, number: s.number, name: s.name, neisName: s.name, hours: event.hours })),
         defaultContent: event.content,
       },
-      { area: event.area, inCurriculum: true, content: event.content, teacher: teacherOf(r) },
+      { area: event.area, inCurriculum: true, content: event.content, teacher: teacherOf(r), title: "담임", stamp: useStamp ? r.stamp : "" },
       confirmDate,
       { start: event.date, end: event.date }
-    )), [chosen, names, confirmDate, event]);
+    )), [chosen, names, confirmDate, event, useStamp]);
 
     const warn = (r) => [
       !r.confirmed && "출결 미확인",
@@ -959,9 +950,8 @@
       <>
         <Modal title="확인서 출력" sub={`${event.title} · 학급마다 1장 · 인쇄 창에서 "PDF로 저장"을 고르면 PDF가 됩니다.`} onClose={onClose} width={960}
           footer={<>
-            <button className="btn mr-auto" onClick={() => setPreviewing((v) => !v)}>{previewing ? "미리보기 닫기" : "미리보기"}</button>
-            <button className="btn" onClick={onClose}>닫기</button>
-            <button className="btn btn-primary" onClick={print}>PDF 저장 / 인쇄</button>
+            <IconBtn icon={previewing ? "eyeOff" : "eye"} label={previewing ? "미리보기 닫기" : "미리보기"} className="mr-auto" onClick={() => setPreviewing((v) => !v)} />
+            <IconBtn icon="printer" label="PDF 저장 / 인쇄" primary tipLeft onClick={print} />
           </>}>
           <div className="fields">
             {!fontOk && <div className="notice notice-danger">이 컴퓨터에는 맑은 고딕이 없어서 글자 폭과 줄바꿈이 원본 양식과 달라집니다. 맑은 고딕이 있는 Windows PC에서 출력하세요.</div>}
@@ -970,20 +960,27 @@
                 <label className="field-label">확인 날짜</label>
                 <input type="date" className="inp" style={{ width: "11rem" }} value={confirmDate} onChange={(e) => setConfirmDate(e.target.value)} />
               </div>
-              {results.length > 1 && <button className="btn btn-sm" onClick={() => setExcluded(allOn ? new Set(results.map((r) => r.key)) : new Set())}>{allOn ? "모두 빼기" : "모두 고르기"}</button>}
+              <label className="flex items-center gap-2" style={{ fontSize: "0.875rem", paddingBottom: "0.55rem" }}>
+                <span className="ios-switch" style={{ transform: "scale(0.8)" }}><input type="checkbox" checked={useStamp} onChange={(e) => setUseStamp(e.target.checked)} /><span /></span>
+                도장 넣기
+              </label>
               <span className="muted num ml-auto" style={{ fontSize: "0.8125rem" }}>
                 {chosen.length}개 학급 · {pages.length}쪽{warnCount > 0 && <span style={{ color: "var(--warn)" }}> · 확인 필요 {warnCount}</span>}
               </span>
             </div>
             <div className="card" style={{ overflow: "hidden", boxShadow: "none", background: "var(--fill)" }}>
               <table className="data-table">
-                <thead><tr><th style={{ width: "2.5rem" }}></th><th>학급</th><th>확인자(담임)</th><th style={{ textAlign: "right" }}>참여</th><th className="hidden sm:table-cell">확인할 점</th></tr></thead>
+                <thead><tr>
+                  <th style={{ width: "2.5rem" }}>{results.length > 1 && <input type="checkbox" aria-label="모두 고르기" checked={allOn} onChange={() => setExcluded(allOn ? new Set(results.map((r) => r.key)) : new Set())} />}</th>
+                  <th>학급</th><th>확인자(담임)</th><th>도장</th><th style={{ textAlign: "right" }}>참여</th><th className="hidden sm:table-cell">확인할 점</th>
+                </tr></thead>
                 <tbody>
                   {results.map((r) => (
                     <tr key={r.key} style={{ opacity: excluded.has(r.key) ? 0.5 : 1 }}>
                       <td><input type="checkbox" checked={!excluded.has(r.key)} onChange={() => toggle(r.key)} aria-label={classLabel(r.grade, r.klass)} /></td>
                       <td className="font-semibold whitespace-nowrap">{classLabel(r.grade, r.klass)}</td>
                       <td><input className="inp" style={{ height: "2rem", maxWidth: "11rem" }} value={teacherOf(r)} onChange={(e) => setNames((p) => ({ ...p, [r.key]: e.target.value }))} placeholder="이름" /></td>
+                      <td>{r.stamp ? <img src={r.stamp} alt="도장" style={{ height: "1.6rem" }} /> : <span className="faint">–</span>}</td>
                       <td className="num" style={{ textAlign: "right" }}>{r.participants.length}명</td>
                       <td className="hidden sm:table-cell">{warn(r).map((w) => <span key={w} className="badge badge-warn mr-1">{w}</span>)}</td>
                     </tr>

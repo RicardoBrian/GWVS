@@ -1,8 +1,8 @@
 // 앱 틀: 로그인 상태 · 역할 · 메뉴(사이드바/상단 바/하단 탭바) · 화면 전환(#주소)
 (function () {
   const { useState, useEffect } = React;
-  const { db, auth, PATHS, classLabel, useCollection, Icon, Toast,
-    LoginScreen, ApplyScreen, TeachersPage, HelpersPage, RosterPage, AttendancePage, EventsPage } = window.GW;
+  const { db, auth, PATHS, classLabel, useCollection, Icon, IconBtn, Toast,
+    LoginScreen, StampModal, ApplyScreen, TeachersPage, HelpersPage, RosterPage, AttendancePage, EventsPage } = window.GW;
 
   const parseHash = () => {
     const [sec, a, b] = decodeURIComponent(location.hash.replace(/^#/, "")).split("/");
@@ -88,13 +88,14 @@
 
     const nav = [
       { id: "helpers", label: "교육과정 외 봉사", short: "교육과정 외", icon: "hands", group: "봉사활동" },
-      canClass && { id: "attendance", label: "교육과정 내 출결", short: "출결", icon: "check", group: "봉사활동" },
+      canClass && { id: "attendance", label: "교육과정 내 봉사", short: "교육과정 내", icon: "check", group: "봉사활동" },
       canClass && { id: "roster", label: "학급 명단", short: "명단", icon: "roster", group: "봉사활동" },
       isAdmin && { id: "events", label: "활동 · 현황판", short: "활동", icon: "events", group: "관리" },
       isAdmin && { id: "teachers", label: "교사 관리", short: "교사", icon: "teachers", group: "관리", count: pending },
     ].filter(Boolean);
     const sec = nav.some((n) => n.id === route.sec) ? route.sec : isAdmin ? "events" : homeroom ? "attendance" : "helpers";
     const groups = [...new Set(nav.map((n) => n.group))];
+    const [stampOpen, setStampOpen] = useState(false);
 
     const logout = async () => {
       await auth.signOut();
@@ -103,7 +104,7 @@
 
     let page;
     if (sec === "helpers") page = <HelpersPage isAdmin={isAdmin} operator={`${me} (${roleText})`} />;
-    else if (sec === "attendance") page = <AttendancePage isAdmin={isAdmin} homeroom={homeroom} me={me} roster={roster} events={events} route={{ eventId: route.a, cls: route.b }} go={go} />;
+    else if (sec === "attendance") page = <AttendancePage isAdmin={isAdmin} homeroom={homeroom} me={me} myStamp={(teacher && teacher.stamp) || ""} roster={roster} events={events} route={{ eventId: route.a, cls: route.b }} go={go} />;
     else if (sec === "roster") page = <RosterPage key={isAdmin ? "a" : route.a} isAdmin={isAdmin} homeroom={homeroom} roster={roster} route={{ cls: route.a }} go={go} />;
     else if (sec === "events") page = <EventsPage roster={roster} events={events} teachers={teachers} route={{ eventId: route.a }} go={go} />;
     else if (sec === "teachers") page = <TeachersPage teachers={teachers} />;
@@ -140,28 +141,27 @@
               <div className="font-semibold truncate" style={{ fontSize: "0.875rem" }}>{me}</div>
               <div className="faint truncate" style={{ fontSize: "0.75rem" }}>{roleText} · {user.email}</div>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="muted" style={{ fontSize: "0.85rem" }}>다크 모드</span>
-              <label className="ios-switch">
-                <input type="checkbox" checked={isDark} onChange={(e) => setIsDark(e.target.checked)} aria-label="다크 모드" />
-                <span />
-              </label>
+            <div className="flex items-center gap-1.5">
+              {teacher && <IconBtn icon="stamp" label="내 도장" small onClick={() => setStampOpen(true)} />}
+              <IconBtn icon={isDark ? "sun" : "moon"} label={isDark ? "밝은 화면" : "어두운 화면"} small onClick={() => setIsDark((d) => !d)} />
+              <IconBtn icon="logout" label="로그아웃" small onClick={logout} />
             </div>
-            <button onClick={logout} className="btn btn-sm" style={{ justifySelf: "start" }}><Icon name="logout" size={15} />로그아웃</button>
           </div>
         </nav>
 
         <header className="topbar">
           {brand}
           <span className="badge ml-auto">{roleText}</span>
-          <button onClick={() => setIsDark((d) => !d)} className="btn btn-sm btn-ghost btn-icon" aria-label="화면 밝기 전환"><Icon name={isDark ? "sun" : "moon"} size={16} /></button>
-          <button onClick={logout} className="btn btn-sm btn-ghost btn-icon" aria-label="로그아웃"><Icon name="logout" size={16} /></button>
+          {teacher && <IconBtn icon="stamp" label="내 도장" small ghost tipLeft onClick={() => setStampOpen(true)} />}
+          <IconBtn icon={isDark ? "sun" : "moon"} label={isDark ? "밝은 화면" : "어두운 화면"} small ghost tipLeft onClick={() => setIsDark((d) => !d)} />
+          <IconBtn icon="logout" label="로그아웃" small ghost tipLeft onClick={logout} />
         </header>
 
         <main className="main">
           <div className="page">{page}</div>
         </main>
 
+        {stampOpen && teacher && <StampModal uid={teacher.id} name={me} stamp={teacher.stamp || ""} onClose={() => setStampOpen(false)} />}
         {nav.length > 1 && (
           <nav className="tabbar" aria-label="메뉴">
             {nav.map((n) => (

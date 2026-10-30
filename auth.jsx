@@ -2,7 +2,7 @@
 (function () {
   const { useState, useMemo } = React;
   const { db, auth, FieldValue, CONTACT, toInt, classLabel, fmtTime, toast,
-    Icon, Inspector, PageHead, Empty, Seg, GradeClassSelect } = window.GW;
+    Icon, IconBtn, Modal, Inspector, PageHead, Empty, Seg, GradeClassSelect } = window.GW;
 
   const GoogleMark = () => (
     <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
@@ -154,6 +154,99 @@
     );
   }
 
+  // ---------- 도장 ----------
+  // 도장 사진·스캔을 받아 흰 바탕을 투명하게 만들고, 여백을 잘라 작은 PNG(data URL)로 만든다.
+  // 교사 문서에 그대로 저장하므로(문서 한도 1MB) 크기를 줄인다.
+  async function makeStamp(file) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error("그림 파일을 열지 못했습니다.")); i.src = url; });
+      for (const max of [320, 220, 160]) {
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        const ctx = c.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        const data = ctx.getImageData(0, 0, w, h);
+        const px = data.data;
+        let x0 = w, y0 = h, x1 = -1, y1 = -1;
+        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+          const i = (y * w + x) * 4;
+          const light = (px[i] + px[i + 1] + px[i + 2]) / 3;
+          // 밝은 바탕은 투명하게, 중간 밝기는 반투명하게
+          const a = light >= 235 ? 0 : light <= 185 ? px[i + 3] : Math.round(px[i + 3] * (235 - light) / 50);
+          px[i + 3] = a;
+          if (a > 24) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+        }
+        if (x1 < 0) throw new Error("도장 모양을 찾지 못했습니다. 흰 바탕에 찍힌 도장 사진을 올려 주세요.");
+        ctx.putImageData(data, 0, 0);
+        const pad = 4;
+        const cw = Math.min(w, x1 - x0 + 1 + pad * 2), ch = Math.min(h, y1 - y0 + 1 + pad * 2);
+        const out = document.createElement("canvas");
+        out.width = cw; out.height = ch;
+        out.getContext("2d").drawImage(c, Math.max(0, x0 - pad), Math.max(0, y0 - pad), cw, ch, 0, 0, cw, ch);
+        const dataUrl = out.toDataURL("image/png");
+        if (dataUrl.length < 190000) return dataUrl;
+      }
+      throw new Error("그림이 너무 복잡합니다. 도장 부분만 잘라서 올려 주세요.");
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  // 도장 미리보기 + 올리기·지우기 버튼
+  function StampField({ stamp, name, onChange }) {
+    const pick = async (e) => {
+      const file = e.target.files[0];
+      e.target.value = "";
+      if (!file) return;
+      try { onChange(await makeStamp(file)); } catch (err) { toast(err.message, "danger"); }
+    };
+    return (
+      <div className="stamp-field">
+        <div className="stamp-preview">
+          <span>확인자 : 담임 {Array.from(name || "").join(" ")}</span>
+          <span className="stamp-in">(인){stamp && <img src={stamp} alt="도장" />}</span>
+        </div>
+        <div className="flex gap-1.5">
+          <label className="btn btn-icon" aria-label="도장 그림 올리기" data-tip="도장 그림 올리기">
+            <Icon name="upload" />
+            <input type="file" accept="image/*" className="hidden" onChange={pick} />
+          </label>
+          {stamp && <IconBtn icon="trash" label="도장 지우기" ghost danger onClick={() => onChange("")} />}
+        </div>
+      </div>
+    );
+  }
+
+  function StampModal({ uid, name, stamp, onClose }) {
+    const [value, setValue] = useState(stamp);
+    const [busy, setBusy] = useState(false);
+    const save = async () => {
+      setBusy(true);
+      try {
+        await db.collection("teachers").doc(uid).update(value
+          ? { stamp: value, stampUpdatedAt: FieldValue.serverTimestamp() }
+          : { stamp: FieldValue.delete(), stampUpdatedAt: FieldValue.serverTimestamp() });
+        toast(value ? "도장을 저장했습니다." : "도장을 지웠습니다.");
+        onClose();
+      } catch (err) {
+        console.error(err);
+        toast("저장하지 못했습니다.", "danger");
+      }
+      setBusy(false);
+    };
+    return (
+      <Modal title="내 도장" sub="교육과정 내 봉사활동 확인서의 (인) 자리에 찍힙니다." onClose={onClose} width={440}
+        footer={<IconBtn icon="ok" label="저장" primary disabled={busy || value === stamp} onClick={save} />}>
+        <StampField stamp={value} name={name} onChange={setValue} />
+        <p className="field-hint">흰 종이에 찍은 도장을 사진으로 찍거나 스캔해 올리세요. 흰 바탕은 자동으로 투명해집니다.</p>
+      </Modal>
+    );
+  }
+
   // ---------- 교사 관리(관리자) ----------
   const STATUS = {
     pending: ["승인 대기", "badge-warn"],
@@ -193,7 +286,7 @@
             <div className="toolbar" style={{ borderBottom: "0.5px solid var(--hairline)" }}>
               <Seg value={filter} onChange={setFilter} options={[["pending", `승인 대기 ${pending}`], ["approved", "승인"], ["rejected", "거절"], ["all", "전체"]]} />
             </div>
-            {shown.length === 0 ? (
+            {teachers === null ? <Empty title="불러오는 중…" /> : shown.length === 0 ? (
               <Empty title={filter === "pending" ? "승인을 기다리는 신청이 없습니다." : "해당하는 교사가 없습니다."} />
             ) : (
               <table className="data-table">
@@ -203,6 +296,7 @@
                     <th>담임 학급</th>
                     <th className="col-wide">이메일</th>
                     <th>상태</th>
+                    <th className="col-wide">도장</th>
                     <th className="col-xwide">신청</th>
                   </tr>
                 </thead>
@@ -217,6 +311,7 @@
                       </td>
                       <td className="col-wide muted">{t.email}</td>
                       <td><span className={`badge ${STATUS[t.status]?.[1] || ""}`}>{STATUS[t.status]?.[0] || t.status}</span></td>
+                      <td className="col-wide">{t.stamp ? <img src={t.stamp} alt="도장" style={{ height: "1.6rem" }} /> : <span className="faint">–</span>}</td>
                       <td className="col-xwide muted num">{fmtTime(t.updatedAt || t.createdAt)}</td>
                     </tr>
                   ))}
@@ -235,6 +330,7 @@
     const [homeroom, setHomeroom] = useState(!!t?.homeroom);
     const [grade, setGrade] = useState(t?.grade || null);
     const [klass, setKlass] = useState(t?.klass || null);
+    const [stamp, setStamp] = useState(t?.stamp || "");
     const [busy, setBusy] = useState(false);
 
     const save = async (status) => {
@@ -249,6 +345,7 @@
           klass: homeroom ? klass : FieldValue.delete(),
           status,
           updatedAt: FieldValue.serverTimestamp(),
+          ...(stamp !== (t.stamp || "") ? { stamp: stamp || FieldValue.delete(), stampUpdatedAt: FieldValue.serverTimestamp() } : {}),
         }, { merge: true });
         toast(status === "approved" ? `${name} 선생님을 승인했습니다.` : status === "rejected" ? "거절했습니다." : "저장했습니다.");
       } catch (err) {
@@ -282,9 +379,9 @@
         }
         footer={t && (
           <>
-            <button onClick={remove} className="btn btn-ghost btn-danger mr-auto" disabled={busy}>삭제</button>
-            {t.status !== "rejected" && <button onClick={() => save("rejected")} className="btn" disabled={busy}>거절</button>}
-            <button onClick={() => save("approved")} className="btn btn-primary" disabled={busy}>{t.status === "approved" ? "저장" : "승인"}</button>
+            <IconBtn icon="trash" label="가입 정보 삭제" ghost danger className="mr-auto" disabled={busy} onClick={remove} />
+            {t.status !== "rejected" && <IconBtn icon="ban" label="거절" disabled={busy} onClick={() => save("rejected")} />}
+            <IconBtn icon="ok" label={t.status === "approved" ? "저장" : "승인"} primary disabled={busy} onClick={() => save("approved")} tipLeft />
           </>
         )}
       >
@@ -307,11 +404,17 @@
                 <GradeClassSelect grade={grade} klass={klass} onChange={(g, k) => { setGrade(g); setKlass(k); }} />
               </div>
             )}
+            {homeroom && (
+              <div>
+                <span className="field-label">도장</span>
+                <StampField stamp={stamp} name={name} onChange={setStamp} />
+              </div>
+            )}
           </div>
         )}
       </Inspector>
     );
   }
 
-  Object.assign(window.GW, { LoginScreen, ApplyScreen, TeachersPage });
+  Object.assign(window.GW, { LoginScreen, ApplyScreen, TeachersPage, StampModal });
 })();
