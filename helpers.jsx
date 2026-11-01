@@ -3,7 +3,7 @@
 // 역할마다 담당 교사가 1명 있고, 담당 교사는 자기 역할 학생의 인정 시간만 고칠 수 있다.
 (function () {
   const { useState, useMemo } = React;
-  const { db, FieldValue, PATHS, AREAS, GRADES, toInt, classLabel, studentKey, normName, displayName, termLabel,
+  const { db, FieldValue, PATHS, AREAS, GRADES, toInt, classLabel, studentKey, rosterId, normName, displayName, termLabel,
     commitInChunks, downloadCsv, toast, useCollection, useMedia, Icon, IconBtn, Modal, PageHead, Empty, MoreMenu, Seg } = window.GW;
 
   const sortByStudent = (list) => [...list].sort((a, b) => (a.grade - b.grade) || (a.class - b.class) || (a.number - b.number));
@@ -21,7 +21,8 @@
   const periodText = (p) => (p.start || p.end ? `${shortDate(p.start) || "?"} – ${shortDate(p.end) || "?"}` : "기간 없음");
   const stuLabel = (a) => `${a.grade}-${a.class}-${a.number} ${displayName(a.neisName, a.name)}`;
 
-  // ---------- 명단 점검: 전교생 명단(학적 + 나이스 성명)과 배정 학생을 맞춰 본다 ----------
+  // ---------- 명단 점검: 학번(학년-반-번호)이 고유 키. 같은 학번의 명단 학생과 이름을 맞춰 본다 ----------
+  // issue: { a: 배정 학생, type, text, r: 같은 학번의 명단 학생, alt: 같은 이름의 다른 학번 명단 학생, dup }
   function checkAssignments(assigns, roster, roles) {
     const roleKeys = new Set(roles.map((r) => r.key));
     const byKey = new Map(roster.map((r) => [studentKey(r.grade, r.klass, r.number), r]));
@@ -31,24 +32,30 @@
       if (!byName.has(n)) byName.set(n, []);
       byName.get(n).push(r);
     });
+    const at = (r) => `${r.grade}-${r.klass}-${r.number}`;
     const issues = [];
     assigns.forEach((a) => {
       if (!roleKeys.has(a.roleKey)) issues.push({ a, type: "역할 없음", text: "지워진 역할에 배정되어 있습니다." });
       if (!roster.length) return;
       const r = byKey.get(studentKey(a.grade, a.class, a.number));
-      const same = byName.get(normName(a.neisName)) || [];
-      if (r && normName(r.name) === normName(a.neisName)) {
-        // 명단에 한글 이름이 적혀 있을 때만 비교한다(비어 있으면 도우미 쪽 한글 이름을 그대로 둔다).
-        const kr = (r.koreanName || "").trim();
-        const mine = normName(a.name) === normName(a.neisName) ? "" : a.name;
-        if (kr && normName(kr) !== normName(mine)) issues.push({ a, type: "한글 이름 다름", text: mine ? `명단에는 ${kr}, 여기에는 ${mine}` : `명단에는 한글 이름 ${kr}이 있습니다.`, fix: r });
-      } else if (same.length === 1) {
-        const m = same[0];
-        issues.push({ a, type: "학적 다름", text: `명단에서는 ${m.grade}-${m.klass}-${m.number}입니다.`, fix: m });
-      } else if (r) {
-        issues.push({ a, type: "이름 다름", text: `명단의 ${r.grade}-${r.klass}-${r.number}은 ${displayName(r.name, r.koreanName)}입니다.`, fix: r });
+      const others = (byName.get(normName(a.neisName)) || []).filter((x) => x !== r);
+      const alt = others.length === 1 ? others[0] : null;
+      const mine = normName(a.name) !== normName(a.neisName) ? a.name : "";
+      if (r) {
+        if (normName(r.name) !== normName(a.neisName)) {
+          issues.push({ a, r, alt, type: "이름 다름",
+            text: `명단의 ${at(r)}은 ${displayName(r.name, r.koreanName)}${alt ? ` · 같은 이름이 명단 ${at(alt)}에 있음` : ""}` });
+        } else if (r.koreanName && mine && normName(r.koreanName) !== normName(mine)) {
+          issues.push({ a, r, type: "한글 이름 다름", text: `명단: ${r.koreanName} · 여기: ${mine}` });
+        } else if (!r.koreanName && mine) {
+          issues.push({ a, r, type: "명단에 한글 이름 없음", text: `여기에는 한글 이름 ${mine}이 있습니다.` });
+        } else if (r.koreanName && !mine) {
+          issues.push({ a, r, type: "한글 이름 없음", text: `명단의 한글 이름은 ${r.koreanName}입니다.` });
+        }
+      } else if (alt) {
+        issues.push({ a, alt, type: "학번 다름", text: `명단에 ${a.grade}-${a.class}-${a.number} 학생이 없고, 같은 이름이 ${at(alt)}에 있습니다.` });
       } else {
-        issues.push({ a, type: "명단에 없음", text: "전교생 명단에서 찾지 못했습니다(전출 등)." });
+        issues.push({ a, type: "명단에 없음", text: "이 학번의 학생이 전교생 명단에 없습니다." });
       }
     });
     const seen = new Map();
@@ -59,6 +66,30 @@
     });
     return issues;
   }
+
+  // ---------- 점검 고치기 (관리자). 학번이 같은 배정은 같은 학생이므로 함께 고친다 ----------
+  const sameStudent = (all, a) => all.filter((x) => x.grade === a.grade && x.class === a.class && x.number === a.number);
+  const fixes = {
+    // 배정 학생의 이름을 명단대로
+    useRoster: (all, a, r) => sameStudent(all, a).map((x) => (b) => b.update(db.collection(PATHS.students).doc(x.id), {
+      neisName: r.name, name: (r.koreanName || "").trim() || (normName(x.neisName) === normName(r.name) ? x.name : r.name),
+    })),
+    // 명단을 배정 학생의 이름대로
+    useMine: (all, a, r) => [(b) => b.update(db.collection(PATHS.roster).doc(r.id), {
+      name: a.neisName, koreanName: normName(a.name) !== normName(a.neisName) ? a.name : (r.koreanName || ""), updatedAt: FieldValue.serverTimestamp(),
+    })],
+    // 배정 학생을 명단의 다른 학번으로 옮긴다
+    moveTo: (all, a, alt) => [(b) => b.update(db.collection(PATHS.students).doc(a.id), {
+      grade: alt.grade, class: alt.klass, number: alt.number, rosterKey: studentKey(alt.grade, alt.klass, alt.number),
+      neisName: alt.name, name: (alt.koreanName || "").trim() || a.name,
+    })],
+    // 명단에 이 학생을 추가
+    addRoster: (all, a, term) => [(b) => b.set(db.collection(PATHS.roster).doc(rosterId(term, a.grade, a.class, a.number)), {
+      term, grade: a.grade, klass: a.class, number: a.number, name: a.neisName,
+      koreanName: normName(a.name) !== normName(a.neisName) ? a.name : "", updatedAt: FieldValue.serverTimestamp(),
+    })],
+    removeDup: (all, a) => [(b) => b.delete(db.collection(PATHS.students).doc(a.id))],
+  };
 
   function HelpersPage({ isAdmin, me, uid, operator, term, readOnly, roster, teachers, homeroom }) {
     const roles = useCollection(PATHS.roles, sortRoles, term);
@@ -106,6 +137,7 @@
     }, [list]);
     const issues = useMemo(() => (isAdmin ? checkAssignments(allList, roster || [], roleList) : []), [isAdmin, allList, roster, roleList]);
     const issueIds = useMemo(() => new Set(issues.map((i) => i.a.id)), [issues]);
+    const rosterByKey = useMemo(() => Object.fromEntries((roster || []).map((r) => [studentKey(r.grade, r.klass, r.number), r])), [roster]);
 
     const shown = list.filter((a) => {
       if (selKey && a.roleKey !== selKey) return false;
@@ -270,17 +302,17 @@
           </div>
         </div>
 
-        {editing && (
-          <AssignEditor a={list.find((x) => x.id === editing.id) || editing} role={roleByKey[editing.roleKey]} roles={roleList}
-            canEdit={canEdit(editing)} isAdmin={isAdmin} operator={operator} term={term} onClose={() => setEditing(null)} />
-        )}
         {roleEdit && (
           <RoleEditor role={roleEdit === "new" ? null : roleEdit} term={term} teachers={teachers || []} count={roleEdit !== "new" ? countBy[roleEdit.key] || 0 : 0}
             assigns={list} order={roleList.length}
             onClose={() => setRoleEdit(null)} onSaved={(key) => { setRoleEdit(null); if (key) setSel(key); }} onDeleted={() => { setRoleEdit(null); setSel(null); }} />
         )}
         {assignOpen && role && <AssignModal role={role} term={term} roster={roster || []} assigns={list} onClose={() => setAssignOpen(false)} />}
-        {checkOpen && <CheckModal issues={issues} rosterCount={(roster || []).length} onClose={() => setCheckOpen(false)} />}
+        {checkOpen && <CheckModal issues={issues} all={allList} term={term} rosterCount={(roster || []).length} onEdit={(a) => setEditing(a)} onClose={() => setCheckOpen(false)} />}
+        {editing && (
+          <AssignEditor key={editing.id} a={allList.find((x) => x.id === editing.id) || editing} all={allList} rosterByKey={rosterByKey} role={roleByKey[editing.roleKey]} roles={roleList}
+            canEdit={canEdit(editing)} isAdmin={isAdmin} operator={operator} term={term} onClose={() => setEditing(null)} />
+        )}
         {logsOpen && <LogsModal logs={logs || []} reviewer={operator} onClose={() => setLogsOpen(false)} />}
         {certOpen && <HelpersCertModal roles={roleList} assigns={list} teachers={teachers || []} issues={issues} onClose={() => setCertOpen(false)} />}
       </>
@@ -494,33 +526,50 @@
     );
   }
 
-  // ---------- 배정 학생 수정: 인정 시간 + 수정 사유(필수) ----------
-  function AssignEditor({ a, role, roles, canEdit, isAdmin, operator, term, onClose }) {
+  // ---------- 배정 학생 수정 ----------
+  // 인정 시간은 사유 필수(변경 이력에 남음). 관리자는 학번·이름·역할도 고친다(학번이 같은 다른 역할 배정도 함께).
+  function AssignEditor({ a, all, rosterByKey, role, roles, canEdit, isAdmin, operator, term, onClose }) {
     const [hours, setHours] = useState(a.hours);
     const [reason, setReason] = useState("");
     const [roleKey, setRoleKey] = useState(a.roleKey);
+    const [id, setId] = useState({ grade: String(a.grade), klass: String(a.class), number: String(a.number), neis: a.neisName || "", korean: normName(a.name) !== normName(a.neisName) ? a.name : "" });
+    const [together, setTogether] = useState(true);
     const [busy, setBusy] = useState(false);
-    const changed = Number(hours) !== a.hours || roleKey !== a.roleKey;
     const p = periodOf(role, a.grade);
+    const g = toInt(id.grade), k = toInt(id.klass), n = toInt(id.number);
+    const linked = g && k && n ? (rosterByKey || {})[studentKey(g, k, n)] : null;
+    const idChanged = isAdmin && (g !== a.grade || k !== a.class || n !== a.number || id.neis.trim() !== (a.neisName || "") || (id.korean.trim() || id.neis.trim()) !== (a.name || ""));
+    const hoursChanged = Number(hours) !== a.hours;
+    const roleChanged = isAdmin && roleKey !== a.roleKey;
+    const changed = hoursChanged || roleChanged || idChanged;
+    const siblings = sameStudent(all, a).filter((x) => x.id !== a.id);
+    const setF = (patch) => setId((x) => ({ ...x, ...patch }));
 
     const save = async () => {
       if (!changed) return onClose();
-      if (!reason.trim()) return toast("수정 사유를 적어 주세요.", "danger");
+      if (hoursChanged && !reason.trim()) return toast("인정 시간을 바꾸면 수정 사유를 적어야 합니다.", "danger");
+      if (idChanged && (!g || !k || !n || !id.neis.trim())) return toast("학년·반·번호·나이스 성명을 모두 적어 주세요.", "danger");
       const nr = roles.find((r) => r.key === roleKey);
-      const patch = { hours: Math.max(0, Number(hours) || 0), reason: reason.trim(), updatedAt: FieldValue.serverTimestamp(), updatedBy: operator };
-      if (isAdmin && roleKey !== a.roleKey) Object.assign(patch, { roleKey, helperName: nr ? nr.name : "" });
+      const ops = [];
+      const patch = {};
+      if (hoursChanged) Object.assign(patch, { hours: Math.max(0, Number(hours) || 0), reason: reason.trim(), updatedAt: FieldValue.serverTimestamp(), updatedBy: operator });
+      if (roleChanged) Object.assign(patch, { roleKey, helperName: nr ? nr.name : "" });
+      const ident = idChanged ? { grade: g, class: k, number: n, rosterKey: studentKey(g, k, n), neisName: id.neis.trim(), name: id.korean.trim() || id.neis.trim() } : null;
+      if (ident) Object.assign(patch, ident);
+      ops.push((b) => b.update(db.collection(PATHS.students).doc(a.id), patch));
+      if (ident && together) siblings.forEach((x) => ops.push((b) => b.update(db.collection(PATHS.students).doc(x.id), ident)));
+      if (hoursChanged) {
+        const logId = `log_${Date.now()}`;
+        ops.push((b) => b.set(db.collection(PATHS.logs).doc(logId), {
+          id: logId, term, timestamp: new Date().toLocaleString("ko-KR"),
+          studentId: a.id, roleKey: patch.roleKey || a.roleKey, roleName: (nr || role || {}).name || a.helperName || "",
+          studentName: (ident || a).name, neisName: (ident || a).neisName, grade: (ident || a).grade, class: (ident || a).class, number: (ident || a).number,
+          originalHours: a.hours, newHours: patch.hours, reason: patch.reason, operator,
+        }));
+      }
       setBusy(true);
       try {
-        const logId = `log_${Date.now()}`;
-        await commitInChunks([
-          (b) => b.update(db.collection(PATHS.students).doc(a.id), patch),
-          (b) => b.set(db.collection(PATHS.logs).doc(logId), {
-            id: logId, term, timestamp: new Date().toLocaleString("ko-KR"),
-            studentId: a.id, roleKey: patch.roleKey || a.roleKey, roleName: (nr || role || {}).name || a.helperName || "",
-            studentName: a.name, neisName: a.neisName, grade: a.grade, class: a.class, number: a.number,
-            originalHours: a.hours, newHours: patch.hours, reason: patch.reason, operator,
-          }),
-        ]);
+        await commitInChunks(ops);
         toast("저장했습니다.");
         onClose();
       } catch (err) {
@@ -537,7 +586,7 @@
     };
 
     return (
-      <Modal title={displayName(a.neisName, a.name)} sub={`${classLabel(a.grade, a.class)} ${a.number}번 · ${(role || {}).name || a.helperName || "역할 없음"}`} onClose={onClose} width={480}
+      <Modal title={displayName(a.neisName, a.name)} sub={`${classLabel(a.grade, a.class)} ${a.number}번 · ${(role || {}).name || a.helperName || "역할 없음"}`} onClose={onClose} width={520}
         footer={<>
           {isAdmin && canEdit && <IconBtn icon="trash" label="배정에서 빼기" ghost danger className="mr-auto" onClick={remove} />}
           {canEdit && <IconBtn icon="ok" label="저장" primary tipLeft disabled={busy || !changed} onClick={save} />}
@@ -548,6 +597,38 @@
             <div><span className="faint">처음 시간</span><span className="num">{a.originalHours}시간</span></div>
             {a.updatedBy && <div><span className="faint">마지막 수정</span><span>{a.updatedBy}</span></div>}
           </div>
+
+          {isAdmin && canEdit && (
+            <div className="ident-box">
+              <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
+                <div><label className="field-label">학년</label><input type="number" min="1" className="inp num" value={id.grade} onChange={(e) => setF({ grade: e.target.value })} /></div>
+                <div><label className="field-label">반</label><input type="number" min="1" className="inp num" value={id.klass} onChange={(e) => setF({ klass: e.target.value })} /></div>
+                <div><label className="field-label">번호</label><input type="number" min="1" className="inp num" value={id.number} onChange={(e) => setF({ number: e.target.value })} /></div>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div><label className="field-label">나이스 성명</label><input className="inp" value={id.neis} onChange={(e) => setF({ neis: e.target.value })} /></div>
+                <div><label className="field-label">한글 이름 <span className="faint" style={{ fontWeight: 400 }}>(다를 때)</span></label><input className="inp" value={id.korean} onChange={(e) => setF({ korean: e.target.value })} /></div>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap" style={{ fontSize: "0.85rem" }}>
+                <span className="faint">명단</span>
+                {linked ? (
+                  <>
+                    <strong>{displayName(linked.name, linked.koreanName)}</strong>
+                    {(normName(linked.name) !== normName(id.neis) || (linked.koreanName && normName(linked.koreanName) !== normName(id.korean))) && (
+                      <button type="button" className="btn btn-sm" onClick={() => setF({ neis: linked.name, korean: linked.koreanName || (normName(linked.name) === normName(id.neis) ? id.korean : "") })}>명단 이름 가져오기</button>
+                    )}
+                  </>
+                ) : <span className="badge badge-danger">이 학번은 명단에 없음</span>}
+              </div>
+              {siblings.length > 0 && (
+                <label className="flex items-center gap-2" style={{ fontSize: "0.85rem" }}>
+                  <input type="checkbox" checked={together} onChange={(e) => setTogether(e.target.checked)} />
+                  이 학생의 다른 역할 배정 {siblings.length}건도 학번·이름을 함께 고치기
+                </label>
+              )}
+            </div>
+          )}
+
           {isAdmin && canEdit && (
             <div><label className="field-label">역할</label>
               <select className="inp" value={roleKey} onChange={(e) => setRoleKey(e.target.value)}>
@@ -566,7 +647,7 @@
           {a.reason && <div className="notice" style={{ fontSize: "0.85rem" }}><span className="faint">지난 사유</span> {a.reason}</div>}
           {canEdit ? (
             <div>
-              <label className="field-label">수정 사유 <span style={{ color: "var(--danger)" }}>(필수)</span></label>
+              <label className="field-label">수정 사유 {hoursChanged ? <span style={{ color: "var(--danger)" }}>(필수)</span> : <span className="faint" style={{ fontWeight: 400 }}>(시간을 바꿀 때 필수)</span>}</label>
               <textarea rows="2" className="inp" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="예: 3월 결석이 많아 2시간 단축" />
             </div>
           ) : (
@@ -578,42 +659,58 @@
   }
 
   // ---------- 명단 점검 ----------
-  function CheckModal({ issues, rosterCount, onClose }) {
+  // 문제마다 어느 쪽이 맞는지 골라 고친다: 명단 이름 쓰기 / 이 이름을 명단에 / 학번 옮기기 / 명단에 추가 / 직접 고치기
+  function CheckModal({ issues, all, term, rosterCount, onEdit, onClose }) {
     const [busy, setBusy] = useState(false);
-    const fixable = issues.filter((i) => i.fix || i.dup);
-    const apply = async (list) => {
+    const run = async (ops, msg) => {
       setBusy(true);
       try {
-        await commitInChunks(list.map((i) => (b) => {
-          const ref = db.collection(PATHS.students).doc(i.a.id);
-          if (i.dup) return b.delete(ref);
-          const r = i.fix;
-          // 명단에 한글 이름이 없으면 원래 적혀 있던 한글 이름을 지킨다.
-          const korean = (r.koreanName || "").trim() || (normName(i.a.neisName) === normName(r.name) ? i.a.name : "") || r.name;
-          b.update(ref, { grade: r.grade, class: r.klass, number: r.number, rosterKey: studentKey(r.grade, r.klass, r.number), neisName: r.name, name: korean });
-        }));
-        toast(`${list.length}건을 고쳤습니다.`);
+        await commitInChunks(ops);
+        toast(msg || "고쳤습니다.");
       } catch (err) {
         console.error(err);
         toast("고치지 못했습니다.", "danger");
       }
       setBusy(false);
     };
+    // 한꺼번에: 명단에 한글 이름 채우기 / 빈 한글 이름을 명단에서 가져오기 / 중복 지우기 (어느 쪽이 맞는지 분명한 것만)
+    const fillRoster = issues.filter((i) => i.type === "명단에 한글 이름 없음");
+    const fillMine = issues.filter((i) => i.type === "한글 이름 없음");
+    const dups = issues.filter((i) => i.dup);
+    const byStudent = (list) => [...new Map(list.map((i) => [studentKey(i.a.grade, i.a.class, i.a.number), i])).values()];
+    const Act = ({ children, onClick }) => <button type="button" className="btn btn-sm" disabled={busy} onClick={onClick}>{children}</button>;
+
     return (
-      <Modal title="명단 점검" sub="배정 학생의 학적·나이스 성명을 전교생 명단과 맞춰 봅니다." onClose={onClose} width={760}
-        footer={fixable.length > 0 && <IconBtn icon="ok" label={`고칠 수 있는 ${fixable.length}건 모두 명단대로 고치기`} primary tipLeft disabled={busy} onClick={() => apply(fixable)} />}>
-        {!rosterCount && <div className="notice notice-warn" style={{ marginBottom: "0.75rem" }}>전교생 명단이 없어 학적·이름은 점검하지 못했습니다.</div>}
-        {issues.length === 0 ? <Empty title="문제가 없습니다." sub="모든 배정 학생이 전교생 명단과 일치합니다." /> : (
-          <div style={{ margin: "0 -1.375rem -1.125rem" }}>
-            <table className="data-table" style={{ tableLayout: "fixed" }}>
-              <thead><tr><th style={{ width: "36%" }}>학생</th><th style={{ width: "8.5rem" }}>점검</th><th>내용</th><th style={{ width: "3.75rem" }} aria-label="고치기" /></tr></thead>
+      <Modal title="명단 점검" sub="학번(학년-반-번호)으로 전교생 명단과 연결합니다. 어느 쪽이 맞는지 골라 고치세요." onClose={onClose} width={980}
+        footer={<>
+          {fillRoster.length > 0 && <Act onClick={() => run(byStudent(fillRoster).flatMap((i) => fixes.useMine(all, i.a, i.r)), "명단에 한글 이름을 채웠습니다.")}>명단에 한글 이름 채우기 {byStudent(fillRoster).length}</Act>}
+          {fillMine.length > 0 && <Act onClick={() => run(byStudent(fillMine).flatMap((i) => fixes.useRoster(all, i.a, i.r)), "한글 이름을 가져왔습니다.")}>명단의 한글 이름 가져오기 {byStudent(fillMine).length}</Act>}
+          {dups.length > 0 && <Act onClick={() => run(dups.flatMap((i) => fixes.removeDup(all, i.a)), "중복을 지웠습니다.")}>중복 {dups.length}건 지우기</Act>}
+        </>}>
+        {!rosterCount && <div className="notice notice-warn" style={{ marginBottom: "0.75rem" }}>전교생 명단이 없어 학번·이름은 점검하지 못했습니다. 학급 명단을 먼저 올려 주세요.</div>}
+        {issues.length === 0 ? <Empty title="문제가 없습니다." sub="모든 배정 학생이 같은 학번의 명단 학생과 일치합니다." /> : (
+          <div style={{ margin: "0 -1.375rem -1.125rem", overflowX: "auto" }}>
+            <table className="data-table check-table">
+              <thead><tr><th style={{ width: "28%" }}>교육과정 외 봉사</th><th style={{ width: "9rem" }}>점검</th><th>내용</th><th style={{ width: "17rem" }}>고치기</th></tr></thead>
               <tbody>
                 {issues.map((i, n) => (
                   <tr key={n}>
-                    <td><span className="num muted">{i.a.grade}-{i.a.class}-{i.a.number}</span> <strong>{displayName(i.a.neisName, i.a.name)}</strong><div className="text-xs faint">{i.a.helperName}</div></td>
-                    <td className="whitespace-nowrap"><span className={`badge ${i.type === "명단에 없음" || i.type === "역할 없음" ? "badge-danger" : "badge-warn"}`}>{i.type}</span></td>
+                    <td>
+                      <span className="num muted">{i.a.grade}-{i.a.class}-{i.a.number}</span> <strong>{displayName(i.a.neisName, i.a.name)}</strong>
+                      <div className="text-xs faint">{i.a.helperName}</div>
+                    </td>
+                    <td><span className={`badge ${["명단에 없음", "역할 없음", "이름 다름", "학번 다름"].includes(i.type) ? "badge-danger" : "badge-warn"}`}>{i.type}</span></td>
                     <td className="muted" style={{ fontSize: "0.85rem" }}>{i.text}</td>
-                    <td style={{ textAlign: "right" }}>{(i.fix || i.dup) && <IconBtn icon={i.dup ? "trash" : "ok"} label={i.dup ? "중복 지우기" : "명단대로 고치기"} small tipLeft disabled={busy} onClick={() => apply([i])} />}</td>
+                    <td>
+                      <div className="flex flex-wrap gap-1">
+                        {i.r && i.type !== "명단에 한글 이름 없음" && <Act onClick={() => run(fixes.useRoster(all, i.a, i.r))}>명단 이름 쓰기</Act>}
+                        {i.r && i.type !== "한글 이름 없음" && <Act onClick={() => run(fixes.useMine(all, i.a, i.r), "명단을 고쳤습니다.")}>이 이름을 명단에</Act>}
+                        {i.alt && <Act onClick={() => run(fixes.moveTo(all, i.a, i.alt), "학번을 옮겼습니다.")}>{i.alt.grade}-{i.alt.klass}-{i.alt.number}로 옮기기</Act>}
+                        {i.type === "명단에 없음" && <Act onClick={() => run(fixes.addRoster(all, i.a, term), "명단에 추가했습니다.")}>명단에 추가</Act>}
+                        {i.dup && <Act onClick={() => run(fixes.removeDup(all, i.a), "중복을 지웠습니다.")}>중복 지우기</Act>}
+                        {!i.dup && <IconBtn icon="edit" label="직접 고치기" small ghost tipLeft onClick={() => onEdit(i.a)} />}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
