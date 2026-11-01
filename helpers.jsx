@@ -13,6 +13,10 @@
     const m = String(d || "").match(/^\d{4}-(\d{2})-(\d{2})$/);
     return m ? `${m[1]}.${m[2]}` : "";
   };
+  const fullDate = (d) => {
+    const m = String(d || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return m ? `${m[1]}.${m[2]}.${m[3]}` : "?";
+  };
   const periodOf = (role, grade) => (role && role.periods && role.periods[String(grade)]) || {};
   const periodText = (p) => (p.start || p.end ? `${shortDate(p.start) || "?"} – ${shortDate(p.end) || "?"}` : "기간 없음");
   const stuLabel = (a) => `${a.grade}-${a.class}-${a.number} ${displayName(a.neisName, a.name)}`;
@@ -218,38 +222,49 @@
                 <Empty title={list.length ? "조건에 맞는 학생이 없습니다." : "배정된 학생이 없습니다."}
                   sub={isAdmin && !readOnly ? (role ? "＋를 눌러 전교생 명단에서 학생을 배정하세요." : "역할을 고른 뒤 학생을 배정하세요.") : ""} />
               ) : (
-                <table className="data-table">
+                // 나이스 입력 순서대로: 학년 · 반 · 번호 · 이름(한글) · 활동 기간 · 활동 내용(위에 역할) · 시간
+                <div style={{ overflowX: "auto" }}>
+                <table className="data-table helpers-table">
                   <thead>
                     <tr>
-                      <th style={{ width: "5.5rem" }}>학년·반·번호</th>
+                      <th className="c-num">학년</th>
+                      <th className="c-num">반</th>
+                      <th className="c-num">번호</th>
                       <th>이름</th>
-                      {!selKey && <th>역할</th>}
-                      <th className="col-wide">활동 기간</th>
-                      <th style={{ width: "6rem", textAlign: "right" }}>인정 시간</th>
-                      <th className="col-xwide">특이사항</th>
+                      <th>활동 기간</th>
+                      <th>활동 내용</th>
+                      <th style={{ textAlign: "right" }}>시간</th>
                     </tr>
                   </thead>
                   <tbody>
                     {shown.map((a) => {
                       const r = roleByKey[a.roleKey];
                       const editable = canEdit(a);
+                      const p = periodOf(r, a.grade);
+                      const neis = normName(a.neisName) !== normName(a.name) ? a.neisName : "";
                       return (
                         <tr key={a.id} className="row-open" tabIndex={0} onClick={() => setEditing(a)} onKeyDown={(e) => e.key === "Enter" && setEditing(a)}>
-                          <td className="num muted whitespace-nowrap">{a.grade}-{a.class}-{a.number}</td>
-                          <td>
-                            <span className="font-semibold">{displayName(a.neisName, a.name)}</span>
+                          <td className="c-num num">{a.grade}</td>
+                          <td className="c-num num">{a.class}</td>
+                          <td className="c-num num">{a.number}</td>
+                          <td className="whitespace-nowrap">
+                            <span className="font-semibold">{a.name || a.neisName}</span>
                             {issueIds.has(a.id) && <span className="badge badge-warn ml-1">점검</span>}
                             {editable && !isAdmin && <span className="badge badge-accent ml-1">수정 가능</span>}
+                            {neis && <div className="text-xs faint">{neis}</div>}
                           </td>
-                          {!selKey && <td className="whitespace-nowrap">{r ? r.name : <span className="faint">{a.helperName || "역할 없음"}</span>}</td>}
-                          <td className="col-wide num muted whitespace-nowrap">{periodText(periodOf(r, a.grade))}</td>
+                          <td className="num whitespace-nowrap">{p.start || p.end ? <>{fullDate(p.start)} – {fullDate(p.end)}</> : <span className="faint">기간 없음</span>}</td>
+                          <td>
+                            <div className="role-tag">{r ? r.name : a.helperName || "역할 없음"}</div>
+                            <div>{(r && r.content) || <span className="faint">활동 내용 없음</span>}</div>
+                          </td>
                           <td style={{ textAlign: "right" }}><Hours a={a} /></td>
-                          <td className="col-xwide muted">{a.reason}</td>
                         </tr>
                       );
                     })}
                   </tbody>
                 </table>
+                </div>
               )}
             </div>
           </div>
