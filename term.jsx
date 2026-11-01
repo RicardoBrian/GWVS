@@ -159,7 +159,7 @@
               <ul style={{ margin: "0.4rem 0 0", paddingLeft: "1.1rem", listStyle: "disc" }}>{report.mismatches.slice(0, 30).map((m) => <li key={m}>{m}</li>)}</ul>
             </div>
           )}
-          <div className="flex justify-end mt-3"><IconBtn icon="ok" label="시작하기" primary tipLeft onClick={onDone} /></div>
+          <div className="flex justify-end mt-3"><IconBtn icon="ok" label="시작하기" primary tipLeft onClick={() => onDone(term)} /></div>
         </div>
       );
     }

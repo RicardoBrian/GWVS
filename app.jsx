@@ -85,7 +85,9 @@
 
   function Portal({ user, isAdmin, teacher, termInfo, route, theme }) {
     const [isDark, setIsDark] = theme;
-    const current = termInfo ? termInfo.current : null;
+    // 처음 학기 설정 직후에는 실시간 수신보다 먼저 화면을 넘길 수 있게 방금 정한 학기를 기억해 둔다.
+    const [justSet, setJustSet] = useState(null);
+    const current = (termInfo && termInfo.current) || justSet;
     const [viewTerm, setViewTerm] = useState(current);
     // 학기 설정 화면은 옮기기를 마치고 "시작하기"를 누를 때까지 그대로 둔다(설정이 먼저 저장돼도 닫히지 않게).
     const [setupOpen, setSetupOpen] = useState(!current);
@@ -122,7 +124,7 @@
     const tp = { term, readOnly };
     let page;
     if (!current || setupOpen) page = isAdmin
-      ? <TermSetup onDone={() => setSetupOpen(false)} />
+      ? <TermSetup onDone={(t) => { setJustSet(t); setSetupOpen(false); }} />
       : <div className="card"><Empty title="학기 설정을 기다리는 중입니다." sub="관리자가 학기를 설정하면 쓸 수 있습니다." /></div>;
     else if (sec === "helpers") page = <HelpersPage {...tp} isAdmin={isAdmin} me={me} uid={user.uid} operator={`${me} (${roleText})`} roster={roster} teachers={teachers} homeroom={homeroom} />;
     else if (sec === "attendance") page = <AttendancePage {...tp} isAdmin={isAdmin} homeroom={homeroom} me={me} myStamp={(teacher && teacher.stamp) || ""} roster={roster} events={events} route={{ eventId: route.a, cls: route.b }} go={go} />;
@@ -144,7 +146,7 @@
       <div>
         <nav className="sidebar" aria-label="메뉴">
           {brand}
-          {current && <TermSwitcher info={termInfo} view={term} onView={setViewTerm} isAdmin={isAdmin} />}
+          {current && <TermSwitcher info={termInfo || { current, terms: [current] }} view={term} onView={setViewTerm} isAdmin={isAdmin} />}
           <div className="side-menu">
             {groups.map((gname) => (
               <div key={gname}>
@@ -181,7 +183,7 @@
 
         <main className="main">
           <div className="page">
-            {current && <div className="term-mobile"><TermSwitcher info={termInfo} view={term} onView={setViewTerm} isAdmin={isAdmin} /></div>}
+            {current && <div className="term-mobile"><TermSwitcher info={termInfo || { current, terms: [current] }} view={term} onView={setViewTerm} isAdmin={isAdmin} /></div>}
             {readOnly && <ArchiveBanner term={term} current={current} onBack={() => setViewTerm(current)} />}
             {page}
           </div>
