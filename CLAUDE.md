@@ -8,13 +8,17 @@
 - 빌드 없음. 레포 맨 위가 그대로 배포된다. React·Tailwind·Babel 을 CDN 으로 불러와 브라우저에서 `.jsx` 를 바로 변환한다(`index.html`).
 - `core.jsx` 공통(경로 `PATHS`, 영역·학년 상수), `auth.jsx` 로그인·교사 승인, `app.jsx` 화면 틀, `term.jsx` 학기·명단·역할, `curriculum.jsx` 교육과정 내 활동, `certificate.jsx`·`certificate.css` 확인서, `helpers.jsx`.
 
-## DB — Firebase `gwvs-77114`
-- 맨 위: `teachers`, `admins`.
-- 나머지는 `artifacts/{APP_ID}/public/data/` 아래(`core.jsx` 의 `PATHS`): `settings/term`, `settings/certificate`, `roles`, `students`, `logs`, `roster`, `events`, `attendance`.
-- 규칙: `firestore.rules`. **자동 배포 안 됨** — Firebase 콘솔에 붙여넣어 게시. 고쳤으면 사용자에게 알린다.
+## DB — Firebase `gwansan-work` (업무용 통합 프로젝트, 2026-11-09 전환)
+- 출결·방송부·봉사가 함께 쓰는 프로젝트다. 봉사가 먼저 옮겨 왔고 출결·방송부는 아직 예전 프로젝트에 있다.
+- 공용: `staff/{이메일}`(교사 — uid 가 아니라 이메일로 찾는다), `admins/{이메일}`(관리자, 콘솔에서만 등록), `years/{학년도}/students/{학년도-학년-반-번호}`(전교생 명렬표).
+- 봉사: `apps/volunteer/` 아래(`core.jsx` 의 `PATHS`): `settings/term`, `settings/certificate`, `roles`(`teacherUid` 값은 담당 교사 **이메일**), `students`, `logs`, `events`, `attendance`(`absent` = 명렬표 문서 ID).
+- 규칙: `firestore.rules` = **세 앱 공용 규칙 파일**(지금은 공용+봉사). 자동 배포 안 됨 — 고치면 에뮬레이터 시험 후 `firebase deploy --only firestore:rules --project gwansan-work` 또는 콘솔에 게시. 다른 앱 부분을 깨지 않게 조심하고, 고쳤으면 사용자에게 알린다.
+- 예전 프로젝트 `gwvs-77114` 는 백업으로 남겨 두었다(지우지 않음). 2026-11-09 백업: `~/secrets/backup/2026-11-09/`.
 
 ## 배포
-- 정적 호스팅(레포 맨 위). 배포처·주소는 코드에 적혀 있지 않다 — **확인되면 여기에 적는다.**
+- Cloudflare Pages 프로젝트 `gwvs`, 빌드 없음(레포 맨 위). 주소 `gwvs.kakainfo.com`, 브랜치 미리보기 `{브랜치}.gwvs.pages.dev`.
+- 새 주소에서 로그인하려면 `gwansan-work` → Authentication → 승인된 도메인에 그 주소를 추가해야 한다.
+- Ohweb 견본(`kakainfo.com/vibe/volunteer`)이 이 레포 main 을 매일 복사한다. `core.jsx` 의 `const firebaseConfig = {...};` 모양을 바꾸면 Ohweb `ohinfo/tools/vibe/build.py` 도 확인한다.
 
 ## 테스트
 - 자동 테스트 없음. 로컬: `python3 -m http.server 8000` 후 브라우저에서 확인(실제 DB에 붙으니 쓰기 동작은 조심).

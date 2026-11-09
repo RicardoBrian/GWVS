@@ -1,50 +1,55 @@
 rules_version = '2';
 
+// 업무용 앱 통합 프로젝트 (gwansan-work) — 출결·방송부·봉사
+// 지금 들어 있는 것: 공용(staff·admins·years 명렬표) + 봉사(apps/volunteer).
+// 출결·방송부는 옮길 때 이 파일에 덧붙인다.
+//
 // 접속: Google 로그인만 받는다(익명 로그인 차단).
-// 권한: 관리자(admins/{이메일}) > 승인된 담임(자기 반만) > 승인된 비담임(교육과정 외 도우미만).
+// 교사는 이메일로 찾는다: staff/{이메일}. 관리자: admins/{이메일} (콘솔에서만 등록).
+// 자동 배포 안 됨 — 테스트(`npm test`) 통과 후 Firebase 콘솔 → Firestore → 규칙에 붙여넣어 게시.
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ───────── 공용: 신원 ─────────
     function signedIn() {
       return request.auth != null
-        && request.auth.token.firebase.sign_in_provider == 'google.com';
+        && request.auth.token.firebase.sign_in_provider == 'google.com'
+        && request.auth.token.email_verified == true;
     }
+    function myEmail() { return request.auth.token.email; }
     function isAdmin() {
-      return signedIn() && request.auth.token.email_verified == true
-        && exists(/databases/$(database)/documents/admins/$(request.auth.token.email));
+      return signedIn() && exists(/databases/$(database)/documents/admins/$(myEmail()));
     }
-    function teacherPath() {
-      return /databases/$(database)/documents/teachers/$(request.auth.uid);
-    }
+    function staffPath() { return /databases/$(database)/documents/staff/$(myEmail()); }
     function isApproved() {
-      return signedIn() && exists(teacherPath()) && get(teacherPath()).data.status == 'approved';
+      return signedIn() && exists(staffPath()) && get(staffPath()).data.status == 'approved';
     }
-    function canRead() {
-      return isAdmin() || isApproved();
-    }
+    function canRead() { return isAdmin() || isApproved(); }
     function isHomeroom(g, k) {
       return isApproved()
-        && get(teacherPath()).data.homeroom == true
-        && get(teacherPath()).data.grade == g
-        && get(teacherPath()).data.klass == k;
+        && get(staffPath()).data.homeroom == true
+        && get(staffPath()).data.grade == g
+        && get(staffPath()).data.klass == k;
     }
-    function canClass(g, k) {
-      return isAdmin() || isHomeroom(g, k);
+    function canClass(g, k) { return isAdmin() || isHomeroom(g, k); }
+
+    // 봉사 지금 학기 (명렬표 쓰기도 이 학기의 학년도만 허용)
+    function volTerm() {
+      return get(/databases/$(database)/documents/apps/volunteer/settings/term).data.current;
     }
 
-    // 관리자 목록: 문서 ID = 관리자 이메일. 본인 문서만 조회, 등록/삭제는 Firebase 콘솔에서.
-    match /admins/{adminEmail} {
-      allow get: if signedIn() && request.auth.token.email == adminEmail;
+    // 관리자 목록: 문서 ID = 이메일. 본인 문서만 조회, 등록/삭제는 콘솔에서.
+    match /admins/{email} {
+      allow get: if signedIn() && myEmail() == email;
       allow list, write: if false;
     }
 
-    // 교사 가입 신청: 본인은 "승인 대기" 상태로만 쓰고 고칠 수 있다. 승인·거절은 관리자만.
-    // 도장(stamp)은 본인이 언제든 바꿀 수 있다(다른 칸은 그대로일 때만).
-    match /teachers/{uid} {
+    // 교사(세 앱 공용): 본인은 "승인 대기"로만 신청·수정, 도장은 언제든. 승인·거절은 관리자.
+    match /staff/{email} {
       function validApplication() {
         let d = request.resource.data;
         return d.status == 'pending'
-          && d.email == request.auth.token.email
+          && d.email == myEmail()
           && d.name is string && d.name.size() > 0 && d.name.size() <= 30
           && d.homeroom is bool
           && (d.homeroom == false || (d.grade is int && d.klass is int))
@@ -56,31 +61,37 @@ service cloud.firestore {
         return d.diff(resource.data).affectedKeys().hasOnly(['stamp', 'stampUpdatedAt'])
           && (!('stamp' in d) || (d.stamp is string && d.stamp.size() < 200000 && d.stamp.matches('^data:image/png;base64,.*')));
       }
-      allow get: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow get: if signedIn() && (myEmail() == email || isAdmin());
       allow list: if isAdmin();
-      allow create: if signedIn() && request.auth.uid == uid && validApplication();
-      allow update: if isAdmin() || (signedIn() && request.auth.uid == uid && (validApplication() || stampOnly()));
+      allow create: if signedIn() && myEmail() == email && validApplication();
+      allow update: if isAdmin() || (signedIn() && myEmail() == email && (validApplication() || stampOnly()));
       allow delete: if isAdmin();
     }
 
-    match /artifacts/{appId}/public/data {
-      // 모든 기록에는 학기(term)가 붙고, 지금 학기(settings/term.current) 기록만 쓰거나 지울 수 있다.
-      // 지난 학기는 보관(읽기 전용)이다. 학기가 없는 예전 기록은 관리자가 옮길 때만 고치거나 지운다.
-      function currentTerm() {
-        return get(/databases/$(database)/documents/artifacts/$(appId)/public/data/settings/term).data.current;
-      }
-      function writesCurrent() {
-        return request.resource.data.term == currentTerm();
-      }
-      function isCurrentOrLegacy() {
-        return !('term' in resource.data) || resource.data.term == currentTerm();
-      }
+    // 전교생 명렬표(학년도별 공용): 문서 ID = 학년도-학년-반-번호.
+    // 읽기: 승인된 교사. 쓰기: 관리자 또는 그 반 담임, 봉사 지금 학기의 학년도만.
+    match /years/{year}/students/{id} {
+      allow read: if canRead();
+      allow create, update: if canClass(request.resource.data.grade, request.resource.data.klass)
+        && request.resource.data.term == volTerm()
+        && year == volTerm()[0:4]
+        && request.resource.data.number is int
+        && id == year + '-' + string(request.resource.data.grade) + '-' + string(request.resource.data.klass) + '-' + string(request.resource.data.number)
+        && (resource == null || canClass(resource.data.grade, resource.data.klass));
+      allow delete: if year == volTerm()[0:4] && canClass(resource.data.grade, resource.data.klass);
+    }
+
+    // ───────── 봉사 ─────────
+    match /apps/volunteer {
+      // 모든 기록에는 학기(term)가 붙고, 지금 학기 기록만 쓰거나 지울 수 있다(지난 학기는 보관·읽기 전용).
+      function writesCurrent() { return request.resource.data.term == volTerm(); }
+      function isCurrentOrLegacy() { return !('term' in resource.data) || resource.data.term == volTerm(); }
       function rolePath(term, key) {
-        return /databases/$(database)/documents/artifacts/$(appId)/public/data/roles/$(term + '_' + key);
+        return /databases/$(database)/documents/apps/volunteer/roles/$(term + '_' + key);
       }
-      // 이 역할의 담당 교사인가
+      // 이 역할의 담당 교사인가 (roles.teacherUid 에는 담당 교사 이메일이 들어 있다)
       function isRoleTeacher(term, key) {
-        return isApproved() && exists(rolePath(term, key)) && get(rolePath(term, key)).data.get('teacherUid', '') == request.auth.uid;
+        return isApproved() && exists(rolePath(term, key)) && get(rolePath(term, key)).data.get('teacherUid', '') == myEmail();
       }
 
       match /settings/term {
@@ -94,7 +105,7 @@ service cloud.firestore {
         allow write: if isAdmin() && id != 'term';
       }
 
-      // 교육과정 외: 역할(학년별 기간·담당 교사). 가입 신청 화면에서 고를 수 있게 로그인만 하면 읽을 수 있다.
+      // 역할: 가입 신청 화면에서 고를 수 있게 로그인만 하면 읽을 수 있다.
       match /roles/{id} {
         allow read: if signedIn();
         allow create, update: if isAdmin() && writesCurrent()
@@ -102,7 +113,7 @@ service cloud.firestore {
         allow delete: if isAdmin() && isCurrentOrLegacy();
       }
 
-      // 교육과정 외: 역할에 배정된 학생. 배정·삭제는 관리자, 인정 시간은 역할 담당 교사와 그 학생의 담임도 고친다(사유 필수).
+      // 역할에 배정된 학생. 배정·삭제는 관리자, 인정 시간은 역할 담당 교사와 그 학생의 담임도 고친다(사유 필수).
       match /students/{id} {
         allow read: if canRead();
         allow create: if isAdmin() && writesCurrent();
@@ -123,38 +134,26 @@ service cloud.firestore {
         allow delete: if isAdmin() && isCurrentOrLegacy();
       }
 
-      // 교육과정 내: 활동은 관리자만 만든다.
+      // 교육과정 내 활동은 관리자만 만든다.
       match /events/{id} {
         allow read: if canRead();
         allow create, update: if isAdmin() && writesCurrent();
         allow delete: if isAdmin() && isCurrentOrLegacy();
       }
 
-      // 전교생 명단: 문서 ID = 학기_학년-반-번호. 담임은 자기 반 학생만 쓰고 지운다.
-      match /roster/{id} {
-        allow read: if canRead();
-        allow create, update: if writesCurrent()
-          && canClass(request.resource.data.grade, request.resource.data.klass)
-          && request.resource.data.number is int
-          && id == request.resource.data.term + '_' + string(request.resource.data.grade) + '-' + string(request.resource.data.klass) + '-' + string(request.resource.data.number)
-          && (resource == null || canClass(resource.data.grade, resource.data.klass));
-        allow delete: if isCurrentOrLegacy() && canClass(resource.data.grade, resource.data.klass);
-      }
-
       // 활동별·학급별 불참 학생: 문서 ID = 활동ID_학년-반. 담임은 자기 반, 마감 전에만.
       match /attendance/{id} {
         function eventOpen(eid) {
-          let path = /databases/$(database)/documents/artifacts/$(appId)/public/data/events/$(eid);
+          let path = /databases/$(database)/documents/apps/volunteer/events/$(eid);
           return exists(path) && get(path).data.get('finalized', false) != true
-            && get(path).data.get('term', '') == currentTerm();
+            && get(path).data.get('term', '') == volTerm();
         }
         allow read: if canRead();
         allow create, update: if writesCurrent()
           && canClass(request.resource.data.grade, request.resource.data.klass)
           && id == request.resource.data.eventId + '_' + string(request.resource.data.grade) + '-' + string(request.resource.data.klass)
           && (resource == null || canClass(resource.data.grade, resource.data.klass))
-          && (eventOpen(request.resource.data.eventId)
-              || (isAdmin() && resource != null && !('term' in resource.data)));
+          && eventOpen(request.resource.data.eventId);
         allow delete: if isAdmin() && isCurrentOrLegacy();
       }
     }
