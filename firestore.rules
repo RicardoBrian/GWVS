@@ -69,16 +69,29 @@ service cloud.firestore {
     }
 
     // 전교생 명렬표(학년도별 공용): 문서 ID = 학년도-학년-반-번호.
-    // 읽기: 승인된 교사. 쓰기: 관리자 또는 그 반 담임, 봉사 지금 학기의 학년도만.
+    // 읽기: 승인된 교사. 쓰기: 관리자(학생 관리 사이트, 아무 학년도)
+    //        또는 그 반 담임(봉사 앱, 봉사 지금 학기의 학년도만).
     match /years/{year}/students/{id} {
+      function validStudent() {
+        let d = request.resource.data;
+        return year.matches('^[0-9]{4}$')
+          && d.keys().hasOnly(['grade', 'klass', 'number', 'name', 'koreanName', 'term', 'updatedAt', 'updatedBy'])
+          && d.grade is int && d.grade >= 1 && d.grade <= 3
+          && d.klass is int && d.klass >= 1 && d.klass <= 20
+          && d.number is int && d.number >= 1 && d.number <= 99
+          && d.name is string && d.name.size() > 0 && d.name.size() <= 60
+          && (!('koreanName' in d) || (d.koreanName is string && d.koreanName.size() <= 60))
+          && id == year + '-' + string(d.grade) + '-' + string(d.klass) + '-' + string(d.number);
+      }
+      function homeroomWrite() {
+        return request.resource.data.term == volTerm()
+          && year == volTerm()[0:4]
+          && isHomeroom(request.resource.data.grade, request.resource.data.klass)
+          && (resource == null || isHomeroom(resource.data.grade, resource.data.klass));
+      }
       allow read: if canRead();
-      allow create, update: if canClass(request.resource.data.grade, request.resource.data.klass)
-        && request.resource.data.term == volTerm()
-        && year == volTerm()[0:4]
-        && request.resource.data.number is int
-        && id == year + '-' + string(request.resource.data.grade) + '-' + string(request.resource.data.klass) + '-' + string(request.resource.data.number)
-        && (resource == null || canClass(resource.data.grade, resource.data.klass));
-      allow delete: if year == volTerm()[0:4] && canClass(resource.data.grade, resource.data.klass);
+      allow create, update: if validStudent() && (isAdmin() || homeroomWrite());
+      allow delete: if isAdmin() || (year == volTerm()[0:4] && isHomeroom(resource.data.grade, resource.data.klass));
     }
 
     // ───────── 봉사 ─────────
