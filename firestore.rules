@@ -1,8 +1,8 @@
 rules_version = '2';
 
 // 업무용 앱 통합 프로젝트 (gwansan-work) — 출결·방송부·봉사
-// 지금 들어 있는 것: 공용(staff·admins·years 명렬표) + 봉사(apps/volunteer).
-// 출결·방송부는 옮길 때 이 파일에 덧붙인다.
+// 지금 들어 있는 것: 공용(staff·admins·years 명렬표) + 봉사(apps/volunteer) + 출결(apps/attend).
+// 방송부는 옮길 때 이 파일에 덧붙인다.
 //
 // 접속: Google 로그인만 받는다(익명 로그인 차단).
 // 교사는 이메일로 찾는다: staff/{이메일}. 관리자: admins/{이메일} (콘솔에서만 등록).
@@ -16,7 +16,7 @@ service cloud.firestore {
         && request.auth.token.firebase.sign_in_provider == 'google.com'
         && request.auth.token.email_verified == true;
     }
-    function myEmail() { return request.auth.token.email; }
+    function myEmail() { return request.auth.token.email.lower(); }
     function isAdmin() {
       return signedIn() && exists(/databases/$(database)/documents/admins/$(myEmail()));
     }
@@ -32,6 +32,16 @@ service cloud.firestore {
         && get(staffPath()).data.klass == k;
     }
     function canClass(g, k) { return isAdmin() || isHomeroom(g, k); }
+
+    // 출결: 허용된 선생님(apps/attend/allowed) — 출결 담임은 staff 가 아니어도 된다
+    function attendAllowed() {
+      return signedIn() && (exists(/databases/$(database)/documents/apps/attend/allowed/$(myEmail())) || isAdmin());
+    }
+    // 출결 반(연도-학년-반)의 담임인가 — uid 가 아니라 이메일로 확인
+    function attendOwns(cid) {
+      let path = /databases/$(database)/documents/apps/attend/classes/$(cid);
+      return attendAllowed() && exists(path) && get(path).data.ownerEmail.lower() == myEmail();
+    }
 
     // 봉사 지금 학기 (명렬표 쓰기도 이 학기의 학년도만 허용)
     function volTerm() {
@@ -69,8 +79,8 @@ service cloud.firestore {
     }
 
     // 전교생 명렬표(학년도별 공용): 문서 ID = 학년도-학년-반-번호.
-    // 읽기: 승인된 교사. 쓰기: 관리자(학생 관리 사이트, 아무 학년도)
-    //        또는 그 반 담임(봉사 앱, 봉사 지금 학기의 학년도만).
+    // 읽기: 승인된 교사(봉사)·허용된 출결 선생님. 쓰기: 관리자(학생 관리 사이트, 아무 학년도),
+    //        그 반 담임(봉사 앱, 봉사 지금 학기의 학년도만), 그 반 출결 담임(출결 앱, 자기 반의 연도).
     match /years/{year}/students/{id} {
       function validStudent() {
         let d = request.resource.data;
@@ -89,9 +99,15 @@ service cloud.firestore {
           && isHomeroom(request.resource.data.grade, request.resource.data.klass)
           && (resource == null || isHomeroom(resource.data.grade, resource.data.klass));
       }
-      allow read: if canRead();
-      allow create, update: if validStudent() && (isAdmin() || homeroomWrite());
-      allow delete: if isAdmin() || (year == volTerm()[0:4] && isHomeroom(resource.data.grade, resource.data.klass));
+      function attendWrite() {
+        return attendOwns(year + '-' + string(request.resource.data.grade) + '-' + string(request.resource.data.klass))
+          && (resource == null || attendOwns(year + '-' + string(resource.data.grade) + '-' + string(resource.data.klass)));
+      }
+      allow read: if canRead() || attendAllowed();
+      allow create, update: if validStudent() && (isAdmin() || homeroomWrite() || attendWrite());
+      allow delete: if isAdmin()
+        || (year == volTerm()[0:4] && isHomeroom(resource.data.grade, resource.data.klass))
+        || attendOwns(year + '-' + string(resource.data.grade) + '-' + string(resource.data.klass));
     }
 
     // ───────── 봉사 ─────────
@@ -168,6 +184,171 @@ service cloud.firestore {
           && (resource == null || canClass(resource.data.grade, resource.data.klass))
           && eventOpen(request.resource.data.eventId);
         allow delete: if isAdmin() && isCurrentOrLegacy();
+      }
+    }
+
+    // ───────── 출결 (gwansanattend) ─────────
+    // 학생 이름·질병 사유가 들어가는 앱이라 여기서 막는다.
+    // 반 아래(보호자·기록·신고서)는 그 반 담임만 읽고 쓴다. 관리자도 못 본다 — 관리자는 계정 허용과 반 등록 해제만.
+    match /apps/attend {
+      function str(v, max) { return v is string && v.size() <= max; }
+      function isDate(v) { return v is string && v.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'); }
+      function dateOrEmpty(v) { return v == '' || isDate(v); }
+      function unchanged(keys) { return request.resource.data.diff(resource.data).unchangedKeys().hasAll(keys); }
+
+      // 허용된 선생님 계정
+      match /allowed/{email} {
+        allow get: if signedIn() && (email == myEmail() || isAdmin());
+        allow list, delete: if isAdmin();
+        allow create: if isAdmin()
+          && email == email.lower()
+          && request.resource.data.keys().hasOnly(['email', 'note', 'addedAt'])
+          && request.resource.data.email == email
+          && str(request.resource.data.note, 40)
+          && request.resource.data.addedAt == request.time;
+        allow update: if false;
+      }
+
+      // 승인 신청: 로그인만 한 선생님이 자기 uid 문서 하나만
+      function validRequest() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['email', 'name', 'year', 'grade', 'cls', 'createdAt'])
+          && d.keys().hasAll(['email', 'name', 'year', 'grade', 'cls', 'createdAt'])
+          && d.email == myEmail()
+          && str(d.name, 20) && d.name.size() > 0
+          && d.year is int && d.year >= 2020 && d.year <= 2100
+          && d.grade is int && d.grade >= 1 && d.grade <= 6
+          && d.cls is int && d.cls >= 1 && d.cls <= 30
+          && d.createdAt == request.time;
+      }
+      match /requests/{uid} {
+        allow get: if signedIn() && (uid == request.auth.uid || isAdmin());
+        allow list: if isAdmin();
+        allow create, update: if signedIn() && uid == request.auth.uid && validRequest();
+        allow delete: if signedIn() && (uid == request.auth.uid || isAdmin());
+      }
+
+      // 반
+      function validClass(cid) {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['year', 'grade', 'cls', 'ownerUid', 'ownerEmail', 'teacherName', 'offDays', 'stamp', 'createdAt', 'updatedAt'])
+          && d.keys().hasAll(['year', 'grade', 'cls', 'ownerUid', 'ownerEmail', 'teacherName', 'offDays', 'createdAt', 'updatedAt'])
+          && d.year is int && d.year >= 2020 && d.year <= 2100
+          && d.grade is int && d.grade >= 1 && d.grade <= 6
+          && d.cls is int && d.cls >= 1 && d.cls <= 30
+          && cid == string(d.year) + '-' + string(d.grade) + '-' + string(d.cls)
+          && str(d.teacherName, 20)
+          && (d.get('stamp', '') == '' || (str(d.stamp, 80000) && d.stamp.matches('^data:image/png;base64,[A-Za-z0-9+/=]+$')))
+          && d.offDays is list && d.offDays.size() <= 300
+          && d.updatedAt == request.time;
+      }
+      function matchesRequest() {
+        let d = request.resource.data;
+        let path = /databases/$(database)/documents/apps/attend/requests/$(d.ownerUid);
+        let rq = get(path).data;
+        return exists(path)
+          && rq.email == d.ownerEmail && rq.name == d.teacherName
+          && rq.year == d.year && rq.grade == d.grade && rq.cls == d.cls;
+      }
+      function isOwner() { return attendAllowed() && resource.data.ownerEmail.lower() == myEmail(); }
+
+      match /classes/{cid} {
+        allow get: if isAdmin() || (attendAllowed() && (resource == null || resource.data.ownerEmail.lower() == myEmail()));
+        allow list: if isAdmin() || isOwner();
+        allow create: if request.resource.data.createdAt == request.time
+          && validClass(cid) && isAdmin() && matchesRequest();
+        allow update: if isOwner()
+          && unchanged(['year', 'grade', 'cls', 'ownerUid', 'ownerEmail', 'createdAt'])
+          && validClass(cid);
+        allow delete: if isAdmin() || isOwner();
+
+        // 보호자명 (명렬표와 따로 — 그 반 담임만). 문서 ID = 연도-학년-반-번호
+        match /guardians/{gid} {
+          allow read, delete: if attendOwns(cid);
+          allow create, update: if attendOwns(cid)
+            && request.resource.data.keys().hasOnly(['number', 'guardian', 'updatedAt'])
+            && request.resource.data.number is int
+            && request.resource.data.number >= 1 && request.resource.data.number <= 99
+            && gid == cid + '-' + string(request.resource.data.number)
+            && str(request.resource.data.guardian, 40)
+            && request.resource.data.updatedAt == request.time;
+        }
+
+        // 출결 기록
+        function validRecord() {
+          let d = request.resource.data;
+          return d.keys().hasOnly(['no', 'name', 'kind', 'cause', 'start', 'end', 'period', 'days',
+                                   'reason', 'docs', 'docsIn', 'neis', 'memo', 'reportId',
+                                   'method', 'methodEtc', 'confirmDate', 'confirmHour', 'talker',
+                                   'createdAt', 'updatedAt'])
+            && d.no is int && d.no >= 1 && d.no <= 99
+            && str(d.name, 40)
+            && d.kind in ['결석', '지각', '조퇴', '결과']
+            && d.cause in ['질병', '미인정', '기타', '출석인정']
+            && isDate(d.start) && isDate(d.end) && d.end >= d.start
+            && str(d.period, 10)
+            && (d.days == null || (d.days is int && d.days >= 0 && d.days <= 400))
+            && str(d.reason, 200)
+            && d.docs is list && d.docs.size() <= 12
+            && (d.docs.size() == 0 || str(d.docs[0], 400))
+            && d.docsIn is bool && d.neis is bool
+            && str(d.memo, 500)
+            && (d.reportId == null || str(d.reportId, 40))
+            && d.get('method', '') in ['', '가정방문', '전화연락', '기타']
+            && str(d.get('methodEtc', ''), 60) && dateOrEmpty(d.get('confirmDate', ''))
+            && str(d.get('confirmHour', ''), 10) && str(d.get('talker', ''), 30)
+            && d.createdAt is timestamp
+            && d.updatedAt == request.time;
+        }
+        match /records/{rid} {
+          allow read, delete: if attendOwns(cid);
+          allow create: if attendOwns(cid) && validRecord() && request.resource.data.createdAt == request.time;
+          allow update: if attendOwns(cid) && validRecord() && unchanged(['createdAt']);
+        }
+
+        // 결석신고서
+        function validReport() {
+          let d = request.resource.data;
+          return d.keys().hasOnly(['no', 'name', 'cause', 'items', 'reason', 'written', 'selfName', 'guardianName',
+                                   'method', 'methodEtc', 'confirmDate', 'confirmHour', 'talker', 'attach',
+                                   'confirmedOn', 'teacherName', 'recordIds', 'createdAt', 'updatedAt'])
+            && d.no is int && d.no >= 1 && d.no <= 99
+            && str(d.name, 40)
+            && d.cause in ['질병', '출석인정']
+            && d.items is map && d.items.keys().hasOnly(['late', 'early', 'result', 'absent'])
+            && str(d.reason, 200)
+            && dateOrEmpty(d.written) && dateOrEmpty(d.confirmDate) && dateOrEmpty(d.confirmedOn)
+            && str(d.selfName, 40) && str(d.guardianName, 40)
+            && d.method in ['', '가정방문', '전화연락', '기타']
+            && str(d.methodEtc, 60) && str(d.confirmHour, 10) && str(d.talker, 30)
+            && str(d.attach, 400)
+            && str(d.teacherName, 20)
+            && d.recordIds is list && d.recordIds.size() <= 30
+            && d.createdAt is timestamp
+            && d.updatedAt == request.time;
+        }
+        match /reports/{rid} {
+          allow read, delete: if attendOwns(cid);
+          allow create: if attendOwns(cid) && validReport() && request.resource.data.createdAt == request.time;
+          allow update: if attendOwns(cid) && validReport() && unchanged(['createdAt']);
+        }
+      }
+
+      // 접속 기록 — 본인 이름으로만, 고치거나 지울 수 없고 관리자만 읽는다
+      match /logs/{lid} {
+        allow read: if isAdmin();
+        allow update, delete: if false;
+        allow create: if attendAllowed()
+          && request.resource.data.keys().hasOnly(['at', 'email', 'uid', 'cid', 'action', 'n'])
+          && request.resource.data.keys().hasAll(['at', 'email', 'uid', 'cid', 'action'])
+          && request.resource.data.at == request.time
+          && request.resource.data.email == myEmail()
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.action in ['login', 'print', 'student_save', 'student_delete', 'roster_replace',
+                                              'record_save', 'record_delete', 'report_save', 'report_delete', 'class_wipe']
+          && str(request.resource.data.cid, 20)
+          && (request.resource.data.cid == '' || attendOwns(request.resource.data.cid))
+          && (!('n' in request.resource.data.keys()) || (request.resource.data.n is int && request.resource.data.n >= 0 && request.resource.data.n <= 500));
       }
     }
 
