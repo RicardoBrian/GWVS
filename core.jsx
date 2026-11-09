@@ -9,13 +9,12 @@
   const firebaseConfig = USE_EMULATOR
     ? { apiKey: "demo-key", authDomain: "demo-gwansan-work.firebaseapp.com", projectId: "demo-gwansan-work" }
     : {
-      // TODO(전환): 새 프로젝트를 만든 뒤 Firebase 콘솔 → 프로젝트 설정 → 웹 앱 설정값으로 채운다.
-      apiKey: "",
+      apiKey: "AIzaSyAP8AhRYa38nVzgU2C1xvA7OLKaSJo4daw",
       authDomain: "gwansan-work.firebaseapp.com",
       projectId: "gwansan-work",
-      storageBucket: "",
-      messagingSenderId: "",
-      appId: "",
+      storageBucket: "gwansan-work.firebasestorage.app",
+      messagingSenderId: "286002258248",
+      appId: "1:286002258248:web:08318792b1ba536aecd37d",
     };
   if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
