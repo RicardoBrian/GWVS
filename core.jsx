@@ -5,18 +5,18 @@
 
   // 업무용 앱(출결·방송부·봉사) 통합 프로젝트. 예전 프로젝트 gwvs-77114 는 백업으로 그대로 둔다.
   // 로컬 시험: http://localhost:8000/?emu → Firebase 에뮬레이터(127.0.0.1:8080, 9099)에 붙는다.
+  // (Ohweb 견본 빌드가 아래 firebaseConfig 한 덩어리를 가짜 값으로 바꾼다 — 모양을 바꾸면 ohinfo/tools/vibe/build.py 도 확인)
+  const firebaseConfig = {
+    apiKey: "AIzaSyAP8AhRYa38nVzgU2C1xvA7OLKaSJo4daw",
+    authDomain: "gwansan-work.firebaseapp.com",
+    projectId: "gwansan-work",
+    storageBucket: "gwansan-work.firebasestorage.app",
+    messagingSenderId: "286002258248",
+    appId: "1:286002258248:web:08318792b1ba536aecd37d",
+  };
   const USE_EMULATOR = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).has("emu");
-  const firebaseConfig = USE_EMULATOR
-    ? { apiKey: "demo-key", authDomain: "demo-gwansan-work.firebaseapp.com", projectId: "demo-gwansan-work" }
-    : {
-      apiKey: "AIzaSyAP8AhRYa38nVzgU2C1xvA7OLKaSJo4daw",
-      authDomain: "gwansan-work.firebaseapp.com",
-      projectId: "gwansan-work",
-      storageBucket: "gwansan-work.firebasestorage.app",
-      messagingSenderId: "286002258248",
-      appId: "1:286002258248:web:08318792b1ba536aecd37d",
-    };
-  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  const EMULATOR_CONFIG = { apiKey: "demo-key", authDomain: "demo-gwansan-work.firebaseapp.com", projectId: "demo-gwansan-work" };
+  if (!firebase.apps.length) firebase.initializeApp(USE_EMULATOR ? EMULATOR_CONFIG : firebaseConfig);
   const db = firebase.firestore();
   const auth = firebase.auth();
   if (USE_EMULATOR) {
