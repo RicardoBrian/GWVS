@@ -1,8 +1,7 @@
 rules_version = '2';
 
 // 업무용 앱 통합 프로젝트 (gwansan-work) — 출결·방송부·봉사
-// 지금 들어 있는 것: 공용(staff·admins·years 명렬표) + 봉사(apps/volunteer) + 출결(apps/attend).
-// 방송부는 옮길 때 이 파일에 덧붙인다.
+// 들어 있는 것: 공용(staff·admins·years 명렬표) + 봉사(apps/volunteer) + 출결(apps/attend) + 방송부(apps/broadcast).
 //
 // 접속: Google 로그인만 받는다(익명 로그인 차단).
 // 교사는 이메일로 찾는다: staff/{이메일}. 관리자: admins/{이메일} (콘솔에서만 등록).
@@ -349,6 +348,49 @@ service cloud.firestore {
           && str(request.resource.data.cid, 20)
           && (request.resource.data.cid == '' || attendOwns(request.resource.data.cid))
           && (!('n' in request.resource.data.keys()) || (request.resource.data.n is int && request.resource.data.n >= 0 && request.resource.data.n <= 500));
+      }
+    }
+
+    // ───────── 방송부 (GWBS) ─────────
+    // 방송부원: 사이트 입장 비밀번호(Cloudflare SITE_PASSWORD)를 통과하면 Cloudflare 가 주는 커스텀 토큰(staff: true).
+    //           이 토큰은 구글 로그인이 아니라서 공용 명렬표·다른 앱 데이터는 못 본다.
+    // 관리자: 공용 admins/{이메일} 의 구글 계정.
+    // 예전에는 읽기가 모두 공개였지만, 이제 방송부원·관리자만 읽는다(학생 신청 페이지는 신청곡 만들기만).
+    function bcStaff() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'custom'
+        && request.auth.token.get('staff', false) == true;
+    }
+    function bcEdit() { return bcStaff() || isAdmin(); }
+
+    // 연결 진단용 프로브(fb-guard.js). 읽기만, 실제 문서는 없음.
+    match /__health/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /apps/broadcast {
+      match /broadcasts/{doc} { allow read, write: if bcEdit(); }
+      match /members/{doc}    { allow read, write: if bcEdit(); }
+      match /attendance/{doc} { allow read, write: if bcEdit(); }
+      match /manuals/{doc}    { allow read, write: if bcEdit(); }
+      match /settings/{doc}   { allow read: if bcEdit(); allow write: if isAdmin(); }
+
+      // 신청곡: 학생이 신청 페이지에서 직접 만드는 유일한 문서. 형식을 검사해 장난성 등록을 막는다.
+      function isSongRequest() {
+        let d = request.resource.data;
+        return d.song is string && d.song.size() > 0 && d.song.size() <= 100
+          && d.name is string && d.name.size() <= 20
+          && (!('artist' in d) || (d.artist is string && d.artist.size() <= 60))
+          && (!('grade' in d) || (d.grade is string && d.grade.size() <= 10))
+          && (!('classInfo' in d) || (d.classInfo is string && d.classInfo.size() <= 20))
+          && d.isDone == false
+          && !('videoId' in d);
+      }
+      match /songs/{doc} {
+        allow read: if bcEdit();
+        allow create: if isSongRequest() || bcEdit();
+        allow update, delete: if bcEdit();
       }
     }
 
