@@ -36,10 +36,14 @@ service cloud.firestore {
     function attendAllowed() {
       return signedIn() && (exists(/databases/$(database)/documents/apps/attend/allowed/$(myEmail())) || isAdmin());
     }
-    // 출결 반(연도-학년-반)의 담임인가 — uid 가 아니라 이메일로 확인
+    // 출결 반 문서 d 의 담임(처음 담임 ownerEmail 또는 함께 맡은 담임 coEmails)인가 — 이메일로 확인
+    function attendMember(d) {
+      return d.ownerEmail.lower() == myEmail() || myEmail() in d.get('coEmails', []);
+    }
+    // 출결 반(연도-학년-반)의 담임인가 — uid 가 아니라 이메일로 확인. 같은 반 담임은 모두 같은 데이터를 본다.
     function attendOwns(cid) {
       let path = /databases/$(database)/documents/apps/attend/classes/$(cid);
-      return attendAllowed() && exists(path) && get(path).data.ownerEmail.lower() == myEmail();
+      return attendAllowed() && exists(path) && attendMember(get(path).data);
     }
 
     // 봉사 지금 학기 (명렬표 쓰기도 이 학기의 학년도만 허용)
@@ -243,8 +247,9 @@ service cloud.firestore {
       // 반
       function validClass(cid) {
         let d = request.resource.data;
-        return d.keys().hasOnly(['year', 'grade', 'cls', 'ownerUid', 'ownerEmail', 'teacherName', 'offDays', 'stamp', 'createdAt', 'updatedAt'])
+        return d.keys().hasOnly(['year', 'grade', 'cls', 'ownerUid', 'ownerEmail', 'teacherName', 'offDays', 'stamp', 'coEmails', 'createdAt', 'updatedAt'])
           && d.keys().hasAll(['year', 'grade', 'cls', 'ownerUid', 'ownerEmail', 'teacherName', 'offDays', 'createdAt', 'updatedAt'])
+          && (!('coEmails' in d) || (d.coEmails is list && d.coEmails.size() <= 10))
           && d.year is int && d.year >= 2020 && d.year <= 2100
           && d.grade is int && d.grade >= 1 && d.grade <= 6
           && d.cls is int && d.cls >= 1 && d.cls <= 30
@@ -262,17 +267,62 @@ service cloud.firestore {
           && rq.email == d.ownerEmail && rq.name == d.teacherName
           && rq.year == d.year && rq.grade == d.grade && rq.cls == d.cls;
       }
+      function coMatchesRequest(cid, email) {
+        let d = request.resource.data;
+        let path = /databases/$(database)/documents/apps/attend/requests/$(d.uid);
+        let rq = get(path).data;
+        return exists(path)
+          && d.uid is string && email == email.lower() && d.email == email
+          && rq.email == email && rq.name == d.name && str(d.name, 20)
+          && cid == string(rq.year) + '-' + string(rq.grade) + '-' + string(rq.cls);
+      }
+      function attendOwnerOf(cid) {
+        let path = /databases/$(database)/documents/apps/attend/classes/$(cid);
+        return attendAllowed() && exists(path) && get(path).data.ownerEmail.lower() == myEmail();
+      }
       function isOwner() { return attendAllowed() && resource.data.ownerEmail.lower() == myEmail(); }
+      // 함께 맡은 담임(특별반 담임 등): 학생·기록·신고서는 처음 담임과 똑같이, 반 문서는 재량휴업일만 고친다
+      function isCo() { return attendAllowed() && myEmail() in resource.data.get('coEmails', []); }
+      function oldCo() { return resource.data.get('coEmails', []); }
+      function newCo() { return request.resource.data.get('coEmails', []); }
+      function onlyChanged(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+      // 관리자: 함께 맡을 담임 한 명 추가 — 같은 묶음에서 그 선생님 신청서대로 coteachers 문서를 만들어야 한다
+      function addsOneCo(cid) {
+        let e = newCo()[oldCo().size()];
+        return newCo().size() == oldCo().size() + 1
+          && newCo() == oldCo().concat([e])
+          && !(e in oldCo()) && e != resource.data.ownerEmail.lower()
+          && existsAfter(/databases/$(database)/documents/apps/attend/classes/$(cid)/coteachers/$(e));
+      }
+      // 관리자: 함께 맡은 담임 빼기(좁히기만)
+      function removesCo() { return newCo().size() < oldCo().size() && oldCo().hasAll(newCo()); }
 
       match /classes/{cid} {
-        allow get: if isAdmin() || (attendAllowed() && (resource == null || resource.data.ownerEmail.lower() == myEmail()));
-        allow list: if isAdmin() || isOwner();
+        allow get: if isAdmin() || (attendAllowed() && (resource == null || attendMember(resource.data)));
+        allow list: if isAdmin() || isOwner() || isCo();
         allow create: if request.resource.data.createdAt == request.time
-          && validClass(cid) && isAdmin() && matchesRequest();
-        allow update: if isOwner()
-          && unchanged(['year', 'grade', 'cls', 'ownerUid', 'ownerEmail', 'createdAt'])
-          && validClass(cid);
+          && validClass(cid) && isAdmin() && matchesRequest() && !('coEmails' in request.resource.data);
+        allow update: if validClass(cid) && (
+          (isOwner() && unchanged(['year', 'grade', 'cls', 'ownerUid', 'ownerEmail', 'createdAt']) && newCo() == oldCo())
+          || (isCo() && onlyChanged(['offDays', 'updatedAt']))
+          || (isAdmin() && onlyChanged(['coEmails', 'updatedAt']) && (addsOneCo(cid) || removesCo())));
         allow delete: if isAdmin() || isOwner();
+
+        // 함께 맡은 담임 — 문서 ID = 이메일. 이름·도장은 그 선생님 것(신고서에 찍힌다).
+        // 관리자는 그 선생님 신청서 그대로만 만든다(반 만들기와 같은 원칙).
+        match /coteachers/{email} {
+          allow read: if attendOwns(cid) || isAdmin();
+          allow create: if isAdmin() && coMatchesRequest(cid, email)
+            && request.resource.data.keys().hasOnly(['email', 'uid', 'name', 'createdAt', 'updatedAt'])
+            && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time;
+          allow update: if signedIn() && email == myEmail() && attendOwns(cid)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'stamp', 'updatedAt'])
+            && str(request.resource.data.name, 20)
+            && (request.resource.data.get('stamp', '') == '' || (str(request.resource.data.stamp, 80000) && request.resource.data.stamp.matches('^data:image/png;base64,[A-Za-z0-9+/=]+$')))
+            && request.resource.data.updatedAt == request.time;
+          // 관리자: 빼기·등록 해제. 처음 담임: 학년 말 정리.
+          allow delete: if isAdmin() || attendOwnerOf(cid);
+        }
 
         // 보호자명 (명렬표와 따로 — 그 반 담임만). 문서 ID = 연도-학년-반-번호
         match /guardians/{gid} {
