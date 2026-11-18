@@ -457,6 +457,22 @@ service cloud.firestore {
       }
     }
 
+    // ───────── 임시 페이지(gwansan.com/날짜, Ohweb ohweb/public/temp) ─────────
+    // 행사 참여 조사: 로그인 없이 누구나 제출(형식 검사), 결과는 관리자만 본다. 고치기는 안 됨.
+    match /apps/temp/events/{event}/responses/{id} {
+      function isTempResponse() {
+        let d = request.resource.data;
+        return event.matches('^[0-9]{6}$')
+          && d.keys().hasOnly(['name', 'choice', 'at'])
+          && d.name is string && d.name.size() > 0 && d.name.size() <= 30
+          && d.choice is string && d.choice.size() > 0 && d.choice.size() <= 20
+          && d.at == request.time;
+      }
+      allow create: if isTempResponse();
+      allow read, delete: if isAdmin();
+      allow update: if false;
+    }
+
     // 그 외 경로는 차단
     match /{document=**} {
       allow read, write: if false;
